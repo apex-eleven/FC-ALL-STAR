@@ -4,12 +4,14 @@ import {
   useContext,
   useMemo,
   useState,
+  useEffect,
   type ReactNode,
 } from 'react';
 import { avatarCatalogue } from '@/data/mock/avatars';
 import { loadOverrides, saveOverrides } from './avatarConfigStore';
 import { clampRequiredLevel, resolveAvatars } from './unlocks';
 import type { Avatar, AvatarCatalogue, AvatarLevelOverrides } from './types';
+import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 
 interface AvatarValue {
   /** Catalogue with admin overrides applied, in picker order. */
@@ -33,6 +35,20 @@ export interface AvatarProviderProps {
 
 export function AvatarProvider({ children, catalogue = avatarCatalogue }: AvatarProviderProps) {
   const [overrides, setOverrides] = useState<AvatarLevelOverrides>(loadOverrides);
+
+  /**
+   * Re-reads storage when the shared settings are replaced underneath the app.
+   *
+   * The admin opening or closing a pack writes one document; every open tab applies
+   * it to storage and fires this. Without it the only way to see the change is a
+   * page reload, which is a poor thing to ask of someone mid-draft.
+   */
+  useEffect(() => {
+    const refresh = () => setOverrides(loadOverrides());
+    window.addEventListener(CONFIG_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(CONFIG_CHANGED_EVENT, refresh);
+  }, []);
+
 
   const commit = useCallback((next: AvatarLevelOverrides) => {
     setOverrides(next);

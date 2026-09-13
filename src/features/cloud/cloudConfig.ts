@@ -1,5 +1,11 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { applySnapshot, collectSnapshot, isSnapshot, type Snapshot } from '@/features/backup/backup';
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
+import {
+  announceConfigChange,
+  applySnapshot,
+  collectSnapshot,
+  isSnapshot,
+  type Snapshot,
+} from '@/features/backup/backup';
 import { PATHS, cloudDb, isCloudEnabled } from './firebase';
 
 /**
@@ -80,4 +86,47 @@ export async function pullConfigFromCloud(): Promise<number> {
     // the game has settings either way.
     return 0;
   }
+}
+
+
+/**
+ * Keeps the running app in step with the admin, without a reload.
+ *
+ * One `onSnapshot` on one document. An admin opening a pack for sale is a single
+ * write; every open tab gets the new settings within a second or two and the screen
+ * they are looking at re-reads itself — no refresh, and no polling loop burning reads
+ * on a game nobody is editing.
+ *
+ * The first callback fires immediately with the current document, which is harmless:
+ * it applies the same settings the boot sequence already pulled.
+ */
+export function watchCloudConfig(): () => void {
+  const reference = configRef();
+  if (!reference) return () => undefined;
+
+  return onSnapshot(
+    reference,
+    (document) => {
+      if (!document.exists()) return;
+
+      const raw = document.data().snapshot;
+      if (typeof raw !== 'string') return;
+
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!isSnapshot(parsed)) return;
+
+        // Replace, not merge: the admin's copy is the game's copy. A player's browser
+        // holding yesterday's packs has to take today's.
+        applySnapshot(parsed as Snapshot, 'replace');
+        announceConfigChange();
+      } catch {
+        // A malformed document must not take the running game down with it.
+      }
+    },
+    () => {
+      // Offline or rules changed underneath us. The settings already loaded stay in
+      // place, which is the right outcome — the game keeps playing.
+    },
+  );
 }

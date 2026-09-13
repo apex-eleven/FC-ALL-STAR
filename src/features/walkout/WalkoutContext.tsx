@@ -4,12 +4,14 @@ import {
   useContext,
   useMemo,
   useState,
+  useEffect,
   type ReactNode,
 } from 'react';
 import type { PullOutcome } from '@/features/draft/pull';
 import { DEFAULT_WALKOUT } from './constants';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './walkoutConfigStore';
 import type { WalkoutConfig } from './types';
+import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 
 interface WalkoutValue {
   config: WalkoutConfig;
@@ -22,6 +24,20 @@ const WalkoutContext = createContext<WalkoutValue | null>(null);
 
 export function WalkoutProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<WalkoutConfig>(loadConfig);
+
+  /**
+   * Re-reads storage when the shared settings are replaced underneath the app.
+   *
+   * The admin opening or closing a pack writes one document; every open tab applies
+   * it to storage and fires this. Without it the only way to see the change is a
+   * page reload, which is a poor thing to ask of someone mid-draft.
+   */
+  useEffect(() => {
+    const refresh = () => setConfig(loadConfig());
+    window.addEventListener(CONFIG_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(CONFIG_CHANGED_EVENT, refresh);
+  }, []);
+
 
   const commit = useCallback((next: WalkoutConfig): SaveResult => {
     const clean = normalizeConfig(next);

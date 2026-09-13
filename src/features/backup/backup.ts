@@ -18,6 +18,27 @@
 /** Everything this app stores is namespaced. Nothing else in localStorage is touched. */
 export const STORAGE_PREFIX = 'football-home-ui:';
 
+/**
+ * Fired after settings are replaced underneath a running app.
+ *
+ * Every context reads its storage once, when it mounts. Without a nudge the only way
+ * to see new settings is a page reload, which is exactly what a player in the middle
+ * of a draft should not be asked to do.
+ */
+export const CONFIG_CHANGED_EVENT = 'fcallstar:config-changed';
+
+export function announceConfigChange() {
+  window.dispatchEvent(new Event(CONFIG_CHANGED_EVENT));
+}
+
+/**
+ * Per-device preferences. Never shared, even though they live under the same prefix.
+ *
+ * Sound volume is the player's, not the game's. Pushing the admin's setting to
+ * everyone would turn one person's muted tab into everyone's muted tab.
+ */
+const PERSONAL_KEYS = [`${STORAGE_PREFIX}sound:v1`];
+
 /** Keys holding account data — excluded from anything written into public/. */
 const ACCOUNT_KEYS = [`${STORAGE_PREFIX}accounts:v2`, `${STORAGE_PREFIX}session:v2`];
 
@@ -80,6 +101,7 @@ export function collectSnapshot(withAccounts: boolean): Snapshot {
 
   for (const key of readKeys()) {
     if (!withAccounts && ACCOUNT_KEYS.includes(key)) continue;
+    if (!withAccounts && PERSONAL_KEYS.includes(key)) continue;
     if (isDead(key)) continue;
     const value = window.localStorage.getItem(key);
     if (value !== null) entries[key] = value;

@@ -12,6 +12,7 @@ import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
 import { restoreConfigFromRepo } from '@/features/backup/backup';
 import { pullConfigFromCloud } from '@/features/cloud/cloudConfig';
+import CloudConfigSync from '@/features/cloud/CloudConfigSync';
 import '@/styles/globals.css';
 
 const container = document.getElementById('root');
@@ -36,6 +37,7 @@ function render() {
                   <LeagueProvider>
                     <WalkoutProvider>
                       <NavigationProvider>
+                        <CloudConfigSync />
                         <App />
                       </NavigationProvider>
                     </WalkoutProvider>

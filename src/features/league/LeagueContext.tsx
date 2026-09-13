@@ -17,6 +17,7 @@ import { isCloudEnabled } from '@/features/cloud/firebase';
 import { loadConfig, saveConfig, normalizeConfig, type SaveResult } from './leagueConfigStore';
 import { advance, emptyLeague, rankOf, rewardFor } from './standings';
 import type { LeagueConfig, LeagueState } from './types';
+import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 
 interface LeagueValue {
   config: LeagueConfig;
@@ -48,6 +49,20 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   const { account, updateAccount } = useAuth();
   const { byId } = usePlayers();
   const [config, setConfig] = useState<LeagueConfig>(loadConfig);
+
+  /**
+   * Re-reads storage when the shared settings are replaced underneath the app.
+   *
+   * The admin opening or closing a pack writes one document; every open tab applies
+   * it to storage and fires this. Without it the only way to see the change is a
+   * page reload, which is a poor thing to ask of someone mid-draft.
+   */
+  useEffect(() => {
+    const refresh = () => setConfig(loadConfig());
+    window.addEventListener(CONFIG_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(CONFIG_CHANGED_EVENT, refresh);
+  }, []);
+
   const [entries, setEntries] = useState<LeagueEntry[]>([]);
 
   const state = account?.league ?? emptyLeague();

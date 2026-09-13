@@ -4,11 +4,13 @@ import {
   useContext,
   useMemo,
   useState,
+  useEffect,
   type ReactNode,
 } from 'react';
 import { newsCatalogue } from '@/data/mock/news';
 import { HEADING_MAX_LENGTH, MAX_NEWS_SLIDES } from './constants';
 import { loadConfig, saveConfig, type SaveResult } from './newsConfigStore';
+import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 import type {
   CustomNewsSlide,
   NewsCatalogue,
@@ -68,6 +70,20 @@ export interface NewsProviderProps {
 
 export function NewsProvider({ children, catalogue = newsCatalogue }: NewsProviderProps) {
   const [config, setConfig] = useState<NewsConfig>(loadConfig);
+
+  /**
+   * Re-reads storage when the shared settings are replaced underneath the app.
+   *
+   * The admin opening or closing a pack writes one document; every open tab applies
+   * it to storage and fires this. Without it the only way to see the change is a
+   * page reload, which is a poor thing to ask of someone mid-draft.
+   */
+  useEffect(() => {
+    const refresh = () => setConfig(loadConfig());
+    window.addEventListener(CONFIG_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(CONFIG_CHANGED_EVENT, refresh);
+  }, []);
+
   const { overrides, custom, removed } = config;
 
   /**
