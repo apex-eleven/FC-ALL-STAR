@@ -154,8 +154,13 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
         }
 
         const loaded = await loadAccount(user);
-        setAccount(loaded);
-        setIsAdmin(await checkAdmin(user.uid));
+        const admin = await checkAdmin(user.uid);
+
+        // The role on the account is stamped from the admins document too, so the
+        // ADMIN chip inside the panel and any future role check agree with the gate
+        // that actually opened it.
+        setAccount(loaded ? { ...loaded, role: admin ? 'admin' : loaded.role } : null);
+        setIsAdmin(admin);
         setStatus(loaded ? 'signed-in' : 'signed-out');
       })();
     });
@@ -256,12 +261,17 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
         const loaded = await loadAccount(credential.user);
         if (!loaded) return { ok: false, error: 'account-not-found' };
 
-        const stamped = { ...loaded, lastSignInAt: new Date().toISOString() };
+        const admin = await checkAdmin(credential.user.uid);
+        const stamped = {
+          ...loaded,
+          role: admin ? ('admin' as const) : loaded.role,
+          lastSignInAt: new Date().toISOString(),
+        };
         const reference = accountDoc(credential.user.uid);
         if (reference) await updateDoc(reference, { lastSignInAt: stamped.lastSignInAt });
 
         setAccount(stamped);
-        setIsAdmin(await checkAdmin(credential.user.uid));
+        setIsAdmin(admin);
         setStatus('signed-in');
         return OK;
       } catch (error) {
