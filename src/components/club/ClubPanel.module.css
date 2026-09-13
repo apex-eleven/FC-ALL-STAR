@@ -1,0 +1,162 @@
+/* Panel 166,130 to 540,571; the three buttons follow at 75px pitch. */
+.panel {
+  position: absolute;
+  left: 166px;
+  top: 130px;
+  z-index: var(--z-panel);
+  width: 374px;
+  padding: 20px 22px 18px;
+  border-radius: var(--radius-lg);
+  background: rgba(10, 16, 30, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-card);
+}
+
+.select {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 62px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  background: rgba(6, 4, 14, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.chevron {
+  margin-left: auto;
+  color: var(--color-muted);
+}
+
+/* The reference pairs a club crest with the OVR badge. The crest is dropped here, so
+   the badge is centred on its own rather than left sitting off to one side. */
+.ovrRow {
+  display: grid;
+  place-items: center;
+  padding: 22px 0 18px;
+}
+
+
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.formation {
+  margin: 14px 0 10px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.valueIcon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.valueText {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.badges {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+/* Three empty crest slots, reserved. Drawn as outlines rather than hidden so the
+   panel's proportions already match what it will look like once they are filled. */
+.badge {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  border: 2px dashed rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.34);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.badge:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.actions {
+  position: absolute;
+  left: 166px;
+  top: 601px;
+  z-index: var(--z-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 374px;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 60px;
+  padding: 0 24px;
+  border-radius: var(--radius-md);
+  background: rgba(10, 16, 30, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.action:hover:not(:disabled) {
+  background: rgba(28, 40, 68, 0.9);
+  transform: translateX(4px);
+}
+
+.action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.actionActive {
+  background: rgba(37, 214, 236, 0.22);
+  border-color: rgba(37, 214, 236, 0.6);
+}
+
+.hint {
+  position: absolute;
+  left: 166px;
+  top: 828px;
+  z-index: var(--z-panel);
+  width: 374px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.55);
+}

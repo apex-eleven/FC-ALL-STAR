@@ -1,0 +1,71 @@
+/* Geometry from docs/UI_ANALYSIS.md section 3: profile block starts at x160,
+   currency cluster ends at x1880. */
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  height: var(--topbar-h);
+  padding: 8px var(--topbar-pad-right) 0 var(--profile-x);
+}
+
+/* The top bar sits on artwork, so it carries a soft scrim rather than a fill. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 6, 20, 0.4) 0%, rgba(10, 6, 20, 0) 100%);
+  pointer-events: none;
+}
+
+.left,
+.right {
+  position: relative;
+  display: flex;
+}
+
+.left {
+  align-items: flex-start;
+  gap: 36px;
+}
+
+.right {
+  align-items: center;
+  margin-left: auto;
+  height: 64px;
+}
+
+.newsButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 4px;
+  transition: transform var(--transition-fast);
+}
+
+.newsButton:hover {
+  transform: scale(1.06);
+}
+
+.newsGlyph {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 50px;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(180deg, #f4f5fa 0%, #c3c8d8 100%);
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  color: #22283c;
+  box-shadow: var(--shadow-tile);
+}
+
+.newsLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text-strong);
+}

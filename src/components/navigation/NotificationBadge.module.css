@@ -1,0 +1,44 @@
+.badge {
+  position: absolute;
+  z-index: var(--z-badge);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-badge);
+  pointer-events: none;
+}
+
+/* Badges overhang their host rather than sitting inside it. */
+.count {
+  top: -8px;
+  right: -8px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-red);
+  border: 2px solid rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dot {
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-red);
+}
+
+.gift {
+  top: -10px;
+  right: -12px;
+  width: 34px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--color-red);
+  color: #fff;
+}

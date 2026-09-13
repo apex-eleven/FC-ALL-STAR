@@ -1,0 +1,10 @@
+.card {
+  position: absolute;
+  height: auto;
+  object-fit: contain;
+  /* The only decoration left. It lifts the art off the banner without drawing a
+     border around a picture that already has one. */
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.55));
+  user-select: none;
+  pointer-events: none;
+}

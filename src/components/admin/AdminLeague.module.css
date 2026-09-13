@@ -1,0 +1,539 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.warn {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(229, 52, 63, 0.16);
+  border: 1px solid rgba(229, 52, 63, 0.4);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.warn code {
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: rgba(0, 0, 0, 0.4);
+  font-size: var(--text-2xs);
+}
+
+/* Editor on the left, catalogue on the right. The panel is wide enough that
+   stacking them would push the list below the fold on every screen. */
+.columns {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.block {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 5, 18, 0.55);
+}
+
+.blockTitle {
+  margin: 0 0 12px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+/* ---- editor --------------------------------------------------------- */
+
+.editor {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 12px;
+}
+
+.artSlot {
+  display: grid;
+  place-items: center;
+  width: 116px;
+  height: 116px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed rgba(255, 255, 255, 0.28);
+  overflow: hidden;
+}
+
+.artImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.artEmpty {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+.input {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.input:focus {
+  outline: 2px solid rgba(43, 224, 140, 0.6);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.chipOn {
+  background: var(--gradient-cta);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+}
+
+/* Tier colours, shared by the chips, the list badge, and the pack content counts. */
+.setA {
+  box-shadow: inset 0 -2px 0 var(--color-gold);
+}
+
+.setB {
+  box-shadow: inset 0 -2px 0 #e86bd0;
+}
+
+.setC {
+  box-shadow: inset 0 -2px 0 #2be08c;
+}
+
+.setD {
+  box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.3);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.primary {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-cta);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ghost {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.danger {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(229, 52, 63, 0.28);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.danger:hover {
+  background: rgba(229, 52, 63, 0.5);
+}
+
+.legend {
+  margin: 8px 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-dim);
+}
+
+/* ---- art picker ----------------------------------------------------- */
+
+.picker {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pickerHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+  white-space: nowrap;
+}
+
+.artGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.artCell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+
+.artCellOn {
+  border-color: #2be08c;
+}
+
+/* Already attached to a card. Still selectable — two cards may share art. */
+.artUsed {
+  opacity: 0.45;
+}
+
+.artThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bulkRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ---- catalogue list -------------------------------------------------- */
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rowArt {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: var(--radius-xs);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowName {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: var(--color-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowTier {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.rowRating {
+  min-width: 34px;
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 900;
+  color: var(--color-text);
+}
+
+.status {
+  align-self: flex-start;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(43, 224, 140, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.statusBad {
+  background: rgba(229, 52, 63, 0.3);
+}
+
+
+/* ---- catalogue file -------------------------------------------------- */
+
+.fileBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(43, 224, 140, 0.1);
+  border: 1px solid rgba(43, 224, 140, 0.3);
+}
+
+.fileState {
+  flex: 1;
+  min-width: 240px;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.fileBad {
+  color: #ffb4ba;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+
+/* ---- bulk delete ----------------------------------------------------- */
+
+.deleteBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(229, 52, 63, 0.1);
+  border: 1px solid rgba(229, 52, 63, 0.26);
+}
+
+.tick {
+  width: 16px;
+  height: 16px;
+  accent-color: #e5343f;
+  cursor: pointer;
+}
+
+.rowOn {
+  background: rgba(229, 52, 63, 0.18);
+}
+
+
+/* ---- league specific -------------------------------------------------- */
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lineLabel {
+  min-width: 140px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.num {
+  width: 82px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 800;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.unit {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: var(--color-dim);
+}
+
+.toggle {
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+.toggleOn {
+  background: var(--gradient-cta);
+  border-color: rgba(255, 255, 255, 0.42);
+  color: #ffffff;
+}
+
+/* Reward bands line up as a table: header, then one row per band. */
+.rewardHead,
+.rewardRow {
+  display: grid;
+  grid-template-columns: 82px 82px 82px 82px auto;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.rewardHead span {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-dim);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}

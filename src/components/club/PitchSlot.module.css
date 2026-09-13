@@ -1,0 +1,120 @@
+/* Above the pitch, which is a decoration layer. Without this the turf paints over
+   every card and only the ones poking out above it are visible. */
+.slot {
+  position: absolute;
+  z-index: var(--z-panel);
+  transform: translate(-50%, -50%);
+}
+
+.drop {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.empty {
+  border: 3px dashed rgba(255, 255, 255, 0.34);
+  background: rgba(8, 20, 10, 0.28);
+}
+
+.over {
+  box-shadow: 0 0 0 4px var(--color-cyan), 0 0 26px rgba(37, 214, 236, 0.6);
+  background: rgba(37, 214, 236, 0.16);
+}
+
+/* A keeper hovering an outfield slot, or vice versa — refused before the drop so the
+   player finds out on the way rather than after. */
+.blocked {
+  box-shadow: 0 0 0 4px var(--color-red), 0 0 26px rgba(229, 52, 63, 0.55);
+  background: rgba(229, 52, 63, 0.18);
+}
+
+.emptyLabel {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Position tag under the card, as in the reference. */
+/* Name and position stack under the card. Absolute, so the card keeps its measured
+   position on the pitch whether or not the slot is filled. */
+.caption {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Tight on purpose: rows sit 176px apart and a card is up to 131px tall, so the
+     caption has about 45px to live in before it touches the row below. */
+  gap: 2px;
+  margin-top: 2px;
+  max-width: 140px;
+  pointer-events: none;
+}
+
+.name {
+  max-width: 100%;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag {
+  min-width: 54px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 24, 14, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #4fe08a;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Shown only when the card is playing out of position. The artwork's own rating is
+   baked into the image and cannot be corrected, so the adjusted number sits beside
+   it rather than trying to replace it. */
+.penalty {
+  position: absolute;
+  right: -6px;
+  top: -8px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 6, 16, 0.92);
+  border: 1px solid rgba(229, 52, 63, 0.7);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 900;
+  color: #ffffff;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.penaltyDelta {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff9aa2;
+}
+
+/* The whole drop box is tappable now, empty or not. */
+.drop {
+  cursor: pointer;
+}

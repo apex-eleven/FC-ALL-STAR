@@ -1,0 +1,17 @@
+.button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: var(--color-text);
+  filter: drop-shadow(var(--shadow-text));
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.button:hover {
+  transform: scale(1.08);
+  color: #ffffff;
+}
+
+.button:active {
+  transform: scale(0.96);
+}

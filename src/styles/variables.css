@@ -1,0 +1,142 @@
+/* Design tokens. Values trace back to docs/UI_ANALYSIS.md. */
+
+:root {
+  /* ---- Stage -------------------------------------------------- */
+  --stage-w: 2048;
+  --stage-h: 942;
+  --stage-scale: 1;
+
+  /* ---- Colour ------------------------------------------------- */
+  --color-background: #2a1140;
+  --color-background-2: #5b2a86;
+  --color-background-3: #c74bae;
+  --color-background-4: #1a0b2b;
+
+  --color-panel: rgba(20, 16, 34, 0.72);
+  --color-panel-dark: #131a2e;
+  --color-panel-stroke: rgba(255, 255, 255, 0.16);
+  --color-panel-edge: rgba(8, 6, 16, 0.85);
+
+  --color-purple: #7b3fe4;
+  --color-pink: #e45bc8;
+  --color-magenta: #c44be8;
+  --color-cyan: #25d6ec;
+  --color-green: #2be08c;
+  --color-teal: #1fc9a8;
+  --color-yellow: #e4f04b;
+  --color-red: #e5343f;
+  --color-gold: #d9a441;
+
+  --color-text: #ffffff;
+  --color-muted: rgba(255, 255, 255, 0.62);
+  --color-dim: rgba(255, 255, 255, 0.38);
+
+  /* ---- Gradients ---------------------------------------------- */
+  --gradient-cta: linear-gradient(90deg, #b544e0 0%, #e86bd0 50%, #b544e0 100%);
+  --gradient-play: linear-gradient(118deg, #d8f03c 0%, #4be39c 52%, #2bd8c4 100%);
+  --gradient-club: linear-gradient(135deg, #17203a 0%, #0d2b46 100%);
+  --gradient-banner-strip: linear-gradient(90deg, #2be08c 0%, #1fc9a8 100%);
+  --gradient-tile: linear-gradient(160deg, #2c3550 0%, #161d31 100%);
+  --gradient-ovr: linear-gradient(180deg, #e5343f 0%, #9d1720 100%);
+
+  /* ---- Radius ------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --radius-pill: 999px;
+
+  /* ---- Spacing ------------------------------------------------ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ---- Layout regions ----------------------------------------- */
+  --topbar-h: 90px;
+  --bottomnav-h: 107px;
+
+  --leftnav-x: 172px;
+  --leftnav-y: 222px;
+  --leftnav-w: 96px;
+  --leftnav-tile-w: 96px;
+  --leftnav-tile-h: 88px;
+  --leftnav-pitch: 130px;
+
+  --rail-x: 1150px;
+  --rail-w: 744px;
+
+  --news-y: 162px;
+  --news-h: 415px;
+  --news-strip-h: 78px;
+
+  --cards-y: 601px;
+  --cards-h: 172px;
+  --card-w: 358px;
+  --card-gap: 28px;
+
+  --hero-cta-x: 424px;
+  --hero-cta-y: 667px;
+  --hero-cta-w: 576px;
+  --hero-cta-h: 80px;
+  --hero-center-x: 712px;
+  --hero-band-x: 300px;
+  --hero-band-y: 599px;
+  --hero-band-w: 850px;
+  --hero-band-h: 210px;
+  --hero-title-y: 607px;
+  --hero-dots-x: 630px;
+  --hero-dots-y: 792px;
+
+  --profile-x: 160px;
+  --avatar-size: 72px;
+  --topbar-pad-right: 160px;
+
+  /* ---- Draft screen (docs/UI_ANALYSIS.md section 3b) ------------ */
+  --draft-rail-x: 148px;
+  --draft-rail-y: 133px;
+  --draft-rail-w: 268px;
+  --draft-rail-card-h: 105px;
+  --draft-rail-pitch: 139px;
+
+  --draft-content-x: 500px;
+  --draft-banner-x: 496px;
+  --draft-banner-y: 230px;
+  --draft-banner-w: 1390px;
+  --draft-banner-h: 370px;
+
+  --draft-right-edge: 1886px;
+  --draft-actions-y: 815px;
+  --draft-actions-h: 65px;
+
+  /* ---- Shadows ------------------------------------------------ */
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-card-hover: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --shadow-cta: 0 8px 24px rgba(196, 75, 232, 0.45);
+  --shadow-tile: 0 6px 16px rgba(0, 0, 0, 0.5);
+  --shadow-text: 0 2px 8px rgba(0, 0, 0, 0.55);
+  --shadow-text-strong: 0 3px 14px rgba(0, 0, 0, 0.75);
+  --shadow-badge: 0 2px 6px rgba(0, 0, 0, 0.5);
+
+  /* ---- Motion ------------------------------------------------- */
+  --transition-fast: 120ms ease;
+  --transition-base: 180ms ease;
+  --transition-slow: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- Layering ----------------------------------------------- */
+  --z-background: 0;
+  --z-decoration: 10;
+  --z-hero-art: 20;
+  --z-hero-overlay: 30;
+  --z-panel: 40;
+  --z-header: 50;
+  --z-left-nav: 60;
+  --z-bottom-nav: 70;
+  --z-badge: 80;
+  --z-modal: 100;
+}

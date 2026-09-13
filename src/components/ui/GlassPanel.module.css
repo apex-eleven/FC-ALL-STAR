@@ -1,0 +1,23 @@
+.panel {
+  position: relative;
+  background: var(--color-panel);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* The reference uses a double edge on every game panel: a dark outer stroke and a
+   light inner stroke. Flattening this to one hairline loses the "game card" read. */
+.edged {
+  border: 2px solid var(--color-panel-edge);
+}
+
+.edged::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--color-panel-stroke);
+  pointer-events: none;
+}

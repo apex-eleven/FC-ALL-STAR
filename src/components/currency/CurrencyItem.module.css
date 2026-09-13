@@ -1,0 +1,52 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The supplied artwork already carries its own ring or frame, so nothing is drawn
+   behind it. Sizes differ per currency — see iconSize in data/mock/currencies.ts. */
+.iconSlot {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  flex: none;
+}
+
+.icon {
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55));
+}
+
+.amount {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text-strong);
+  white-space: nowrap;
+}
+
+.add {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #f2f4fb 0%, #b4bacd 100%);
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  color: #1c2136;
+  box-shadow: var(--shadow-badge);
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+  flex: none;
+}
+
+.add:hover {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+.add:active {
+  transform: scale(0.94);
+}

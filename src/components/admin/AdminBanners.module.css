@@ -1,0 +1,233 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.reset {
+  margin-left: auto;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.reset:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.reset:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 5, 18, 0.55);
+  border: 2px solid transparent;
+}
+
+.rowChanged {
+  border-color: rgba(217, 164, 65, 0.55);
+  background: rgba(217, 164, 65, 0.08);
+}
+
+.preview {
+  position: relative;
+  width: 190px;
+  height: 106px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.previewStrip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  background: var(--gradient-banner-strip);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.counter {
+  font-family: var(--font-display);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  background: rgba(6, 4, 14, 0.6);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-cyan);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.action {
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.status {
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-align: right;
+}
+
+.ok {
+  color: var(--color-green);
+}
+
+.bad {
+  color: var(--color-red);
+}
+
+/* ---- add / delete ---------------------------------------------------- */
+
+.createRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.input {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+/* A slide can exist before its artwork does — the upload is a separate step. */
+.previewEmpty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}

@@ -1,0 +1,777 @@
+/*
+  Two columns on the 2048x942 stage, matching the reference: the league identity,
+  stat boxes and fixture board on the left; the standings table and the brand strip
+  on the right.
+*/
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 980px 1fr;
+  gap: 18px;
+  padding: 22px 26px;
+  overflow: hidden;
+}
+
+/*
+  Stadium photo on top of the painted gradient.
+ 
+  Layered rather than swapped: if league_background.jpg is not in public/brand/ the
+  image layer simply fails to paint and the gradient below is what shows — the screen
+  is never a white hole waiting for an asset.
+ 
+  The scrim is not decoration. The pitch is bright green and the sky is bright blue;
+  the panels above carry small white text, and without something to sit them on the
+  fixture list is unreadable against the grass.
+*/
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 22% 12%, rgba(64, 140, 255, 0.35) 0%, transparent 45%),
+    radial-gradient(circle at 78% 8%, rgba(120, 90, 255, 0.28) 0%, transparent 40%),
+    linear-gradient(180deg, #061024 0%, #04101f 55%, #020a16 100%);
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  background-image: url('/brand/league_background.jpg');
+  background-size: cover;
+  background-position: center 42%;
+}
+
+.photoScrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(3, 10, 24, 0.55) 0%, rgba(3, 10, 24, 0.62) 55%, rgba(2, 8, 18, 0.86) 100%);
+}
+
+.back,
+.home {
+  position: absolute;
+  top: 26px;
+  z-index: var(--z-header);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+}
+
+.back {
+  left: 26px;
+}
+
+.home {
+  right: 26px;
+}
+
+.back:hover,
+.home:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.left,
+.right {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+/* ---- banner ----------------------------------------------------------- */
+
+.banner {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 168px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 18px 22px;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(115deg, rgba(10, 32, 72, 0.96) 0%, rgba(12, 48, 110, 0.88) 55%, rgba(8, 26, 60, 0.96) 100%);
+  border: 1px solid rgba(120, 180, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+/* Stadium flare, top-centre, as in the reference art. */
+.banner::after {
+  content: '';
+  position: absolute;
+  left: 46%;
+  top: -60px;
+  width: 260px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(150, 210, 255, 0.5) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* The title plate, art and all. Height-led so any replacement of the same aspect
+   drops straight in. */
+.bannerArt {
+  position: relative;
+  grid-row: 1;
+  grid-column: 1;
+  height: 96px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  justify-self: start;
+}
+
+/* Drawn stand-in, used until league_banner.png is dropped in. */
+.bannerFallback {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffd76a;
+}
+
+.bannerFallback > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.bannerTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+.bannerThai {
+  margin: 2px 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: #7ec6ff;
+}
+
+.bannerNote {
+  grid-row: 2;
+  grid-column: 1;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(220, 236, 255, 0.72);
+}
+
+.division {
+  position: relative;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.divisionArt {
+  height: 110px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Drawn stand-in for the badge. */
+.divisionFallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(22, 60, 120, 0.9) 0%, rgba(10, 28, 62, 0.9) 100%);
+  border: 1px solid rgba(150, 200, 255, 0.45);
+  color: #ffd76a;
+}
+
+.divisionWord {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: rgba(220, 236, 255, 0.8);
+}
+
+.divisionNumber {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.divisionLabel {
+  position: relative;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: #7ec6ff;
+}
+
+/* ---- stat boxes -------------------------------------------------------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.4fr;
+  gap: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 24, 52, 0.85);
+  border: 1px solid rgba(110, 170, 255, 0.28);
+}
+
+.statHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: #7ec6ff;
+}
+
+/* Art icons in the stat headers sit at the same height as the lucide glyphs they
+   replace, so swapping a file cannot shift the row. */
+.statIcon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  /* Tabular so the countdown does not jitter as it ticks. */
+  font-variant-numeric: tabular-nums;
+}
+
+.statSub {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: rgba(220, 236, 255, 0.6);
+}
+
+.progress {
+  display: block;
+  height: 6px;
+  margin-top: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #ffd76a 0%, #ffa53a 100%);
+}
+
+.rewardRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+}
+
+.rewardItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.rewardItem img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.rewardAmount {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 900;
+  color: #ffffff;
+}
+
+/* ---- fixture board ----------------------------------------------------- */
+
+.board {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: rgba(6, 20, 44, 0.9);
+  border: 1px solid rgba(110, 170, 255, 0.28);
+}
+
+.boardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.boardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.boardDate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: rgba(220, 236, 255, 0.65);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tab {
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: rgba(220, 236, 255, 0.75);
+}
+
+.tabOn {
+  background: linear-gradient(180deg, #ffd76a 0%, #f0a93a 100%);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #2a1a04;
+}
+
+.fixtures {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 6px;
+}
+
+.fixture {
+  display: grid;
+  grid-template-columns: 58px 1fr 74px 1fr 120px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(14, 34, 66, 0.75);
+  /* The reference marks each row with a coloured spine on the left. */
+  border-left: 4px solid rgba(120, 180, 255, 0.5);
+}
+
+/* The player's own fixture, lifted out of the list. */
+.fixtureYou {
+  background: linear-gradient(90deg, rgba(255, 200, 90, 0.2) 0%, rgba(14, 34, 66, 0.8) 45%);
+  border: 1px solid rgba(255, 205, 100, 0.7);
+  border-left: 4px solid #ffd76a;
+}
+
+.fixtureTime {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 900;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sideBadge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.sideText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sideName {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sideRating {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(220, 236, 255, 0.6);
+}
+
+.vs {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 900;
+  color: rgba(220, 236, 255, 0.75);
+}
+
+.fixtureReward {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.fixtureLeague {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(220, 236, 255, 0.55);
+}
+
+.fixtureDelta {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.deltaUp {
+  color: #6bf0a8;
+}
+
+.deltaDown {
+  color: #ff7d86;
+}
+
+.deltaFlat {
+  color: rgba(220, 236, 255, 0.8);
+}
+
+.deltaIdle {
+  color: rgba(220, 236, 255, 0.4);
+}
+
+/* ---- standings --------------------------------------------------------- */
+
+.tablePanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: rgba(6, 20, 44, 0.9);
+  border: 1px solid rgba(110, 170, 255, 0.28);
+}
+
+.tableTitle {
+  display: flex;
+  align-items: center;
+  margin: 0 0 12px;
+}
+
+.tableTitleArt {
+  height: 56px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.tableTitleFallback {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.tableCrown {
+  color: #ffd76a;
+}
+
+/* One grid template for the header and every row, so the columns cannot drift. */
+.tableHead,
+.tableRow {
+  display: grid;
+  grid-template-columns: 40px 40px minmax(0, 1fr) 84px 52px 52px 52px 52px 48px 48px 52px 60px;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.tableHead {
+  padding: 0 10px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: rgba(220, 236, 255, 0.6);
+}
+
+.tableBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.tableRow {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(14, 34, 66, 0.7);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: rgba(228, 240, 255, 0.92);
+}
+
+.tableRowTop {
+  background: linear-gradient(90deg, rgba(255, 205, 100, 0.24) 0%, rgba(14, 34, 66, 0.8) 60%);
+  border: 1px solid rgba(255, 205, 100, 0.6);
+}
+
+.tableRowYou {
+  background: linear-gradient(90deg, rgba(43, 224, 140, 0.24) 0%, rgba(14, 34, 66, 0.8) 60%);
+  border: 1px solid rgba(43, 224, 140, 0.65);
+}
+
+.pos {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.rowBadge {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.colTeam {
+  text-align: left;
+}
+
+.rowName {
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowRating {
+  color: rgba(220, 236, 255, 0.75);
+}
+
+.colPoints {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 900;
+  color: #ffd76a;
+}
+
+/* ---- brand strip -------------------------------------------------------- */
+
+.footerStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(90deg, rgba(6, 30, 20, 0.9) 0%, rgba(10, 50, 32, 0.9) 50%, rgba(6, 24, 44, 0.9) 100%);
+  border: 1px solid rgba(110, 170, 255, 0.24);
+}
+
+.footerText {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: rgba(228, 240, 255, 0.85);
+}
+
+.footerBrand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 900;
+  font-style: italic;
+  color: #ffffff;
+}
+
+.footerBrand svg {
+  color: #ffd76a;
+}
+
+/* ---- end of season ------------------------------------------------------ */
+
+.resultScreen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+}
+
+.resultBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 8, 18, 0.86);
+}
+
+.result {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 620px;
+  padding: 34px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #10294f 0%, #071528 100%);
+  border: 1px solid rgba(150, 200, 255, 0.4);
+  text-align: center;
+}
+
+.trophy {
+  color: #ffd76a;
+}
+
+.trophyArt {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+}
+
+.resultTitle {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.resultRank {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.resultRewards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin: 6px 0;
+}
+
+.resultReward {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.resultReward img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.resultNote {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: rgba(220, 236, 255, 0.6);
+}
+
+.resultClose {
+  margin-top: 8px;
+  padding: 12px 40px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #ffd76a 0%, #f0a93a 100%);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: #2a1a04;
+}

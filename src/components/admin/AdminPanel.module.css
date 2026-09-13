@@ -1,0 +1,471 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  background: rgba(6, 3, 14, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 1180px;
+  max-height: 820px;
+  padding: 26px 30px 24px;
+  border-radius: var(--radius-xl);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.chip {
+  padding: 4px 9px;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(180deg, #f0cf7a 0%, #c78f24 100%);
+  color: #2a1d05;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.close {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.warning {
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(229, 52, 63, 0.12);
+  border: 1px solid rgba(229, 52, 63, 0.4);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: 1.5;
+  color: #ffb9bd;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 5px;
+  border-radius: var(--radius-md);
+  background: rgba(6, 4, 14, 0.55);
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabActive,
+.tabActive:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-text);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 22px;
+  min-height: 0;
+}
+
+.body[hidden] {
+  display: none;
+}
+
+/* The right-hand column holds the mint controls, the level tools, *and* the ledger.
+   Together they are taller than the panel, and with no scroller of its own the
+   history simply fell off the bottom edge where nobody could reach it. */
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.sectionTitle {
+  flex: 0 0 auto;
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 5, 18, 0.55);
+  border: 2px solid transparent;
+  text-align: left;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rowActive {
+  border-color: var(--color-cyan);
+  background: rgba(37, 214, 236, 0.12);
+}
+
+.rowName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.rowMeta {
+  margin-top: 3px;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: var(--color-dim);
+}
+
+.rowBalances {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.balance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.balance img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.picker {
+  display: flex;
+  gap: 6px;
+}
+
+.pick {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 10px 0;
+  border-radius: var(--radius-sm);
+  background: rgba(8, 5, 18, 0.55);
+  border: 2px solid transparent;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.pick img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.pick:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pickActive {
+  border-color: var(--color-cyan);
+  background: rgba(37, 214, 236, 0.14);
+}
+
+.input {
+  width: 100%;
+  height: 50px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  background: rgba(6, 4, 14, 0.6);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-cyan);
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.quickButton {
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.quickButton:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.primary,
+.secondary {
+  flex: 1;
+  padding: 14px 0;
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  transition: filter var(--transition-fast), background var(--transition-fast);
+}
+
+.primary {
+  background: var(--gradient-cta);
+  color: var(--color-text);
+  box-shadow: var(--shadow-cta);
+}
+
+.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+}
+
+.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.primary:disabled,
+.secondary:disabled {
+  filter: grayscale(0.7) brightness(0.7);
+  cursor: not-allowed;
+}
+
+.status {
+  min-height: 22px;
+  margin: 0 0 12px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.ok {
+  color: var(--color-green);
+}
+
+.bad {
+  color: var(--color-red);
+}
+
+.expBlock {
+  margin-bottom: 16px;
+  padding: 12px 14px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 5, 18, 0.5);
+}
+
+.expNow {
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-green);
+}
+
+.expRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.expInput {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  background: rgba(6, 4, 14, 0.6);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 800;
+  transition: border-color var(--transition-fast);
+}
+
+.expInput:focus {
+  outline: none;
+  border-color: var(--color-cyan);
+}
+
+.expButton {
+  flex: none;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.14);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.expButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.expButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.expHint {
+  margin: 2px 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: var(--color-dim);
+}
+
+/* Scrolls with the column rather than inside it: a scroller nested in a scroller
+   traps the wheel and makes the outer one feel broken. The cap keeps a long history
+   from pushing the controls above it out of reach. */
+.ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 6px;
+  /* Never collapses to nothing when the column is short on space. */
+  flex: 0 0 auto;
+}
+
+.entry {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(8, 5, 18, 0.5);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  color: var(--color-muted);
+}
+
+.delta {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.up {
+  color: var(--color-green);
+}
+
+.down {
+  color: var(--color-red);
+}
+
+.entryTime {
+  margin-left: auto;
+  color: var(--color-dim);
+}
+
+.empty {
+  padding: 14px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-dim);
+}

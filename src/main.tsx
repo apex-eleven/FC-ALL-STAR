@@ -1,0 +1,61 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from '@/app/App';
+import { AuthProvider } from '@/features/auth/AuthContext';
+import { AvatarProvider } from '@/features/avatars/AvatarContext';
+import { NewsProvider } from '@/features/news/NewsContext';
+import { PlayerProvider } from '@/features/players/PlayerContext';
+import { DraftProvider } from '@/features/draft/DraftContext';
+import { LeagueProvider } from '@/features/league/LeagueContext';
+import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
+import { SoundProvider } from '@/features/sound/SoundContext';
+import { NavigationProvider } from '@/features/navigation/NavigationContext';
+import { restoreConfigFromRepo } from '@/features/backup/backup';
+import '@/styles/globals.css';
+
+const container = document.getElementById('root');
+if (!container) throw new Error('Root element #root not found');
+
+const root = createRoot(container);
+
+// Sound wraps everything, including the sign-in screen: the click layer is attached
+// by the provider, so anything mounted outside it would be silent.
+//
+// Players sits above drafts because a draft's pool is a list of card ids that the
+// catalogue resolves — the packs cannot be built without it.
+function render() {
+  root.render(
+    <StrictMode>
+      <SoundProvider>
+        <AuthProvider>
+          <AvatarProvider>
+            <NewsProvider>
+              <PlayerProvider>
+                <DraftProvider>
+                  <LeagueProvider>
+                    <WalkoutProvider>
+                      <NavigationProvider>
+                        <App />
+                      </NavigationProvider>
+                    </WalkoutProvider>
+                  </LeagueProvider>
+                </DraftProvider>
+              </PlayerProvider>
+            </NewsProvider>
+          </AvatarProvider>
+        </AuthProvider>
+      </SoundProvider>
+    </StrictMode>,
+  );
+}
+
+/**
+ * Fills an empty browser from public/config/admin.json, then renders.
+ *
+ * Every provider reads its storage as it mounts, so the restore cannot happen later:
+ * rendering first would show defaults that are silently contradicted a frame after.
+ * A promise chain rather than top-level await, so the build target does not have to
+ * support TLA — and `render` is passed as both handlers, because a failed restore
+ * must still start the game.
+ */
+void restoreConfigFromRepo().then(render, render);

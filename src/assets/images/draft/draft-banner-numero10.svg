@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1390 370" width="1390" height="370">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0.4">
+      <stop offset="0" stop-color="#3A1160"/><stop offset="0.45" stop-color="#7A2AB8"/>
+      <stop offset="0.78" stop-color="#B23BC4"/><stop offset="1" stop-color="#6E1FA8"/>
+    </linearGradient>
+    <linearGradient id="num" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  <rect width="1390" height="370" fill="url(#bg)"/>
+  <g fill="url(#num)" font-family="Arial Black, sans-serif" font-size="330" font-weight="900">
+    <text x="150" y="300">10</text><text x="640" y="300">10</text><text x="1080" y="300">10</text>
+  </g>
+  <g opacity="0.3" fill="#FFFFFF">
+    <path d="M0 0 L150 0 L60 370 L0 370 Z"/><path d="M1300 0 L1390 0 L1390 370 L1240 370 Z"/>
+  </g>
+  <g opacity="0.5" fill="#F0D8FF">
+    <text x="470" y="120" font-family="Arial Black, sans-serif" font-size="46" transform="rotate(-90 470 120)">PLAYER A</text>
+    <text x="880" y="120" font-family="Arial Black, sans-serif" font-size="46" transform="rotate(-90 880 120)">PLAYER B</text>
+    <text x="1250" y="120" font-family="Arial Black, sans-serif" font-size="46" transform="rotate(-90 1250 120)">PLAYER C</text>
+  </g>
+</svg>

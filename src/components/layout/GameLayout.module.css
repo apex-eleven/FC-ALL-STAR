@@ -1,0 +1,63 @@
+.viewport {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: var(--color-background-4);
+  overflow: hidden;
+}
+
+/* Fixed design stage. Everything inside is positioned in design pixels and the
+   whole stage is scaled to fit. docs/UI_ANALYSIS.md section 1. */
+.stage {
+  position: relative;
+  width: calc(var(--stage-w) * 1px);
+  height: calc(var(--stage-h) * 1px);
+  transform: scale(var(--stage-scale));
+  transform-origin: center center;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-background);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.decoration {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-decoration);
+  pointer-events: none;
+}
+
+/* Halftone field over the lower third. */
+.halftone {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 46%;
+  background-image: var(--halftone-url);
+  background-size: 34px 34px;
+  background-repeat: repeat;
+  opacity: 0.1;
+  mask-image: linear-gradient(0deg, #000 15%, transparent 100%);
+  -webkit-mask-image: linear-gradient(0deg, #000 15%, transparent 100%);
+}
+
+/* Soft vignette so the bright artwork does not run into the frame edges. */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 46%,
+    transparent 46%,
+    rgba(12, 6, 24, 0.45) 100%
+  );
+}

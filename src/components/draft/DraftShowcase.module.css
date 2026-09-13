@@ -1,0 +1,119 @@
+/* Heading 500,105 · countdown 500,158 · banner 496,230 1390x370. */
+.heading {
+  position: absolute;
+  left: var(--draft-content-x);
+  top: 100px;
+  z-index: var(--z-panel);
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+  color: #1a1030;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.info {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #231a3a;
+  color: #ffffff;
+  transition: transform var(--transition-fast);
+}
+
+.info:hover {
+  transform: scale(1.1);
+}
+
+.countdown {
+  position: absolute;
+  left: var(--draft-content-x);
+  top: 155px;
+  z-index: var(--z-panel);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: #2a1f44;
+}
+
+.days {
+  color: #1668d8;
+  font-weight: 800;
+}
+
+/* One scrolling surface for the banner and the cards on top of it. Origin is the
+   old strip's (470, 230); the viewport is what fits, the canvas is how far it runs. */
+.viewport {
+  position: absolute;
+  left: 470px;
+  top: var(--draft-banner-y);
+  z-index: var(--z-panel);
+  width: 1416px;
+  height: 428px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.viewport::-webkit-scrollbar {
+  height: 8px;
+}
+
+.viewport::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.canvas {
+  position: relative;
+  height: 100%;
+}
+
+.bannerArt {
+  position: absolute;
+  left: 26px;
+  top: 0;
+  height: 370px;
+  width: auto;
+  max-width: none;
+  box-shadow: 0 14px 40px rgba(20, 6, 40, 0.4);
+}
+
+.more {
+  position: absolute;
+  left: 1712px;
+  top: 622px;
+  z-index: var(--z-badge);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px 0 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(12, 8, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.more:hover {
+  background: rgba(32, 22, 56, 0.92);
+  transform: scale(1.03);
+}

@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// กฎความปลอดภัยของ Firestore สำหรับ FC ALL-STAR
+//
+// หลักการ: ผู้เล่นอ่าน/เขียนได้เฉพาะเซฟของตัวเอง · แอดมินอ่านได้ทุกคน ·
+// ตั้งค่าเกมทุกคนอ่านได้แต่มีแต่แอดมินที่เขียนได้
+//
+// วิธีตั้งแอดมิน: สร้าง document ที่ admins/{uid ของคนนั้น} ด้วยมือใน Console
+// (ตั้งใจให้สร้างจาก Console เท่านั้น — ไม่มีกฎไหนให้ client สร้างเองได้)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ---- เซฟของผู้เล่น ----
+    // เจ้าของอ่าน/เขียนได้ · แอดมินอ่านได้ (แผงแอดมินต้องมองเห็นรายชื่อไอดี)
+    // และเขียนได้ (เสกเงิน/เสกการ์ด)
+    match /accounts/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ---- ตารางจองชื่อ ----
+    // ทุกคนอ่านได้ เพราะตอน sign in ต้องแปลงชื่อ -> uid ก่อนถึงจะรู้ว่า login ด้วยอะไร
+    // จองได้ครั้งเดียว: create ผ่านเฉพาะตอนที่ยังไม่มีใครจอง และต้องจองเป็นของตัวเอง
+    // แก้/ลบไม่ได้เลย ชื่อจึงถูกแย่งหรือขโมยไม่ได้
+    match /usernames/{name} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ---- ตั้งค่าเกม (คลังการ์ด แพ็ค ดราฟต์ ลีก แบนเนอร์ walkout) ----
+    // ทุกคนอ่านได้ รวมคนที่ยังไม่ล็อกอิน เพราะหน้าแรกต้องโหลดก่อนสมัคร
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- อย่างอื่นปิดหมด ----
+    // ปฏิเสธไว้ก่อนเสมอ: คอลเลกชันใหม่ที่เพิ่มทีหลังจะไม่เปิดให้เขียนโดยบังเอิญ
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

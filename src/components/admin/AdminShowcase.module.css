@@ -1,0 +1,263 @@
+/* Preview on top, controls underneath.
+   Side by side, the controls column was whatever space the preview left over —
+   about 60px inside the admin panel — which stacked every label one word per line.
+   Below the preview they get the full panel width. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Scrolls exactly like the real showcase, so a card parked past the right edge is
+   just as reachable here as it will be in game. */
+.viewport {
+  position: relative;
+  /* The inline width is the real showcase at SCALE; this keeps it from pushing the
+     panel wider on a narrow window. */
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  touch-action: pan-x;
+}
+
+.canvas {
+  position: relative;
+}
+
+.banner {
+  position: absolute;
+  top: 0;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+.slot {
+  position: absolute;
+  cursor: grab;
+  touch-action: none;
+}
+
+.slotOn {
+  outline: 2px solid #2be08c;
+  outline-offset: 2px;
+}
+
+.slotDrag {
+  cursor: grabbing;
+  filter: brightness(1.15);
+}
+
+.art {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+/* Shown when the pool has fewer cards than slots — the slot still needs a handle. */
+.ghostSlot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 190 / 237;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--color-dim);
+}
+
+.tag {
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(8, 4, 16, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffffff;
+  pointer-events: none;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 16px;
+  min-width: 0;
+}
+
+.slotPicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-end;
+  gap: 4px;
+}
+
+.pick {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  color: var(--color-muted);
+}
+
+.pickOn {
+  background: var(--gradient-cta);
+  color: #ffffff;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Wide enough that the size label stays on one line next to the buttons. */
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+  white-space: nowrap;
+}
+
+.range {
+  width: 100%;
+  accent-color: var(--color-teal);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.ghost {
+  padding: 7px 12px;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+/* Full width on its own line, so the explanation never competes with the buttons
+   for horizontal space. */
+.legend {
+  flex: 1 0 100%;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-dim);
+}
+
+
+/* ---- card chooser ---------------------------------------------------- */
+
+.chooser {
+  flex: 1 0 100%;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.chooserHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.search {
+  flex: 1;
+  min-width: 180px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cardCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 3px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+}
+
+.cardCell:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cardCellOn {
+  border-color: #2be08c;
+  background: rgba(43, 224, 140, 0.16);
+}
+
+.cardArt {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.cardName {
+  max-width: 100%;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

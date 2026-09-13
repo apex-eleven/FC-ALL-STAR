@@ -1,0 +1,29 @@
+:root {
+  --font-display: 'Saira Condensed', 'Saira', 'Arial Narrow', system-ui, sans-serif;
+  --font-ui: 'Noto Sans Thai', 'Saira', 'Segoe UI', system-ui, sans-serif;
+
+  --text-2xs: 11px;
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 17px;
+  --text-md: 20px;
+  --text-lg: 26px;
+  --text-xl: 34px;
+  --text-display: 56px;
+}
+
+.u-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.u-thai {
+  font-family: var(--font-ui);
+  font-weight: 700;
+}
+
+.u-on-art {
+  text-shadow: var(--shadow-text);
+}

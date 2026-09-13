@@ -1,0 +1,19 @@
+node_modules
+dist
+
+# ไฟล์สำรองที่มีข้อมูลไอดีผู้เล่น — ห้ามขึ้น git
+fc-allstar-backup-*.json
+dist-ssr
+.vite
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.log
+npm-debug.log*
+coverage

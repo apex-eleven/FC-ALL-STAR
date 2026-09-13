@@ -1,0 +1,252 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  overflow: hidden;
+  background: #05030c;
+}
+
+/* Both clips are mounted for the whole sequence. The stage clip starts a moment
+   before the flight ends and the flight fades out over its own white flash, so the
+   join happens inside a frame that is already pure white. */
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+}
+
+.flight {
+  z-index: 2;
+  opacity: 1;
+  transition: opacity var(--walkout-crossfade) linear;
+}
+
+.flightOut {
+  opacity: 0;
+}
+
+.stage {
+  z-index: 1;
+}
+
+/* The flash is pure white and the stage opens dark. Holding the white across the cut
+   and dissolving it turns a jolt into the flash blowing out. */
+.veil {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.veilOn {
+  opacity: 1;
+}
+
+.veilOut {
+  opacity: 0;
+  transition: opacity var(--walkout-flash-out) ease-out;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: #05030c;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ---- flight reveals ------------------------------------------------ */
+
+.reveals {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 150px;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  pointer-events: none;
+}
+
+.reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  padding: 16px 26px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 4, 16, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateY(26px) scale(0.94);
+}
+
+.revealIn {
+  animation: revealIn 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes revealIn {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.revealLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255, 214, 150, 0.9);
+}
+
+.revealValue {
+  font-family: var(--font-display);
+  font-size: 46px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 3px 16px rgba(0, 0, 0, 0.7);
+}
+
+.revealValueThai {
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 800;
+}
+
+/* ---- stage card ---------------------------------------------------- */
+
+/* Art only. The frame, rating chip, name plate, and nation chips that used to be
+   drawn on top all exist inside the artwork already — at this size the duplicates
+   sat directly over the real ones. */
+.card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  /* Sized to sit inside the podium's opening in the stage clip rather than to fill
+     the screen: at 440 the card overhung the gold frame that is meant to hold it. */
+  width: 320px;
+  height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.7));
+  animation: cardIn 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* The shadow is repeated inside the keyframes on purpose: `filter` is one property,
+   so animating brightness alone would drop the shadow the moment the animation
+   started and leave it off for good (`both` holds the final frame). */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.86);
+    filter: brightness(2.4) drop-shadow(0 24px 60px rgba(0, 0, 0, 0.7));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: brightness(1) drop-shadow(0 24px 60px rgba(0, 0, 0, 0.7));
+  }
+}
+
+.exit {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  z-index: 4;
+  transform: translateX(-50%);
+  padding: 15px 52px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-cta);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: var(--shadow-cta);
+  opacity: 0;
+  animation: fadeIn 500ms ease 600ms forwards;
+  transition: filter var(--transition-fast);
+}
+
+.exit:hover {
+  filter: brightness(1.1);
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Always available, so a stalled video can never trap the player. */
+.skip {
+  position: absolute;
+  right: 40px;
+  top: 32px;
+  z-index: 4;
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  background: rgba(8, 4, 16, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  transition: background var(--transition-fast);
+}
+
+.skip:hover {
+  background: rgba(30, 18, 50, 0.8);
+}
+
+/* Only rendered when the browser refused unmuted playback. Sits beside the skip
+   button because both are the same kind of thing: a way out of a state the player
+   did not choose. */
+.unmute {
+  position: absolute;
+  left: 40px;
+  top: 32px;
+  z-index: 4;
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  background: rgba(8, 4, 16, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: #ffffff;
+  transition: background var(--transition-fast);
+}
+
+.unmute:hover {
+  background: rgba(30, 18, 50, 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revealIn,
+  .card,
+  .exit {
+    animation-duration: 1ms;
+  }
+}

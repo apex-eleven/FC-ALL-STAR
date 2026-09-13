@@ -1,0 +1,57 @@
+.badge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Measured from the artwork rather than guessed: the red plate inside the gold
+     frame runs from 18/128 to 106/128, so its centre is at 48.4% — almost exactly the
+     middle of the box. The old 14% lifted the text a full 7% above that and left it
+     sitting in the top third of the crest. */
+  padding-bottom: 3%;
+  flex: none;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Fallback: the shield this component used to draw in CSS, kept for when the file
+   has not been dropped in yet. Its chevron is a different shape, so it centres
+   plainly — which is how it looked before this component existed. */
+.drawn {
+  padding-bottom: 0;
+  background: var(--gradient-ovr);
+  border: 3px solid #f0dca8;
+  border-radius: 10px 10px 6px 6px;
+  clip-path: polygon(0 0, 100% 0, 100% 74%, 50% 100%, 0 74%);
+  box-shadow: var(--shadow-tile);
+  filter: none;
+}
+
+.label {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: var(--ovr-label-size);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.value {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: var(--ovr-value-size);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--color-text);
+  text-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
+}

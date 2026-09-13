@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" width="900" height="1100">
+  <defs>
+    <linearGradient id="skin" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#6E6E74"/>
+      <stop offset="1" stop-color="#2E2E36"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0.55" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="m"><rect width="900" height="1100" fill="url(#fade)"/></mask>
+  </defs>
+  <g mask="url(#m)">
+    <!-- shoulders -->
+    <path d="M120 1100 Q150 800 330 740 L570 740 Q750 800 780 1100 Z" fill="#3A3A42"/>
+    <!-- neck -->
+    <rect x="390" y="640" width="120" height="140" rx="40" fill="#4A4A52"/>
+    <!-- head -->
+    <ellipse cx="450" cy="420" rx="240" ry="285" fill="url(#skin)"/>
+    <!-- hair mass -->
+    <path d="M210 400 Q230 130 450 130 Q670 130 690 400 Q640 250 450 250 Q260 250 210 400 Z" fill="#1C1C22"/>
+    <!-- brow / eye suggestion -->
+    <ellipse cx="360" cy="410" rx="46" ry="20" fill="#17171C" opacity="0.8"/>
+    <ellipse cx="548" cy="410" rx="46" ry="20" fill="#17171C" opacity="0.8"/>
+    <!-- smile -->
+    <path d="M330 540 Q450 640 570 540 Q450 600 330 540 Z" fill="#EDEDF2" opacity="0.9"/>
+  </g>
+</svg>

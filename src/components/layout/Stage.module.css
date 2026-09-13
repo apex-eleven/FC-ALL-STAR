@@ -1,0 +1,82 @@
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--color-background-4);
+  overflow: hidden;
+}
+
+/* Fixed design stage, placed and scaled from its top-left corner by useStageFit.
+   Do NOT centre this with flex/grid: the element still occupies 2048x942 in layout,
+   so a narrower scroll container pins it to the start edge and scaling about the
+   centre then shifts it sideways. docs/UI_ANALYSIS.md section 1. */
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--stage-w) * 1px);
+  height: calc(var(--stage-h) * 1px);
+  transform: translate(var(--stage-x), var(--stage-y))
+    scale(var(--stage-scale-x), var(--stage-scale-y));
+  transform-origin: 0 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-background);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The same key art again, blurred and dimmed, so the stage takes its palette from
+   whatever image is loaded instead of a hardcoded gradient. Oversized and inset so
+   the blur never reveals a soft edge. */
+.wash {
+  position: absolute;
+  inset: -8%;
+  z-index: var(--z-background);
+  width: 116%;
+  height: 116%;
+  object-fit: cover;
+  object-position: var(--wash-position);
+  filter: blur(var(--wash-blur)) brightness(var(--wash-brightness))
+    saturate(var(--wash-saturate));
+  opacity: var(--wash-opacity);
+}
+
+.decoration {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-decoration);
+  pointer-events: none;
+}
+
+.halftone {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 46%;
+  background-image: var(--halftone-url);
+  background-size: 34px 34px;
+  background-repeat: repeat;
+  opacity: 0.1;
+  mask-image: linear-gradient(0deg, #000 15%, transparent 100%);
+  -webkit-mask-image: linear-gradient(0deg, #000 15%, transparent 100%);
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 46%, transparent 46%, rgba(12, 6, 24, 0.45) 100%);
+}
+
+/* Used while the account is loading or the auth screen is up. */
+.dimmed .background,
+.dimmed .wash {
+  filter: blur(var(--wash-blur)) brightness(0.34) saturate(0.8);
+}

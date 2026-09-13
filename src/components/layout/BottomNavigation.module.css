@@ -1,0 +1,94 @@
+/* Bar top edge at y835, height 107, five equal items with hairline dividers. */
+.bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: var(--z-bottom-nav);
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: var(--bottomnav-h);
+  background: linear-gradient(180deg, rgba(14, 10, 26, 0.74) 0%, rgba(8, 5, 18, 0.92) 100%);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--color-text);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.item + .item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22px;
+  bottom: 22px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.item:hover {
+  transform: translateY(-2px);
+}
+
+/* The selected item carries a teal wash behind it in the reference. */
+.active {
+  color: var(--color-yellow);
+  background: linear-gradient(180deg, rgba(40, 160, 190, 0.34) 0%, rgba(30, 120, 160, 0.5) 100%);
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 700;
+  text-shadow: var(--shadow-text);
+  white-space: nowrap;
+}
+
+.iconWrap {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+}
+
+/* Item badges sit on the bar's top edge at the item's right corner. */
+.itemBadge {
+  position: absolute;
+  top: 6px;
+  right: 16px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-red);
+  box-shadow: var(--shadow-badge);
+}
+
+/* Floating stream button, overlapping the top edge of the bar. */
+.stream {
+  position: absolute;
+  left: 418px;
+  bottom: 79px;
+  z-index: var(--z-badge);
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 44px;
+  border-radius: 8px 8px 8px 0;
+  background: linear-gradient(180deg, #f08a2a 0%, #d8641a 100%);
+  color: #fff;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast);
+}
+
+.stream:hover {
+  transform: scale(1.06);
+}

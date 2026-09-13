@@ -1,0 +1,16 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.social {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-left: 8px;
+}
+
+.action {
+  position: relative;
+}

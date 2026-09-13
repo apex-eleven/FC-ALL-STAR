@@ -1,0 +1,97 @@
+.section {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-hero-art);
+}
+
+/* Wide translucent band the wordmark and CTA sit on. Top edge at y599. */
+.band {
+  position: absolute;
+  left: var(--hero-band-x);
+  top: var(--hero-band-y);
+  z-index: var(--z-hero-overlay);
+  width: var(--hero-band-w);
+  height: var(--hero-band-h);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(150, 120, 200, 0.1) 42%,
+    rgba(20, 10, 40, 0) 100%
+  );
+  pointer-events: none;
+}
+
+.band::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.6) 20%,
+    rgba(255, 255, 255, 0.6) 80%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* Wordmark is centred on x712, cap height 42 -> 56px display face. */
+.title {
+  position: absolute;
+  left: 0;
+  top: var(--hero-title-y);
+  z-index: var(--z-hero-overlay);
+  width: calc(var(--hero-center-x) * 2);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text-strong);
+  pointer-events: none;
+}
+
+.dots {
+  position: absolute;
+  left: var(--hero-dots-x);
+  top: var(--hero-dots-y);
+  z-index: var(--z-hero-overlay);
+  display: flex;
+  gap: 14px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: var(--shadow-badge);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.dot:hover {
+  transform: scale(1.3);
+}
+
+.dotActive {
+  background: #ffffff;
+}
+
+.watermark {
+  position: absolute;
+  left: 262px;
+  top: 717px;
+  z-index: var(--z-hero-overlay);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}

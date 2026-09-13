@@ -1,0 +1,144 @@
+/* Round shortcuts at 508,781 and 664,781 (72px). Pack buttons at y811, 65 tall:
+   x930 w464 and x1414 w466. */
+.shortcuts {
+  position: absolute;
+  left: 520px;
+  top: 785px;
+  z-index: var(--z-panel);
+  display: flex;
+  gap: 84px;
+}
+
+.shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 72px;
+  transition: transform var(--transition-fast);
+}
+
+.shortcut:hover {
+  transform: translateY(-3px);
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(14, 10, 26, 0.82);
+  border: 3px solid #3fd6e8;
+  color: var(--color-text);
+  box-shadow: var(--shadow-tile);
+}
+
+.shortcutLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: #241a3c;
+  white-space: nowrap;
+}
+
+.packs {
+  position: absolute;
+  left: 938px;
+  top: var(--draft-actions-y);
+  z-index: var(--z-panel);
+  display: flex;
+  gap: 20px;
+}
+
+.pack {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--draft-actions-h);
+  padding: 0 28px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(92deg, #efc8ee 0%, #f6e2f4 46%, #c68ae0 100%);
+  box-shadow: 0 8px 22px rgba(120, 40, 150, 0.35);
+  transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+.pack:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+}
+
+.pack:disabled {
+  filter: grayscale(0.6) brightness(0.85);
+  cursor: not-allowed;
+}
+
+.packLabel {
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 800;
+  color: #23103a;
+  white-space: nowrap;
+}
+
+.divider {
+  width: 2px;
+  height: 32px;
+  margin: 0 22px;
+  background: rgba(40, 16, 60, 0.3);
+}
+
+.cost {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 900;
+  color: #23103a;
+}
+
+.costIcon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+/* ---- store details --------------------------------------------------- */
+
+/* Ribbon for admin-set copy like "คุ้มที่สุด". Rides the top-left corner so it
+   cannot push the measured button layout around. */
+.badge {
+  position: absolute;
+  left: -6px;
+  top: -14px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-cta);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+  box-shadow: var(--shadow-cta);
+}
+
+/* The label becomes a two-line stack only when there is a limit to report, so an
+   unlimited pack keeps the measured single-line layout exactly as it was. */
+.limit {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: rgba(35, 16, 58, 0.68);
+}
+
+.listCost {
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(35, 16, 58, 0.45);
+  text-decoration: line-through;
+}

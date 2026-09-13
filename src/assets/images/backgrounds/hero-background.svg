@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 942" width="2048" height="942">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A1140"/>
+      <stop offset="0.45" stop-color="#5B2A86"/>
+      <stop offset="1" stop-color="#8E2E8C"/>
+    </linearGradient>
+    <radialGradient id="bloom" cx="0.62" cy="0.18" r="0.62">
+      <stop offset="0" stop-color="#E05BD0" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#E05BD0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bloom2" cx="0.22" cy="0.78" r="0.55">
+      <stop offset="0" stop-color="#6A2CC8" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#6A2CC8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mono" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#F2EFF6" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#B9AEC8" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+  <rect width="2048" height="942" fill="url(#base)"/>
+  <rect width="2048" height="942" fill="url(#bloom)"/>
+  <rect width="2048" height="942" fill="url(#bloom2)"/>
+  <!-- silver shard entering from the left edge -->
+  <path d="M0 0 L360 0 L196 942 L0 942 Z" fill="url(#mono)" opacity="0.75"/>
+  <path d="M0 0 L150 0 L64 942 L0 942 Z" fill="#FFFFFF" opacity="0.25"/>
+  <!-- silver shard on the far right -->
+  <path d="M1760 0 L2048 0 L2048 942 L1880 942 Z" fill="url(#mono)" opacity="0.6"/>
+  <!-- large oversized numeral, softened -->
+  <g opacity="0.30" fill="#FFFFFF">
+    <path d="M760 40 L860 40 L900 620 L960 40 L1060 40 L1120 620 L1160 40 L1260 40 L1190 780 L1050 780 L1010 380 L970 780 L830 780 Z"/>
+  </g>
+  <!-- lower magenta wash -->
+  <rect y="700" width="2048" height="242" fill="#8E2E8C" opacity="0.35"/>
+</svg>

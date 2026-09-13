@@ -1,0 +1,8 @@
+.cta {
+  position: absolute;
+  left: var(--hero-cta-x);
+  top: var(--hero-cta-y);
+  z-index: var(--z-hero-overlay);
+  width: var(--hero-cta-w);
+  height: var(--hero-cta-h);
+}

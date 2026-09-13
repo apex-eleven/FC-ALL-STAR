@@ -1,0 +1,102 @@
+import { ChevronDown, Plus, RefreshCw, SlidersHorizontal, Users } from 'lucide-react';
+import { currencies } from '@/data/mock/currencies';
+import { formatCurrency } from '@/features/currencies/constants';
+import ArtImage from '@/components/ui/ArtImage';
+import OvrBadge from '@/components/ui/OvrBadge';
+import styles from './ClubPanel.module.css';
+
+export interface ClubPanelProps {
+  name: string;
+  rating: number;
+  formationName: string;
+  value: number;
+  collectionOpen: boolean;
+  canAutoBuild: boolean;
+  onAutoBuild(): void;
+  onToggleCollection(): void;
+}
+
+export default function ClubPanel({
+  name,
+  rating,
+  formationName,
+  value,
+  collectionOpen,
+  canAutoBuild,
+  onAutoBuild,
+  onToggleCollection,
+}: ClubPanelProps) {
+  return (
+    <>
+      <div className={styles.panel}>
+        <div className={styles.select}>
+          {name}
+          <ChevronDown className={styles.chevron} size={26} strokeWidth={2.6} />
+        </div>
+
+        <div className={styles.ovrRow}>
+          <OvrBadge rating={rating} size={132} labelSize={17} valueSize={48} />
+        </div>
+
+        <div className={styles.divider} />
+
+        <p className={styles.formation}>{formationName}</p>
+        <div className={styles.value}>
+          {/* Team value is counted in coins, so it gets the coin rather than the
+              wallet's FC point icon. Drop-in art, with the old icon as the fallback. */}
+          <ArtImage
+            className={styles.valueIcon}
+            file="currencylarge_COIN.png"
+            fallback={currencies.fcpoint.icon}
+          />
+          <span className={styles.valueText}>{formatCurrency(value)}</span>
+        </div>
+
+        <div className={styles.badges}>
+          {[0, 1, 2].map((index) => (
+            <button
+              type="button"
+              key={index}
+              className={styles.badge}
+              title="ช่องตราทีม — ยังไม่เปิดใช้งาน"
+              aria-label={`ช่องตราทีมที่ ${index + 1}`}
+            >
+              <Plus size={22} strokeWidth={2.6} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={styles.action}
+          onClick={onAutoBuild}
+          disabled={!canAutoBuild}
+        >
+          <RefreshCw size={28} strokeWidth={2.4} />
+          สร้างอัตโนมัติ
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.action} ${collectionOpen ? styles.actionActive : ''}`}
+          onClick={onToggleCollection}
+          aria-pressed={collectionOpen}
+        >
+          <Users size={28} strokeWidth={2.4} />
+          ตัวสำรอง
+        </button>
+
+        <button type="button" className={styles.action} disabled>
+          <SlidersHorizontal size={28} strokeWidth={2.4} />
+          การแก้ไขทีม
+        </button>
+      </div>
+
+      <p className={styles.hint}>
+        ลากการ์ดไปวางในตำแหน่งที่ต้องการ · ลากออกนอกสนามเพื่อถอดออกจากทีม
+      </p>
+    </>
+  );
+}

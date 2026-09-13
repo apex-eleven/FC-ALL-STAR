@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88" width="88" height="88">
+  <defs>
+    <linearGradient id="g_nav-sale" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38C7A8"/>
+      <stop offset="1" stop-color="#14203A"/>
+    </linearGradient>
+  </defs>
+  <rect width="88" height="88" rx="12" fill="url(#g_nav-sale)"/>
+  gift
+</svg>

@@ -1,0 +1,33 @@
+/* Rail origin x172 y222, 130px pitch, 96x88 tiles. UI_ANALYSIS section 3. */
+.rail {
+  position: absolute;
+  left: var(--leftnav-x);
+  top: var(--leftnav-y);
+  z-index: var(--z-left-nav);
+  display: flex;
+  flex-direction: column;
+  width: var(--leftnav-w);
+}
+
+.slot {
+  height: var(--leftnav-pitch);
+}
+
+/* Thin vertical scroll hint to the left of the rail. */
+.hint {
+  position: absolute;
+  left: -104px;
+  top: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+}
+
+.hintLine {
+  width: 2px;
+  height: 96px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.14));
+}

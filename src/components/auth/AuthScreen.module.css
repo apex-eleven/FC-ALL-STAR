@@ -1,0 +1,197 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  background: rgba(8, 4, 18, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.panel {
+  width: 640px;
+  padding: 36px 44px 34px;
+  border-radius: var(--radius-xl);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 26px;
+  padding: 5px;
+  border-radius: var(--radius-md);
+  background: rgba(6, 4, 14, 0.55);
+}
+
+.tab {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabActive,
+.tabActive:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-text);
+}
+
+.title {
+  margin: 0 0 6px;
+  font-family: var(--font-ui);
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--color-text);
+}
+
+.intro {
+  margin: 0 0 22px;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.counter {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+.input {
+  width: 100%;
+  height: 54px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  background: rgba(6, 4, 14, 0.6);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 21px;
+  font-weight: 700;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.26);
+  font-weight: 400;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-cyan);
+  background: rgba(6, 4, 14, 0.78);
+}
+
+.inputInvalid,
+.inputInvalid:focus {
+  border-color: var(--color-red);
+}
+
+/* Shown only when the typed username is on the admin list. */
+.adminField {
+  padding: 12px 14px 2px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-md);
+  background: rgba(217, 164, 65, 0.1);
+  border: 1px solid rgba(217, 164, 65, 0.4);
+}
+
+.adminNote {
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(240, 210, 150, 0.85);
+}
+
+/* Reserved height so the panel does not jump when a message appears. */
+.message {
+  min-height: 24px;
+  margin: 2px 0 16px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-red);
+}
+
+.hint {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.start {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(43, 224, 140, 0.1);
+  border: 1px solid rgba(43, 224, 140, 0.34);
+}
+
+.startBadge {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: var(--color-green);
+  color: #0d2b1c;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 900;
+  line-height: 1;
+  flex: none;
+}
+
+.startText {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.cta {
+  width: 100%;
+  height: 68px;
+}
+
+.ctaDisabled {
+  filter: grayscale(0.75) brightness(0.75);
+  cursor: not-allowed;
+}

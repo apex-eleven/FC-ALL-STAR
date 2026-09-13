@@ -1,0 +1,70 @@
+/* Rows are right-aligned to x1880: row 1 at y689, row 2 at y744, both 40 tall. */
+.rows {
+  position: absolute;
+  right: calc(2048px - var(--draft-right-edge));
+  top: 689px;
+  z-index: var(--z-panel);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 15px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+}
+
+.pill {
+  display: grid;
+  place-items: center;
+  min-width: 184px;
+  height: 100%;
+  padding: 0 18px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: var(--color-text);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.primary {
+  background: linear-gradient(90deg, #7b2fd0 0%, #e05bd0 100%);
+}
+
+.secondary {
+  background: linear-gradient(90deg, #e07a1c 0%, #f0a63c 100%);
+}
+
+.description {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: #241a3c;
+  white-space: nowrap;
+}
+
+.count {
+  display: grid;
+  place-items: center;
+  min-width: 166px;
+  height: 100%;
+  padding: 0 16px;
+  border-radius: var(--radius-xs);
+  background: #120c22;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: #ffd84a;
+}
+
+/* One pull away — the number is the only thing on this screen that changes as you
+   play, so it earns a state of its own. */
+.imminent {
+  background: #2a1206;
+  color: #ffb03a;
+  box-shadow: 0 0 0 2px rgba(255, 176, 58, 0.5);
+}

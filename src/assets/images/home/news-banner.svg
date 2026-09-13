@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 426" width="780" height="426">
+  <defs>
+    <linearGradient id="nb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4B1E7C"/>
+      <stop offset="0.55" stop-color="#7B2FA8"/>
+      <stop offset="1" stop-color="#2B1148"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4D98A"/>
+      <stop offset="0.5" stop-color="#C9962F"/>
+      <stop offset="1" stop-color="#8A5F16"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFF6D8" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFF6D8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="780" height="426" fill="url(#nb)"/>
+  <!-- radiating shards -->
+  <g opacity="0.35" fill="#2BE08C">
+    <path d="M390 213 L780 60 L780 130 Z"/>
+    <path d="M390 213 L780 330 L780 400 Z"/>
+    <path d="M390 213 L0 96 L0 40 Z"/>
+  </g>
+  <rect width="780" height="426" fill="url(#glow)"/>
+  <!-- central faceted disc -->
+  <g transform="translate(390 213)">
+    <circle r="150" fill="url(#gold)"/>
+    <path d="M0 0 L150 -30 L150 30 Z" fill="#FFFFFF" opacity="0.18"/>
+    <path d="M0 0 L-30 -148 L38 -145 Z" fill="#000000" opacity="0.18"/>
+    <path d="M0 0 L-148 40 L-130 88 Z" fill="#000000" opacity="0.12"/>
+    <path d="M0 0 L60 140 L-14 150 Z" fill="#FFFFFF" opacity="0.12"/>
+    <circle r="150" fill="none" stroke="#FFF1C4" stroke-opacity="0.5" stroke-width="3"/>
+  </g>
+</svg>

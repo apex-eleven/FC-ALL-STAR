@@ -1,0 +1,29 @@
+/* The sharp figure layer: a window on the stage with the key art positioned inside
+   it. Never a background-image, so the crop can be nudged without touching layout.
+   All numbers come from heroBackdrop in data/mock/home.ts. UI_ANALYSIS section 4. */
+.window {
+  position: absolute;
+  z-index: var(--z-hero-art);
+  overflow: hidden;
+  pointer-events: none;
+  /* Soft edges so the crop does not end in a hard vertical seam. */
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 var(--fade-left),
+    #000 var(--fade-right),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 var(--fade-left),
+    #000 var(--fade-right),
+    transparent 100%
+  );
+}
+
+.art {
+  position: absolute;
+  filter: drop-shadow(0 18px 44px rgba(0, 0, 0, 0.4));
+}

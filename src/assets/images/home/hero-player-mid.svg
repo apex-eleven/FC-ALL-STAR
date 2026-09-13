@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 1100" width="700" height="1100">
+  <defs>
+    <linearGradient id="kit" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FAFAFF"/>
+      <stop offset="1" stop-color="#CFCADB"/>
+    </linearGradient>
+    <linearGradient id="fade2" x1="0" y1="0.6" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF" stop-opacity="1"/>
+      <stop offset="1" stop-color="#FFF" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="m2"><rect width="700" height="1100" fill="url(#fade2)"/></mask>
+  </defs>
+  <g mask="url(#m2)">
+    <!-- raised arms -->
+    <path d="M150 470 Q90 340 120 250 L190 240 Q190 350 240 460 Z" fill="#D8CFC2"/>
+    <path d="M520 470 Q580 350 560 255 L490 245 Q492 350 440 460 Z" fill="#D8CFC2"/>
+    <!-- torso -->
+    <path d="M200 430 Q350 380 500 430 L540 840 L160 840 Z" fill="url(#kit)"/>
+    <!-- kit stripe -->
+    <rect x="315" y="400" width="70" height="450" fill="#6A3FD0" opacity="0.85"/>
+    <!-- collar -->
+    <path d="M300 400 L400 400 L350 460 Z" fill="#6A3FD0"/>
+    <!-- head -->
+    <circle cx="350" cy="300" r="96" fill="#E4D5C4"/>
+    <path d="M254 288 Q270 190 350 190 Q430 190 446 288 Q400 232 350 232 Q300 232 254 288 Z" fill="#B9793F"/>
+    <!-- shorts -->
+    <path d="M175 840 L525 840 L500 1010 L200 1010 Z" fill="#E8E4F0"/>
+    <!-- number block -->
+    <rect x="268" y="560" width="164" height="150" rx="10" fill="#2A2140" opacity="0.14"/>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 190" width="150" height="190">
+  <defs><linearGradient id="kportrait-b" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#B01B26"/><stop offset="1" stop-color="#101426"/></linearGradient></defs>
+  <path d="M22 190 q4 -62 53 -74 q49 12 53 74 Z" fill="url(#kportrait-b)"/>
+  <path d="M60 116 h30 v74 h-30 Z" fill="#F3D24A" opacity="0.55"/>
+  <rect x="64" y="86" width="22" height="30" rx="8" fill="#D9B893"/>
+  <ellipse cx="75" cy="60" rx="34" ry="40" fill="#E2C4A2"/>
+  <path d="M41 52 q4 -36 34 -36 q30 0 34 36 q-14 -20 -34 -20 q-20 0 -34 20 Z" fill="#2A1E18"/>
+</svg>

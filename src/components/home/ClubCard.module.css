@@ -1,0 +1,100 @@
+/* x1150 y601, 358x172. UI_ANALYSIS section 3. */
+.card {
+  position: absolute;
+  left: var(--rail-x);
+  top: var(--cards-y);
+  z-index: var(--z-panel);
+  width: var(--card-w);
+  height: var(--cards-h);
+  border-radius: var(--radius-lg);
+  border: 3px solid rgba(10, 8, 20, 0.9);
+  background: var(--color-panel-dark);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: calc(var(--radius-lg) - 3px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The supplied art is pale cyan on the left, where the white wordmark sits: 1.15:1
+   contrast, unreadable. This lifts it to about 3.2:1 and fades out before reaching
+   the photography on the right. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(6, 10, 26, 0.86) 0%,
+    rgba(6, 10, 26, 0.7) 30%,
+    rgba(6, 10, 26, 0.24) 50%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+/* Title and badge share one column with space-between, so they can never overlap
+   however the font metrics land. Absolute offsets used to collide by 4px, because a
+   44px font box plus a 108px badge plus 24px of insets does not fit 172px. */
+.column {
+  position: absolute;
+  left: 24px;
+  top: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 50px;
+  font-weight: 900;
+  /* Tight leading keeps the visual cap height near the reference without the box
+     eating the badge's space. "CLUB" has no descenders. */
+  line-height: 0.82;
+  letter-spacing: 0.01em;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text-strong);
+}
+
+/* Position only — the badge itself is <OvrBadge>, shared with the squad panel. */
+.ovr {
+  margin-left: 6px;
+}
+
+/* Collection size. Sat under the crest before it was removed; it keeps the corner,
+   which is where the eye already goes for it. */
+.count {
+  position: absolute;
+  right: 20px;
+  top: 16px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(6, 10, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
