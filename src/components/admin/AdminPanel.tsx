@@ -14,6 +14,8 @@ import AdminBanners from './AdminBanners';
 import AdminDrafts from './AdminDrafts';
 import AdminDraftRates from './AdminDraftRates';
 import { saveConfigToRepo } from '@/features/backup/backup';
+import { pushConfigToCloud } from '@/features/cloud/cloudConfig';
+import { isCloudEnabled } from '@/features/cloud/firebase';
 import AdminBackup from './AdminBackup';
 import AdminClub from './AdminClub';
 import AdminLeague from './AdminLeague';
@@ -69,6 +71,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
    */
   const close = () => {
     void saveConfigToRepo();
+    // On a live deployment this is the one that matters: it is what makes an admin
+    // edit visible to every other player without a redeploy.
+    if (isCloudEnabled()) void pushConfigToCloud();
     onClose();
   };
   const { listAccounts, updateOther } = useAuth();

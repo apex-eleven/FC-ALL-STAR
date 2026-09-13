@@ -46,6 +46,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ---- ตารางลีกรายวัน ----
+    // ทุกคนที่ล็อกอินอ่านได้ (ต้องเห็นตารางของคนอื่น)
+    // เขียนได้เฉพาะแถวของตัวเอง — uid ใน path ต้องตรงกับคนที่ล็อกอินอยู่
+    // จึงแก้ดาวของคนอื่นไม่ได้ แม้จะยิง request เองจาก DevTools
+    match /league/{season}/entries/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
     // ---- อย่างอื่นปิดหมด ----
     // ปฏิเสธไว้ก่อนเสมอ: คอลเลกชันใหม่ที่เพิ่มทีหลังจะไม่เปิดให้เขียนโดยบังเอิญ
     match /{document=**} {

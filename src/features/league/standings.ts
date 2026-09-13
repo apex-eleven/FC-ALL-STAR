@@ -42,9 +42,17 @@ export function emptyLeague(): LeagueState {
   };
 }
 
-/** Where the account sits in the table. 1 is top. Ties break in the player's favour. */
-export function rankOf(state: LeagueState): number {
-  return state.rivals.filter((rival) => rival.stars > state.stars).length + 1;
+/**
+ * Where the account sits in the table. 1 is top. Ties break in the player's favour.
+ *
+ * `against` is the star totals to compare with. When real players are in the table it
+ * must be theirs, not the generated rivals' — otherwise the rank on screen and the
+ * rank the reward is paid for are two different numbers, and the player is right to
+ * think the game cheated them.
+ */
+export function rankOf(state: LeagueState, against?: readonly number[]): number {
+  const stars = against ?? state.rivals.map((rival) => rival.stars);
+  return stars.filter((value) => value > state.stars).length + 1;
 }
 
 export function rewardFor(rank: number, config: LeagueConfig): RankReward | null {
@@ -73,6 +81,8 @@ interface AdvanceInput {
   /** The player's squad rating. Drives the odds. */
   rating: number;
   now: Date;
+  /** Real players' star totals, when the cloud table has any. Used for the final rank. */
+  rivalStars?: readonly number[];
 }
 
 export interface AdvanceOutput {
@@ -94,14 +104,21 @@ export interface AdvanceOutput {
  * Pure: takes a state, returns a new one. Granting the reward is the caller's job,
  * because that touches the wallet and this file does not.
  */
-export function advance({ state, config, accountId, rating, now }: AdvanceInput): AdvanceOutput {
+export function advance({
+  state,
+  config,
+  accountId,
+  rating,
+  now,
+  rivalStars,
+}: AdvanceInput): AdvanceOutput {
   if (!config.enabled) return { state, finished: null, changed: false };
 
   const seasonId = seasonIdAt(now, config.resetHour);
 
   // --- season rollover -------------------------------------------------
   if (state.seasonId && state.seasonId !== seasonId) {
-    const rank = rankOf(state);
+    const rank = rankOf(state, rivalStars);
     const reward = rewardFor(rank, config);
 
     const finished: LeagueResult = {

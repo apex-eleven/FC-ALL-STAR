@@ -11,6 +11,7 @@ import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
 import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
 import { restoreConfigFromRepo } from '@/features/backup/backup';
+import { pullConfigFromCloud } from '@/features/cloud/cloudConfig';
 import '@/styles/globals.css';
 
 const container = document.getElementById('root');
@@ -58,4 +59,20 @@ function render() {
  * support TLA — and `render` is passed as both handlers, because a failed restore
  * must still start the game.
  */
-void restoreConfigFromRepo().then(render, render);
+/**
+ * Two sources, in order of authority.
+ *
+ * The committed JSON fills an empty browser so the game always has settings, even
+ * offline or with no Firebase at all. The cloud document then overwrites them,
+ * because that is what "the admin edited it and everyone sees it" means — a stale
+ * local copy must lose to the live one, or the first visit would pin a player to that
+ * day's cards forever.
+ *
+ * Both are awaited before the first render: every provider reads its storage as it
+ * mounts, so settings arriving a frame later would show defaults and then contradict
+ * them. Failures on either side still render — a game that will not start because a
+ * config fetch timed out is worse than one running on yesterday's settings.
+ */
+void restoreConfigFromRepo()
+  .then(() => pullConfigFromCloud())
+  .then(render, render);

@@ -60,7 +60,7 @@ function toRow(rival: LeagueRival): Row {
 export default function LeagueScreen() {
   const account = useAccount();
   const { back, navigate } = useNavigation();
-  const { config, state, rank, rating } = useLeague();
+  const { config, state, entries, rank, rating } = useLeague();
   const [now, setNow] = useState(() => new Date());
   const [hourFilter, setHourFilter] = useState<number | 'all'>('all');
 
@@ -77,18 +77,38 @@ export default function LeagueScreen() {
   );
 
   const rows = useMemo<Row[]>(() => {
-    const all: Row[] = [
-      ...state.rivals.map(toRow),
-      {
-        id: 'you',
-        name: account.username,
-        rating,
-        stars: state.stars,
-        avatarId: account.avatarId,
-        record: state.record ?? emptyRecord(),
-        isPlayer: true,
-      },
-    ];
+    const me: Row = {
+      id: 'you',
+      name: account.username,
+      rating,
+      stars: state.stars,
+      avatarId: account.avatarId,
+      record: state.record ?? emptyRecord(),
+      isPlayer: true,
+    };
+
+    /*
+      Real players first, generated rivals only to fill the rest of the table.
+
+      A ladder of twenty bots is a placeholder; a ladder of three friends and
+      seventeen bots is a real table that has not filled up yet. As more people play,
+      the generated ones are pushed out from the bottom rather than the list suddenly
+      changing character.
+    */
+    const real: Row[] = entries
+      .filter((entry) => entry.uid !== account.id)
+      .map((entry) => ({
+        id: entry.uid,
+        name: entry.username,
+        rating: entry.rating,
+        stars: entry.stars,
+        avatarId: entry.avatarId,
+        record: entry.record ?? emptyRecord(),
+        isPlayer: false,
+      }));
+
+    const padding = Math.max(0, config.teamCount - 1 - real.length);
+    const all: Row[] = [...real, ...state.rivals.slice(0, padding).map(toRow), me];
 
     // Stars first, then goal difference, then goals scored — the tie-breaks a real
     // table uses. An outright tie still goes to the player, matching rankOf.
@@ -100,7 +120,17 @@ export default function LeagueScreen() {
       if (b.record.goalsFor !== a.record.goalsFor) return b.record.goalsFor - a.record.goalsFor;
       return a.isPlayer ? -1 : b.isPlayer ? 1 : 0;
     });
-  }, [state.rivals, state.stars, state.record, account.username, account.avatarId, rating]);
+  }, [
+    state.rivals,
+    state.stars,
+    state.record,
+    entries,
+    config.teamCount,
+    account.id,
+    account.username,
+    account.avatarId,
+    rating,
+  ]);
 
   const playedSlots = slotsElapsed(now, config);
   const totalSlots = Math.max(1, Math.floor((24 * 60) / config.matchIntervalMinutes));

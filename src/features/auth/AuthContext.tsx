@@ -25,6 +25,8 @@ import {
 } from './constants';
 import { CryptoUnavailableError, hashPassword, verifyPassword } from './crypto';
 import { localAccountStore } from './localAccountStore';
+import { isCloudEnabled } from '@/features/cloud/firebase';
+import { CloudAuthProvider } from '@/features/cloud/CloudAuthProvider';
 import type { Account, AccountStore, AuthResult, AuthStatus, StoredAccount } from './types';
 
 export interface SignUpInput {
@@ -34,7 +36,7 @@ export interface SignUpInput {
   adminCode?: string;
 }
 
-interface AuthValue {
+export interface AuthValue {
   status: AuthStatus;
   account: Account | null;
   isAdmin: boolean;
@@ -59,7 +61,13 @@ interface AuthValue {
   listAccounts(): Promise<Account[]>;
 }
 
-const AuthContext = createContext<AuthValue | null>(null);
+/**
+ * Exported so the cloud provider can fill the same context.
+ *
+ * Both providers hand down an identical `AuthValue`, which is what lets every screen
+ * in the game stay unaware of whether the save lives in this browser or in Firestore.
+ */
+export const AuthContext = createContext<AuthValue | null>(null);
 
 const OK: AuthResult = { ok: true, error: null };
 
@@ -99,7 +107,20 @@ export interface AuthProviderProps {
   store?: AccountStore;
 }
 
-export function AuthProvider({ children, store = localAccountStore }: AuthProviderProps) {
+/**
+ * Picks the persistence layer once, at mount.
+ *
+ * A component boundary rather than a branch inside one provider: the two
+ * implementations have different hooks in different orders, and React does not allow
+ * that inside a single component. Splitting them also means the local path — the one
+ * that has been working all along — is not touched by the cloud work at all.
+ */
+export function AuthProvider({ children, store }: AuthProviderProps) {
+  if (isCloudEnabled()) return <CloudAuthProvider>{children}</CloudAuthProvider>;
+  return <LocalAuthProvider store={store}>{children}</LocalAuthProvider>;
+}
+
+export function LocalAuthProvider({ children, store = localAccountStore }: AuthProviderProps) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [account, setAccount] = useState<Account | null>(null);
   const storeRef = useRef(store);

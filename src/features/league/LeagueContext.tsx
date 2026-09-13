@@ -12,6 +12,8 @@ import { appendEntry, credit } from '@/features/currencies/wallet';
 import { indexOwned, squadRating } from '@/features/squad/squad';
 import { syncOwned } from '@/features/club/sync';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { fetchEntries, publishEntry, type LeagueEntry } from '@/features/cloud/cloudLeague';
+import { isCloudEnabled } from '@/features/cloud/firebase';
 import { loadConfig, saveConfig, normalizeConfig, type SaveResult } from './leagueConfigStore';
 import { advance, emptyLeague, rankOf, rewardFor } from './standings';
 import type { LeagueConfig, LeagueState } from './types';
@@ -19,6 +21,11 @@ import type { LeagueConfig, LeagueState } from './types';
 interface LeagueValue {
   config: LeagueConfig;
   state: LeagueState;
+  /**
+   * Real players in today's table, best first. Empty when the game runs without
+   * Firebase — the screen then shows the generated rivals alone.
+   */
+  entries: LeagueEntry[];
   rank: number;
   /** The player's squad rating — the number the simulation plays with. */
   rating: number;
@@ -41,8 +48,15 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   const { account, updateAccount } = useAuth();
   const { byId } = usePlayers();
   const [config, setConfig] = useState<LeagueConfig>(loadConfig);
+  const [entries, setEntries] = useState<LeagueEntry[]>([]);
 
   const state = account?.league ?? emptyLeague();
+
+  /** Star totals of the other real players, used for both the rank and the reward. */
+  const realStars = useMemo(
+    () => entries.filter((entry) => entry.uid !== account?.id).map((entry) => entry.stars),
+    [entries, account?.id],
+  );
 
   const rating = useMemo(() => {
     if (!account) return 0;
@@ -66,6 +80,9 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       accountId: account.id,
       rating,
       now: new Date(),
+      // Only when somebody else is actually in the table. One lone player would
+      // otherwise be ranked first against an empty list every single day.
+      rivalStars: realStars.length > 0 ? realStars : undefined,
     });
     if (!result.changed) return;
 
@@ -85,10 +102,53 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
 
       return { ...current, wallet, ledger, league: result.state };
     });
+
+    // Publish after the fixtures resolved, so the table other players read is this
+    // player's real standing rather than the one from before they opened the game.
+    if (isCloudEnabled() && result.state.seasonId) {
+      void publishEntry(result.state.seasonId, {
+        uid: account.id,
+        username: account.username,
+        avatarId: account.avatarId,
+        rating,
+        stars: result.state.stars,
+        record: result.state.record,
+        updatedAt: new Date().toISOString(),
+      });
+    }
     // `state` is read from the account, which updateAccount replaces — depending on it
     // directly would loop. The account object identity is the honest trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, config, rating, updateAccount]);
+  }, [account, config, rating, updateAccount, realStars]);
+
+  /**
+   * Refreshes the shared table.
+   *
+   * On open and every two minutes after. Not a live subscription: a table that
+   * rearranges itself while being read is worse than one that is a minute stale, and
+   * an open tab would hold a listener costing reads all day.
+   */
+  useEffect(() => {
+    if (!isCloudEnabled()) return;
+
+    const seasonId = state.seasonId;
+    if (!seasonId) return;
+
+    let cancelled = false;
+    const refresh = () => {
+      void fetchEntries(seasonId).then((rows) => {
+        if (!cancelled) setEntries(rows);
+      });
+    };
+
+    refresh();
+    const timer = window.setInterval(refresh, 120_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [state.seasonId, state.stars]);
 
   const commit = useCallback((next: LeagueConfig): SaveResult => {
     const clean = normalizeConfig(next);
@@ -132,7 +192,8 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     () => ({
       config,
       state,
-      rank: rankOf(state),
+      entries,
+      rank: rankOf(state, realStars.length > 0 ? realStars : undefined),
       rating,
       updateConfig,
       resetConfig,
@@ -140,7 +201,18 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       setStars,
       restartSeason,
     }),
-    [config, state, rating, updateConfig, resetConfig, dismissResult, setStars, restartSeason],
+    [
+      config,
+      state,
+      entries,
+      realStars,
+      rating,
+      updateConfig,
+      resetConfig,
+      dismissResult,
+      setStars,
+      restartSeason,
+    ],
   );
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>;

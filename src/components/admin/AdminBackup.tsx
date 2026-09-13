@@ -7,6 +7,8 @@ import {
   saveConfigToRepo,
   CONFIG_FILE,
 } from '@/features/backup/backup';
+import { pushConfigToCloud, pullConfigFromCloud } from '@/features/cloud/cloudConfig';
+import { isCloudEnabled } from '@/features/cloud/firebase';
 import styles from './AdminBackup.module.css';
 
 type Status = { tone: 'ok' | 'bad'; text: string } | null;
@@ -33,6 +35,64 @@ export default function AdminBackup() {
         สำรองและกู้คืนข้อมูลทั้งหมดของเกมในเครื่องนี้ ·
         ใช้ตอนย้ายโปรเจกต์ไปเครื่องอื่น หรือก่อนล้างข้อมูลเบราว์เซอร์
       </p>
+
+      {isCloudEnabled() && (
+        <div className={styles.block}>
+          <h3 className={styles.blockTitle}>คลาวด์ (Firebase) — ทุกคนเห็นพร้อมกัน</h3>
+
+          <p className={styles.legend}>
+            ส่งตั้งค่าทั้งหมดขึ้น Firestore · ผู้เล่นทุกคนจะได้ของใหม่ตอนเปิดเกมครั้งถัดไป
+            <br />
+            ปกติระบบส่งให้เองทุกครั้งที่ปิดแผงแอดมินอยู่แล้ว ปุ่มนี้มีไว้กดย้ำ
+          </p>
+
+          <div className={styles.row}>
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void pushConfigToCloud().then((state) => {
+                  setBusy(false);
+                  setStatus(
+                    state === 'saved'
+                      ? { tone: 'ok', text: 'ส่งขึ้นคลาวด์แล้ว · ผู้เล่นทุกคนจะเห็นตอนเปิดครั้งถัดไป' }
+                      : state === 'too-large'
+                        ? { tone: 'bad', text: 'ข้อมูลใหญ่เกิน 900 KB — ลดขนาดรูปแบนเนอร์ลงก่อน' }
+                        : state === 'denied'
+                          ? { tone: 'bad', text: 'ไอดีนี้ไม่ใช่แอดมินบนคลาวด์ (ต้องมี admins/{uid} ใน Firestore)' }
+                          : { tone: 'bad', text: 'ส่งขึ้นคลาวด์ไม่สำเร็จ' },
+                  );
+                });
+              }}
+            >
+              ส่งตั้งค่าขึ้นคลาวด์
+            </button>
+
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void pullConfigFromCloud().then((count) => {
+                  setBusy(false);
+                  setStatus({ tone: 'ok', text: `ดึงจากคลาวด์ ${count} รายการ · กำลังโหลดหน้าใหม่…` });
+                  window.setTimeout(() => window.location.reload(), 900);
+                });
+              }}
+            >
+              ดึงตั้งค่าจากคลาวด์ (ทับของในเครื่อง)
+            </button>
+          </div>
+
+          <p className={styles.legend}>
+            เพดาน 900 KB มาจากลิมิตของ Firestore ที่ 1 MiB ต่อ document ·
+            รูปแบนเนอร์ถูกเก็บเป็น data URL จึงเป็นตัวที่กินที่มากที่สุด
+          </p>
+        </div>
+      )}
 
       <div className={styles.columns}>
         {/* ---- repo mirror ---- */}
