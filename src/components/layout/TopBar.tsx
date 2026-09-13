@@ -1,6 +1,6 @@
 import { Newspaper } from 'lucide-react';
 import { newsButtonLabel } from '@/data/mock/home';
-import { useAccount } from '@/features/auth/AuthContext';
+import { useAccount, useIsAdmin } from '@/features/auth/AuthContext';
 import { useAvatars } from '@/features/avatars/AvatarContext';
 import { resolveDisplayAvatar } from '@/features/avatars/unlocks';
 import { requiredXPForLevel } from '@/features/profile/leveling';
@@ -21,6 +21,10 @@ export default function TopBar({
   onAdminClick,
 }: TopBarProps) {
   const account = useAccount();
+  // Asked of the auth layer, not derived from the username. Locally the two agree;
+  // on the cloud they do not — admin there is a document in Firestore, and a name
+  // anyone can register must not be what unlocks the panel.
+  const isAdmin = useIsAdmin();
   const { avatars } = useAvatars();
 
   // Falls back to the default if an admin has since raised the requirement above
@@ -40,7 +44,7 @@ export default function TopBar({
             currentXP: account.currentXP,
             requiredXP: requiredXPForLevel(account.level),
             avatar: avatar?.source ?? '',
-            isAdmin: account.role === 'admin',
+            isAdmin,
           }}
           onAvatarClick={onAvatarClick}
           onAdminClick={onAdminClick}
