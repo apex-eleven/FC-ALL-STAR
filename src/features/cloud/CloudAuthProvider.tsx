@@ -82,13 +82,37 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
   };
 }
 
-/** Strips undefined — Firestore rejects it, and `league` is undefined on new accounts. */
-function toDocument(account: Account): Record<string, unknown> {
-  const raw: Record<string, unknown> = { ...account };
-  for (const [key, value] of Object.entries(raw)) {
-    if (value === undefined) delete raw[key];
+/**
+ * Strips `undefined` at every depth, because Firestore refuses it outright.
+ *
+ * It has to be deep. A top-level pass was not enough and cost a real bug: a draft
+ * pull writes `draftProgress[eventId].purchases`, which is `undefined` for any pack
+ * without a purchase limit. Firestore throws on that **synchronously**, so the error
+ * escaped the promise `.catch` around the write, tore down the rest of the pull, and
+ * left the player charged a ticket with no pack and no cards.
+ *
+ * localStorage accepts `undefined` happily, which is why this never showed up until
+ * the cloud was switched on.
+ */
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stripUndefined(entry)) as unknown as T;
   }
-  return raw;
+
+  if (value && typeof value === 'object') {
+    const clean: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (entry === undefined) continue;
+      clean[key] = stripUndefined(entry);
+    }
+    return clean as T;
+  }
+
+  return value;
+}
+
+function toDocument(account: Account): Record<string, unknown> {
+  return stripUndefined({ ...account }) as Record<string, unknown>;
 }
 
 export interface CloudAuthProviderProps {
@@ -318,11 +342,20 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
     const reference = accountDoc(next.id);
     if (!reference) return;
 
-    void setDoc(reference, { ...toDocument(next), updatedAt: serverTimestamp() }).catch(
-      (error: unknown) => {
-        console.error('[cloud] ไม่สามารถบันทึกเซฟขึ้นคลาวด์ได้', error);
-      },
-    );
+    // try/catch around the call itself, not only the promise: Firestore validates the
+    // document before it returns one, so a bad field throws here rather than
+    // rejecting later. Whatever happens to the write, the game state is already
+    // applied and play carries on — a save that failed to upload must never take the
+    // move with it.
+    try {
+      void setDoc(reference, { ...toDocument(next), updatedAt: serverTimestamp() }).catch(
+        (error: unknown) => {
+          console.error('[cloud] ไม่สามารถบันทึกเซฟขึ้นคลาวด์ได้', error);
+        },
+      );
+    } catch (error) {
+      console.error('[cloud] ข้อมูลเซฟไม่ถูกรูปแบบ จึงไม่ได้อัปโหลด', error);
+    }
   }, []);
 
   const updateOther = useCallback(
@@ -339,7 +372,12 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
       if (!snapshot.exists()) return false;
 
       const next = mutate(toAccount(uid, snapshot.data()));
-      await setDoc(reference, { ...toDocument(next), updatedAt: serverTimestamp() });
+      try {
+        await setDoc(reference, { ...toDocument(next), updatedAt: serverTimestamp() });
+      } catch (error) {
+        console.error('[cloud] แก้บัญชีผู้เล่นคนอื่นไม่สำเร็จ', error);
+        return false;
+      }
 
       // The admin may be editing their own account through the admin panel.
       if (accountRef.current?.id === uid) setAccount(next);

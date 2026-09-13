@@ -119,13 +119,20 @@ export function useDraftRun(): DraftRunApi {
             counters: result.counters,
             // Only written for packs that carry a limit — an unlimited pack has no
             // reason to grow the save file every time it is pressed.
-            purchases:
-              limit > 0
-                ? {
+            //
+            // Spread rather than assigned, so the key is absent instead of set to
+            // `undefined` when there is nothing to record. Firestore rejects an
+            // undefined field outright, and the game should not be storing one either.
+            ...(limit > 0
+              ? {
+                  purchases: {
                     ...current.draftProgress?.[event.id]?.purchases,
                     [pack.id]: bought + 1,
-                  }
-                : current.draftProgress?.[event.id]?.purchases,
+                  },
+                }
+              : current.draftProgress?.[event.id]?.purchases
+                ? { purchases: current.draftProgress[event.id]!.purchases }
+                : {}),
           },
         },
         club: addPlayers(current.club, owned),
