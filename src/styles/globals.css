@@ -15,6 +15,38 @@ body,
   padding: 0;
 }
 
+/*
+  Mobile browser chrome.
+
+  `100%` of a mobile viewport counts the address bar that is about to slide away, so
+  the stage is measured against a height the page never actually has — it ends up
+  scrolling by exactly the height of the bar. `100dvh` tracks the real, current
+  viewport, and the `100%` above stays as the fallback for browsers without it.
+*/
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+
+html,
+body {
+  /* The stage fills the window and nothing inside it scrolls the page. Without this,
+     a drag on the pitch pulls the whole document down and fires pull-to-refresh. */
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+body {
+  /* Long-press on a card should drag it, not select text or raise a share sheet. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background: var(--color-background-4);
   color: var(--color-text);

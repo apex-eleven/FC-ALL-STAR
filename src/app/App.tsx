@@ -1,4 +1,5 @@
 import GameLayout from '@/components/layout/GameLayout';
+import MobileGate from '@/components/layout/MobileGate';
 import Stage from '@/components/layout/Stage';
 import AuthScreen from '@/components/auth/AuthScreen';
 import DraftScreen from '@/components/draft/DraftScreen';
@@ -9,17 +10,29 @@ import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
 
 export default function App() {
+  // Rendered beside whatever screen is up, not around it: the gate is fixed and
+  // covers the viewport itself, so it does not need to own the tree to work.
   const { status } = useAuth();
   const { route } = useNavigation();
 
   // Reading the stored account is synchronous in practice, so this frame is brief.
-  if (status === 'loading') return <Stage dimmed />;
+  if (status === 'loading') {
+    return (
+      <>
+        <MobileGate />
+        <Stage dimmed />
+      </>
+    );
+  }
 
   if (status === 'signed-out') {
     return (
-      <Stage dimmed>
-        <AuthScreen />
-      </Stage>
+      <>
+        <MobileGate />
+        <Stage dimmed>
+          <AuthScreen />
+        </Stage>
+      </>
     );
   }
 
@@ -27,31 +40,43 @@ export default function App() {
   // shortcut — so it does not sit inside GameLayout's home chrome.
   if (route === 'draft') {
     return (
-      <Stage>
-        <DraftScreen />
-      </Stage>
+      <>
+        <MobileGate />
+        <Stage>
+          <DraftScreen />
+        </Stage>
+      </>
     );
   }
 
   if (route === 'league') {
     return (
-      <Stage>
-        <LeagueScreen />
-      </Stage>
+      <>
+        <MobileGate />
+        <Stage>
+          <LeagueScreen />
+        </Stage>
+      </>
     );
   }
 
   if (route === 'club') {
     return (
-      <Stage>
-        <ClubScreen />
-      </Stage>
+      <>
+        <MobileGate />
+        <Stage>
+          <ClubScreen />
+        </Stage>
+      </>
     );
   }
 
   return (
-    <GameLayout>
-      <HomePage />
-    </GameLayout>
+    <>
+      <MobileGate />
+      <GameLayout>
+        <HomePage />
+      </GameLayout>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { requiredXPForLevel } from '@/features/profile/leveling';
 import { useSound } from '@/features/sound/SoundContext';
+import { useFullscreen } from '@/hooks/useFullscreen';
 import styles from './SettingsMenu.module.css';
 
 export interface SettingsMenuProps {
@@ -18,6 +19,7 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
   const account = useAccount();
   const { signOut } = useAuth();
   const { config, update, play } = useSound();
+  const { isFullscreen, supported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -37,6 +39,24 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
             เลเวล {account.level} · {account.currentXP}/{requiredXPForLevel(account.level)} XP
           </span>
         </div>
+
+        {fullscreenSupported && (
+          <div className={styles.group}>
+            <span className={styles.groupTitle}>หน้าจอ</span>
+            <div className={styles.row}>
+              <span className={styles.rowLabel}>เต็มหน้าจอ</span>
+              <button
+                type="button"
+                data-sound="toggle"
+                aria-pressed={isFullscreen}
+                className={`${styles.switch} ${isFullscreen ? styles.switchOn : ''}`}
+                onClick={() => void toggleFullscreen()}
+              >
+                {isFullscreen ? 'ออก' : 'เข้า'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className={styles.group}>
           <span className={styles.groupTitle}>เสียง</span>
