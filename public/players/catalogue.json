@@ -1,0 +1,134 @@
+[
+  {
+    "id": "pc-4b61903a-8df1-4a71-bed6-2796ba2309f6",
+    "name": "BEST",
+    "rating": 122,
+    "position": "RW",
+    "set": "A",
+    "nation": "NIR",
+    "club": "Icons",
+    "artId": "001.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-a9776eb3-1ab5-4f3c-82af-93e638180a21",
+    "name": "PELÉ",
+    "rating": 122,
+    "position": "CAM",
+    "set": "A",
+    "nation": "BRA",
+    "club": "Icons",
+    "artId": "002.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-52c6bfcc-61ba-4797-88f6-fed95b678e1d",
+    "name": "ZIDANE",
+    "rating": 122,
+    "position": "CM",
+    "set": "A",
+    "nation": "FRA",
+    "club": "Icons",
+    "artId": "003.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-b6ffd55c-3d8b-495e-9d03-7e1bb66b3f20",
+    "name": "CARLOS ALBERTO",
+    "rating": 122,
+    "position": "CB",
+    "set": "A",
+    "nation": "BRA",
+    "club": "Icons",
+    "artId": "004.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-c96fd272-7dd4-48b4-911c-7788ecf4f157",
+    "name": "DEMBÉLÉ",
+    "rating": 122,
+    "position": "ST",
+    "set": "A",
+    "nation": "FRA",
+    "club": "Paris Saint-Germain",
+    "artId": "005.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-598ca41a-1355-440d-a33c-fd7f2057f4f4",
+    "name": "VARANE",
+    "rating": 122,
+    "position": "CB",
+    "set": "A",
+    "nation": "FRA",
+    "club": "Icons",
+    "artId": "006.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-a25a5a58-f67a-4915-b1ea-bb35bb5be7ae",
+    "name": "LÚCIO",
+    "rating": 122,
+    "position": "CB",
+    "set": "A",
+    "nation": "BRA",
+    "club": "Icons",
+    "artId": "007.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-71b24ab1-4f96-4e2f-b27a-8fde442ab68a",
+    "name": "COLE",
+    "rating": 122,
+    "position": "LB",
+    "set": "A",
+    "nation": "ENG",
+    "club": "Icons",
+    "artId": "008.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-7c541585-d7cf-4bbb-8b33-82294cfcfdd5",
+    "name": "LAHM",
+    "rating": 122,
+    "position": "RB",
+    "set": "A",
+    "nation": "GER",
+    "club": "Icons",
+    "artId": "009.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-b08b9bd2-19c0-49fa-aa8d-ce148c4106b4",
+    "name": "VINI JR.",
+    "rating": 122,
+    "position": "LW",
+    "set": "A",
+    "nation": "BRA",
+    "club": "Real Madrid",
+    "artId": "010.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-36ff8cc6-3fb4-46c6-abdf-386ea77ef92a",
+    "name": "VAN DER SAR",
+    "rating": 120,
+    "position": "GK",
+    "set": "A",
+    "nation": "NLD",
+    "club": "Icons",
+    "artId": "011.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  },
+  {
+    "id": "pc-af61f664-2f09-4df6-a1bb-45c638869934",
+    "name": "CESC FÀBREGAS",
+    "rating": 121,
+    "position": "CM",
+    "set": "A",
+    "nation": "ESP",
+    "club": "Icons",
+    "artId": "012.webp",
+    "createdAt": "2026-09-14T09:00:00.000Z"
+  }
+]
