@@ -149,23 +149,29 @@
   height: auto;
   transform: translate(-50%, -50%);
   object-fit: contain;
-  filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.7));
+  /* Tight and light, because `drop-shadow` follows the alpha channel rather than the
+     image's box. The card art has 1-bit alpha and a ragged effect silhouette, so a
+     wide soft shadow traces every jag and spreads a dark cloud over the stage clip
+     instead of grounding the card. 60px of 70% black read as a stain on the pitch;
+     18px of 35% reads as the card sitting in the podium. */
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
   animation: cardIn 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* The shadow is repeated inside the keyframes on purpose: `filter` is one property,
    so animating brightness alone would drop the shadow the moment the animation
-   started and leave it off for good (`both` holds the final frame). */
+   started and leave it off for good (`both` holds the final frame). Change one of
+   the three and the card visibly snaps when it lands — change all three together. */
 @keyframes cardIn {
   from {
     opacity: 0;
     transform: translate(-50%, -46%) scale(0.86);
-    filter: brightness(2.4) drop-shadow(0 24px 60px rgba(0, 0, 0, 0.7));
+    filter: brightness(2.4) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
   }
   to {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
-    filter: brightness(1) drop-shadow(0 24px 60px rgba(0, 0, 0, 0.7));
+    filter: brightness(1) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
   }
 }
 
