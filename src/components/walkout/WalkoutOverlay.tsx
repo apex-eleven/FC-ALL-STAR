@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import flightClip from '@/assets/video/walkout-flight.mp4';
 import stageClip from '@/assets/video/walkout-stage.mp4';
 import type { PullOutcome } from '@/features/draft/pull';
+import { duckMusic, unduckMusic } from '@/features/sound/music';
 import { useSound } from '@/features/sound/SoundContext';
 import { useWalkout } from '@/features/walkout/WalkoutContext';
 import type { WalkoutPhase } from '@/features/walkout/types';
@@ -235,6 +236,15 @@ export default function WalkoutOverlay({ outcome, onFinish }: WalkoutOverlayProp
     },
     [],
   );
+
+  // The menu music drops under the walkout for as long as it is on screen. Tied to
+  // mount rather than to a phase, so skipping, closing early, or a clip that never
+  // loads all bring it back — a duck that has to be undone by the thing that ducked
+  // it is a duck that eventually gets left on.
+  useEffect(() => {
+    duckMusic();
+    return unduckMusic;
+  }, []);
 
   const style = {
     '--walkout-crossfade': `${config.crossfade}s`,

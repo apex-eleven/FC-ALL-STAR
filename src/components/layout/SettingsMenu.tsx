@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { requiredXPForLevel } from '@/features/profile/leveling';
 import { useSound } from '@/features/sound/SoundContext';
+import { MUSIC_TRACKS, resolveTrack } from '@/features/sound/tracks';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import styles from './SettingsMenu.module.css';
 
@@ -18,8 +19,9 @@ export interface SettingsMenuProps {
 export default function SettingsMenu({ onClose }: SettingsMenuProps) {
   const account = useAccount();
   const { signOut } = useAuth();
-  const { config, update, play } = useSound();
+  const { config, update, play, musicBlocked } = useSound();
   const { isFullscreen, supported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen();
+  const currentTrack = resolveTrack(config.musicTrackId);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -114,6 +116,58 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
             data-sound="off"
             onChange={(event) => update({ videoVolume: Number(event.target.value) / 100 })}
           />
+
+          <div className={styles.row}>
+            <span className={styles.rowLabel}>เพลงพื้นหลัง</span>
+            <button
+              type="button"
+              data-sound="toggle"
+              aria-pressed={config.musicEnabled}
+              className={`${styles.switch} ${config.musicEnabled ? styles.switchOn : ''}`}
+              onClick={() => update({ musicEnabled: !config.musicEnabled })}
+            >
+              {config.musicEnabled ? 'เปิด' : 'ปิด'}
+            </button>
+          </div>
+
+          <input
+            type="range"
+            className={styles.slider}
+            min={0}
+            max={100}
+            value={Math.round(config.musicVolume * 100)}
+            aria-label="ระดับเสียงเพลง"
+            disabled={!config.musicEnabled}
+            data-sound="off"
+            onChange={(event) => update({ musicVolume: Number(event.target.value) / 100 })}
+          />
+
+          {/* The picker only earns its space once there is a choice to make. With one
+              track it would be a dropdown that can only ever say what it already says. */}
+          {MUSIC_TRACKS.length > 1 ? (
+            <select
+              className={styles.select}
+              value={config.musicTrackId}
+              aria-label="เลือกเพลง"
+              disabled={!config.musicEnabled}
+              data-sound="off"
+              onChange={(event) => update({ musicTrackId: event.target.value })}
+            >
+              {MUSIC_TRACKS.map((track) => (
+                <option key={track.id} value={track.id}>
+                  {track.artist ? `${track.title} — ${track.artist}` : track.title}
+                </option>
+              ))}
+            </select>
+          ) : (
+            currentTrack && <span className={styles.nowPlaying}>{currentTrack.title}</span>
+          )}
+
+          {/* Autoplay is refused until the player has touched the page, so this is the
+              normal state on a fresh load rather than an error. It clears itself. */}
+          {config.musicEnabled && musicBlocked && (
+            <span className={styles.note}>แตะหน้าจอหนึ่งครั้งเพื่อเริ่มเพลง</span>
+          )}
         </div>
 
         <button

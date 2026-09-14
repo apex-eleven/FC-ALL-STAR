@@ -5,9 +5,18 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { DEFAULT_SOUND } from './constants';
+import {
+  initMusic,
+  isMusicBlocked,
+  setMusicEnabled,
+  setMusicTrack,
+  setMusicVolume,
+  subscribeMusicBlocked,
+} from './music';
 import { playSfx, setSfxVolume } from './sfx';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './soundConfigStore';
 import type { SoundConfig, SoundId } from './types';
@@ -20,6 +29,13 @@ interface SoundValue {
   isDefault: boolean;
   /** Fire a sound by hand, for anything that is not a button press. */
   play(id: SoundId): void;
+  /**
+   * The browser has refused to start the music and is waiting for a gesture.
+   *
+   * True only between load and the player's first tap, so the settings menu can
+   * explain a switch that reads on next to silence. Nothing has to clear it.
+   */
+  musicBlocked: boolean;
 }
 
 const SoundContext = createContext<SoundValue | null>(null);
@@ -30,6 +46,25 @@ export function SoundProvider({ children }: { children: ReactNode }) {
   // The synthesiser is module state, so the stored volume has to be pushed into it
   // on load as well as on every change.
   useEffect(() => setSfxVolume(config.uiVolume), [config.uiVolume]);
+
+  // The music player is module state too, but unlike the synthesiser it is stateful:
+  // its setters compare against the previous value and no-op on a match, which on the
+  // first call is always. Hence a separate seeding pass, once, before them — empty
+  // deps on purpose, since re-seeding on a config change would restart the track.
+  useEffect(() => {
+    initMusic({
+      enabled: config.musicEnabled,
+      volume: config.musicVolume,
+      trackId: config.musicTrackId,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => setMusicEnabled(config.musicEnabled), [config.musicEnabled]);
+  useEffect(() => setMusicVolume(config.musicVolume), [config.musicVolume]);
+  useEffect(() => setMusicTrack(config.musicTrackId), [config.musicTrackId]);
+
+  const musicBlocked = useSyncExternalStore(subscribeMusicBlocked, isMusicBlocked, isMusicBlocked);
 
   useUiClickSounds(config.uiEnabled);
 
@@ -61,9 +96,10 @@ export function SoundProvider({ children }: { children: ReactNode }) {
       update,
       reset,
       play,
+      musicBlocked,
       isDefault: JSON.stringify(config) === JSON.stringify(DEFAULT_SOUND),
     }),
-    [config, update, reset, play],
+    [config, update, reset, play, musicBlocked],
   );
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;

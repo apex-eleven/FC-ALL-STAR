@@ -130,3 +130,50 @@
   opacity: 0.35;
   cursor: default;
 }
+
+/* ---- music ---------------------------------------------------------- */
+
+.select {
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* The native list renders on the OS layer, outside the stage's dark chrome, so it
+   needs its own colours or it inherits the page's white. */
+.select option {
+  background: #14101f;
+  color: #ffffff;
+}
+
+.select:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Stands in for the picker while there is only one track. */
+.nowPlaying {
+  display: block;
+  margin: 0 0 6px;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: var(--color-dim);
+}
+
+.note {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-teal);
+}

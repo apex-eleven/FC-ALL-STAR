@@ -1,4 +1,5 @@
 import { DEFAULT_SOUND, SOUND_CONFIG_KEY } from './constants';
+import { isKnownTrack } from './tracks';
 import type { SoundConfig } from './types';
 
 export type SaveResult = { ok: true } | { ok: false; reason: 'quota' | 'unavailable' };
@@ -19,6 +20,14 @@ export function normalizeConfig(value: unknown): SoundConfig {
     videoEnabled:
       typeof source.videoEnabled === 'boolean' ? source.videoEnabled : DEFAULT_SOUND.videoEnabled,
     videoVolume: clamp(source.videoVolume, 0, 1, DEFAULT_SOUND.videoVolume),
+    musicEnabled:
+      typeof source.musicEnabled === 'boolean' ? source.musicEnabled : DEFAULT_SOUND.musicEnabled,
+    musicVolume: clamp(source.musicVolume, 0, 1, DEFAULT_SOUND.musicVolume),
+    // A config saved when a since-removed song was selected would otherwise point at
+    // a file that 404s, and the player would get silence with the switch reading on.
+    musicTrackId: isKnownTrack(source.musicTrackId)
+      ? source.musicTrackId
+      : DEFAULT_SOUND.musicTrackId,
   };
 }
 
