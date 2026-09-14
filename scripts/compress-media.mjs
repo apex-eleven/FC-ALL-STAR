@@ -14,7 +14,7 @@
  *   node scripts/compress-media.mjs           ดูว่าจะเปลี่ยนอะไรบ้าง (ไม่แตะไฟล์)
  *   node scripts/compress-media.mjs --apply   ทำจริง
  */
-import { readdir, readFile, writeFile, rename, unlink, stat } from 'node:fs/promises';
+import { readdir, readFile, writeFile, rename, unlink, stat, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -94,6 +94,48 @@ async function encodeWebp(from, to) {
   throw lastError;
 }
 
+/**
+ * Turns off per-frame alpha blending in an animated webp.
+ *
+ * THE BUG THIS EXISTS FOR: ffmpeg's libwebp encoder writes every frame as BLEND +
+ * DISPOSE_NONE. Each frame is full-canvas, so blending is not just unnecessary, it is
+ * wrong — a pixel that is opaque in one frame and transparent in the next keeps the
+ * OLD frame's colour forever, because nothing ever clears the canvas. On card art
+ * whose sparks and flames move every frame, that residue piles up: measured across
+ * these cards the dark area grew from 7% on frame 1 to as much as 16% by frame 45, so
+ * the card visibly blackens as it loops and resets only when the image reloads.
+ *
+ * ffmpeg cannot set the flag, so the file is taken apart and reassembled with
+ * NO_BLEND and DISPOSE_BACKGROUND. The frame payloads are copied untouched — the
+ * output is byte-for-byte the same size, nothing is re-encoded, no quality is lost.
+ *
+ * Needs `webpmux` from libwebp (apt install webp / brew install webp). Missing is not
+ * fatal: the art still works, it just darkens as it animates.
+ */
+async function clearBlendFlag(file) {
+  const info = await run('webpmux', ['-info', file]);
+  const frames = Number(/Number of frames:\s*(\d+)/.exec(info.stdout)?.[1] ?? 0);
+  if (frames < 2) return false;
+
+  const duration = Number(info.stdout.split('\n')[5]?.trim().split(/\s+/)[6] ?? 60);
+  const scratch = join(PLAYERS, `.blend-${Date.now()}`);
+  await mkdir(scratch, { recursive: true });
+
+  try {
+    const args = [];
+    for (let i = 1; i <= frames; i += 1) {
+      const part = join(scratch, `${String(i).padStart(4, '0')}.webp`);
+      await run('webpmux', ['-get', 'frame', String(i), file, '-o', part]);
+      // +duration+x+y+dispose+blend — dispose 1 = background, -b = do not blend
+      args.push('-frame', part, `+${duration}+0+0+1-b`);
+    }
+    await run('webpmux', [...args, '-loop', '0', '-bgcolor', '255,255,255,0', '-o', file]);
+    return true;
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
+}
+
 /** gif -> animated webp. Quality 55 keeps card art readable at the size it is shown. */
 async function convertGifs() {
   const files = (await readdir(PLAYERS)).filter((name) => name.toLowerCase().endsWith('.gif'));
@@ -114,6 +156,11 @@ async function convertGifs() {
     if (!apply) continue;
 
     await encodeWebp(from, to);
+    try {
+      await clearBlendFlag(to);
+    } catch {
+      console.warn(`  เตือน: ปิด blend ของ ${target} ไม่ได้ (ต้องมี webpmux) การ์ดจะค่อย ๆ ดำตอนเล่น`);
+    }
     after += await sizeOf(to);
     await unlink(from);
   }
