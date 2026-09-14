@@ -58,7 +58,7 @@
   height: auto;
   display: block;
   pointer-events: none;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
 }
 
 /* Shown when the pool has fewer cards than slots — the slot still needs a handle. */

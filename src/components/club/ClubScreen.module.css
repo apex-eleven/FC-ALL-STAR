@@ -117,7 +117,7 @@
   z-index: 999;
   pointer-events: none;
   transform: translate(-50%, -50%);
-  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.7));
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
 }
 
 .toast {

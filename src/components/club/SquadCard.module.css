@@ -27,9 +27,12 @@
   width: auto;
   height: auto;
   object-fit: contain;
-  /* The only decoration left: enough shadow to lift a card off the turf without
-     drawing a border around a picture that already has one. */
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.6));
+  /* Scaled to the card, not copied from the walkout. `drop-shadow` traces the alpha
+     channel, and card art is a near-square with only the corners cut away, so the
+     shadow is effectively a soft black square behind the picture. On the pitch the
+     card is under 100px: an 18px blur at 0.6 spreads that square far enough past the
+     edges to read as a black backing plate on the turf rather than as depth. */
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
   pointer-events: none;
 }
 
