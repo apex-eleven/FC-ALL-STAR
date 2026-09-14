@@ -144,8 +144,14 @@
   top: 50%;
   z-index: 3;
   /* Sized to sit inside the podium's opening in the stage clip rather than to fill
-     the screen: at 440 the card overhung the gold frame that is meant to hold it. */
-  width: 320px;
+     the screen: at 440 the card overhung the gold frame that is meant to hold it.
+
+     256 is the art's own pixel width, so on a 1x display the card is drawn 1:1 and
+     nothing is interpolated. On a phone at 2-3x it is still upscaled — the source is
+     256px and no CSS value changes that — but by 3x instead of 3.75x. Raise this
+     back toward 320 if the card looks lost inside the gold frame; the frame, not
+     sharpness, is what this number was originally set by. */
+  width: 256px;
   height: auto;
   transform: translate(-50%, -50%);
   object-fit: contain;
