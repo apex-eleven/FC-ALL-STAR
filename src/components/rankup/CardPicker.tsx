@@ -13,6 +13,11 @@ export interface CardPickerProps {
   players: readonly OwnedPlayer[];
   /** Cards already spoken for, drawn dimmed and unselectable. */
   usedIds?: ReadonlySet<string>;
+  /**
+   * Cards in the starting eleven. Drives the XI filter and the badge — pass it and
+   * the filter appears, leave it out and the picker behaves as before.
+   */
+  starterIds?: ReadonlySet<string>;
   onPick(cardId: string): void;
   onClose(): void;
 }
@@ -29,19 +34,27 @@ export default function CardPicker({
   note,
   players,
   usedIds,
+  starterIds,
   onPick,
   onClose,
 }: CardPickerProps) {
   const [query, setQuery] = useState('');
   const [tier, setTier] = useState<PlayerSet | 'all'>('all');
+  const [onlyStarters, setOnlyStarters] = useState(false);
+
+  const starterCount = useMemo(
+    () => players.filter((card) => starterIds?.has(card.id)).length,
+    [players, starterIds],
+  );
 
   const list = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return [...players]
+      .filter((card) => (onlyStarters ? (starterIds?.has(card.id) ?? false) : true))
       .filter((card) => (tier === 'all' ? true : card.set === tier))
       .filter((card) => !needle || card.name.toLowerCase().includes(needle))
       .sort((a, b) => ratingWithPlus(b) - ratingWithPlus(a));
-  }, [players, query, tier]);
+  }, [players, query, tier, onlyStarters, starterIds]);
 
   return (
     <div className={styles.screen} role="dialog" aria-modal="true" aria-label={title}>
@@ -67,6 +80,21 @@ export default function CardPicker({
             autoComplete="off"
           />
           <div className={styles.tiers}>
+            {/* Only offered when the caller knows the squad, and only when at least
+                one of these cards is actually in it — a filter that can only ever
+                return nothing is worse than no filter. */}
+            {starterCount > 0 && (
+              <button
+                type="button"
+                className={`${styles.tier} ${styles.starterTier} ${
+                  onlyStarters ? styles.tierOn : ''
+                }`}
+                onClick={() => setOnlyStarters((current) => !current)}
+                aria-pressed={onlyStarters}
+              >
+                ตัวจริง {starterCount}
+              </button>
+            )}
             <button
               type="button"
               className={`${styles.tier} ${tier === 'all' ? styles.tierOn : ''}`}
@@ -88,10 +116,15 @@ export default function CardPicker({
         </div>
 
         <div className={styles.grid}>
-          {list.length === 0 && <p className={styles.empty}>ไม่มีการ์ดที่ใช้ได้</p>}
+          {list.length === 0 && (
+            <p className={styles.empty}>
+              {onlyStarters ? 'ไม่มีการ์ดตัวจริงที่ตรงกับตัวกรอง' : 'ไม่มีการ์ดที่ใช้ได้'}
+            </p>
+          )}
 
           {list.map((card) => {
             const used = usedIds?.has(card.id) ?? false;
+            const starter = starterIds?.has(card.id) ?? false;
             const plus = clampPlus(card.plus);
 
             return (
@@ -103,6 +136,9 @@ export default function CardPicker({
                 onClick={() => onPick(card.id)}
               >
                 <SquadCard player={card} scale={0.92} interactive={false} />
+                {/* Shown in every mode, not just the XI filter — it is the warning
+                    that matters most when picking a card to burn as material. */}
+                {starter && <span className={styles.xi}>XI</span>}
                 <span className={styles.cellName}>{card.name}</span>
                 <span className={styles.cellMeta}>
                   {ratingWithPlus(card)} · {card.position}

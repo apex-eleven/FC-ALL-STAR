@@ -74,6 +74,15 @@ export default function RankUpScreen() {
 
   const index = useMemo(() => new Map(players.map((card) => [card.id, card])), [players]);
 
+  /** Card ids in the starting eleven, for the picker's XI filter and badge. */
+  const starterIds = useMemo(
+    () =>
+      new Set(
+        Object.values(account.squad.starters).filter((id): id is string => id !== null),
+      ),
+    [account.squad.starters],
+  );
+
   const target = targetId ? (index.get(targetId) ?? null) : null;
   const plus = clampPlus(target?.plus);
 
@@ -419,6 +428,7 @@ export default function RankUpScreen() {
           title="เลือกการ์ดหลัก"
           note="การ์ดใบนี้คือใบที่จะถูกตีบวก"
           players={players}
+          starterIds={starterIds}
           onPick={pickTarget}
           onClose={() => setPicking(null)}
         />
@@ -434,6 +444,7 @@ export default function RankUpScreen() {
           }
           players={eligible}
           usedIds={new Set(materialIds)}
+          starterIds={starterIds}
           onPick={addMaterial}
           onClose={() => setPicking(null)}
         />
