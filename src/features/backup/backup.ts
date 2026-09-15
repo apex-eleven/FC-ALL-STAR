@@ -37,7 +37,12 @@ export function announceConfigChange() {
  * Sound volume is the player's, not the game's. Pushing the admin's setting to
  * everyone would turn one person's muted tab into everyone's muted tab.
  */
-const PERSONAL_KEYS = [`${STORAGE_PREFIX}sound:v1`];
+const PERSONAL_KEYS = [
+  `${STORAGE_PREFIX}sound:v1`,
+  // Which announcement this device has closed. Shared, it would carry the admin's
+  // own "already seen" out to everyone and the notice would never appear.
+  `${STORAGE_PREFIX}announcement-seen:v1`,
+];
 
 /** Keys holding account data — excluded from anything written into public/. */
 const ACCOUNT_KEYS = [`${STORAGE_PREFIX}accounts:v2`, `${STORAGE_PREFIX}session:v2`];

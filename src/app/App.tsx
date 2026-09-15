@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import GameLayout from '@/components/layout/GameLayout';
 import MobileGate from '@/components/layout/MobileGate';
 import Stage from '@/components/layout/Stage';
+import AnnouncementOverlay from '@/components/announcement/AnnouncementOverlay';
 import AuthScreen from '@/components/auth/AuthScreen';
 import DraftScreen from '@/components/draft/DraftScreen';
 import ClubScreen from '@/components/club/ClubScreen';
@@ -37,58 +39,54 @@ export default function App() {
     );
   }
 
-  // The draft screen brings its own chrome — back button, screen title, home
-  // shortcut — so it does not sit inside GameLayout's home chrome.
+  /**
+   * The screen for the current route.
+   *
+   * Draft, league, rank-up and club bring their own chrome — back button, screen
+   * title, home shortcut — so they sit directly in the stage rather than inside
+   * GameLayout's home chrome.
+   */
+  let screen: ReactNode;
   if (route === 'draft') {
-    return (
-      <>
-        <MobileGate />
-        <Stage>
-          <DraftScreen />
-        </Stage>
-      </>
+    screen = (
+      <Stage>
+        <DraftScreen />
+      </Stage>
     );
-  }
-
-  if (route === 'league') {
-    return (
-      <>
-        <MobileGate />
-        <Stage>
-          <LeagueScreen />
-        </Stage>
-      </>
+  } else if (route === 'league') {
+    screen = (
+      <Stage>
+        <LeagueScreen />
+      </Stage>
     );
-  }
-
-  if (route === 'rankup') {
-    return (
-      <>
-        <MobileGate />
-        <Stage>
-          <RankUpScreen />
-        </Stage>
-      </>
+  } else if (route === 'rankup') {
+    screen = (
+      <Stage>
+        <RankUpScreen />
+      </Stage>
     );
-  }
-
-  if (route === 'club') {
-    return (
-      <>
-        <MobileGate />
-        <Stage>
-          <ClubScreen />
-        </Stage>
-      </>
+  } else if (route === 'club') {
+    screen = (
+      <Stage>
+        <ClubScreen />
+      </Stage>
     );
-  }
-
-  return (
-    <>
-      <MobileGate />
+  } else {
+    screen = (
       <GameLayout>
         <HomePage />
       </GameLayout>
+    );
+  }
+
+  // The announcement is mounted once here rather than per screen: it is fixed to the
+  // viewport and has to reach a signed-in player wherever they happen to be. It
+  // renders nothing at all unless an admin has one live.
+  return (
+    <>
+      <MobileGate />
+      {screen}
+      <AnnouncementOverlay />
     </>
   );
 }

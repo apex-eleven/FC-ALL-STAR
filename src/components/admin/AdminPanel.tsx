@@ -19,6 +19,7 @@ import { isCloudEnabled } from '@/features/cloud/firebase';
 import AdminBackup from './AdminBackup';
 import AdminClub from './AdminClub';
 import AdminLeague from './AdminLeague';
+import AdminAnnouncement from './AdminAnnouncement';
 import AdminPlayers from './AdminPlayers';
 import AdminRankUp from './AdminRankUp';
 import AdminStore from './AdminStore';
@@ -43,6 +44,7 @@ type Tab =
   | 'rates'
   | 'league'
   | 'rankup'
+  | 'announcement'
   | 'walkout'
   | 'backup';
 
@@ -57,6 +59,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'rates', label: 'อัตราสุ่ม' },
   { id: 'league', label: 'ลีก' },
   { id: 'rankup', label: 'ตีบวกการ์ด' },
+  { id: 'announcement', label: 'ประกาศ' },
   { id: 'walkout', label: 'Walkout' },
   { id: 'backup', label: 'สำรองข้อมูล' },
 ];
@@ -229,6 +232,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'rates' && <AdminDraftRates />}
         {tab === 'league' && <AdminLeague />}
         {tab === 'rankup' && <AdminRankUp />}
+        {tab === 'announcement' && <AdminAnnouncement />}
         {tab === 'walkout' && <AdminWalkout />}
         {tab === 'backup' && <AdminBackup />}
 
