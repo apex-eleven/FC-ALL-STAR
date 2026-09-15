@@ -370,9 +370,21 @@
   display: flex;
   gap: 6px;
   margin-bottom: 10px;
+  /* The schedule now covers the full day (up to 24 hour tabs, was capped at
+     six), which no longer fits the board's width. Scroll the strip inside
+     its own row instead of letting flex overflow bleed into the standings
+     column next to it. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
+  flex: 0 0 auto;
   padding: 6px 16px;
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.08);
@@ -381,6 +393,7 @@
   font-size: var(--text-xs);
   font-weight: 700;
   color: rgba(220, 236, 255, 0.75);
+  white-space: nowrap;
 }
 
 .tabOn {
