@@ -7,6 +7,7 @@ import { NewsProvider } from '@/features/news/NewsContext';
 import { PlayerProvider } from '@/features/players/PlayerContext';
 import { DraftProvider } from '@/features/draft/DraftContext';
 import { LeagueProvider } from '@/features/league/LeagueContext';
+import { RankUpProvider } from '@/features/rankup/RankUpContext';
 import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
 import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
@@ -36,10 +37,12 @@ function render() {
                 <DraftProvider>
                   <LeagueProvider>
                     <WalkoutProvider>
-                      <NavigationProvider>
-                        <CloudConfigSync />
-                        <App />
-                      </NavigationProvider>
+                      <RankUpProvider>
+                        <NavigationProvider>
+                          <CloudConfigSync />
+                          <App />
+                        </NavigationProvider>
+                      </RankUpProvider>
                     </WalkoutProvider>
                   </LeagueProvider>
                 </DraftProvider>

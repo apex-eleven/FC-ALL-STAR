@@ -33,6 +33,6 @@ export const bottomNavItems: BottomNavItem[] = [
   { id: 'nav-missions', label: 'ภารกิจ', icon: 'missions' },
   { id: 'nav-league', label: 'ลีก', icon: 'league', badge: { variant: 'dot' } },
   { id: 'nav-contracts', label: 'การเซ็นสัญญา', icon: 'contracts' },
-  { id: 'nav-exchange', label: 'แลกเปลี่ยน', icon: 'exchange', badge: { variant: 'dot' } },
+  { id: 'nav-rankup', label: 'ตีบวกการ์ด', icon: 'rankup', badge: { variant: 'dot' } },
   { id: 'nav-store', label: 'ร้านค้า', icon: 'store', badge: { variant: 'dot' }, active: true },
 ];

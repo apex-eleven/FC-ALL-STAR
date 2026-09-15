@@ -1,5 +1,5 @@
 import {
-  ArrowLeftRight,
+  ChevronsUp,
   Crosshair,
   ShieldHalf,
   ShoppingCart,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { bottomNavItems } from '@/data/mock/navigation';
 import { useNavigation } from '@/features/navigation/NavigationContext';
+import { useRankUp } from '@/features/rankup/RankUpContext';
 import type { BottomNavIcon } from '@/features/navigation/types';
 import styles from './BottomNavigation.module.css';
 
@@ -16,12 +17,24 @@ const ICONS: Record<BottomNavIcon, typeof Crosshair> = {
   missions: Crosshair,
   league: ShieldHalf,
   contracts: UserPlus,
-  exchange: ArrowLeftRight,
+  rankup: ChevronsUp,
   store: ShoppingCart,
 };
 
 export default function BottomNavigation() {
   const { navigate } = useNavigation();
+  const { config: rankup } = useRankUp();
+
+  /**
+   * Which tabs actually go somewhere.
+   *
+   * Rank-up drops out of the map when an admin switches the system off, so the
+   * button goes inert rather than opening a screen that only says it is closed.
+   */
+  const targets: Partial<Record<BottomNavIcon, () => void>> = {
+    league: () => navigate('league'),
+    ...(rankup.enabled ? { rankup: () => navigate('rankup') } : {}),
+  };
 
   return (
     <>
@@ -38,9 +51,9 @@ export default function BottomNavigation() {
               key={item.id}
               aria-current={item.active ? 'page' : undefined}
               className={`${styles.item} ${item.active ? styles.active : ''}`}
-              // Only the league has a screen so far; the rest stay inert rather than
-              // navigating to a route that renders nothing.
-              onClick={item.icon === 'league' ? () => navigate('league') : undefined}
+              // Tabs with no screen stay inert rather than navigating to a route
+              // that renders nothing.
+              onClick={targets[item.icon]}
             >
               <span className={styles.iconWrap}>
                 <Icon size={34} strokeWidth={2.2} />

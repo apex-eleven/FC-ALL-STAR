@@ -1,5 +1,7 @@
-import { useState, type PointerEvent } from 'react';
+import { useState, type CSSProperties, type PointerEvent } from 'react';
 import type { OwnedPlayer } from '@/features/club/types';
+import { plusTone } from '@/features/rankup/constants';
+import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
 import styles from './SquadCard.module.css';
 
@@ -30,6 +32,7 @@ export default function SquadCard({
   onPointerDown,
 }: SquadCardProps) {
   const [broken, setBroken] = useState(false);
+  const plus = clampPlus(player.plus);
 
   return (
     <div
@@ -39,7 +42,9 @@ export default function SquadCard({
       style={{ width: CARD_WIDTH * scale, height: CARD_HEIGHT * scale }}
       onPointerDown={onPointerDown}
       role={interactive ? 'button' : undefined}
-      aria-label={`${player.name} ${player.rating} ${player.position}`}
+      aria-label={`${player.name} ${ratingWithPlus(player)} ${player.position}${
+        plus > 0 ? ` +${plus}` : ''
+      }`}
     >
       {/*
         A card whose art is missing used to render as an invisible <img> — the slot
@@ -57,9 +62,21 @@ export default function SquadCard({
         />
       ) : (
         <span className={styles.fallback}>
-          <span className={styles.fallbackRating}>{player.rating}</span>
+          <span className={styles.fallbackRating}>{ratingWithPlus(player)}</span>
           <span className={styles.fallbackPosition}>{player.position}</span>
           <span className={styles.fallbackName}>{player.name}</span>
+        </span>
+      )}
+
+      {/* The art already carries a rating, so the upgrade is shown as its own chip
+          rather than by redrawing the number — one badge in a corner the card art
+          leaves empty. */}
+      {plus > 0 && (
+        <span
+          className={styles.plus}
+          style={{ '--plus-tone': plusTone(plus) } as CSSProperties}
+        >
+          +{plus}
         </span>
       )}
     </div>

@@ -1,4 +1,5 @@
 import type { OwnedPlayer } from '@/features/club/types';
+import { ratingWithPlus } from '@/features/rankup/plus';
 
 /** Coarse lines. Every position the catalogue allows maps into one of these. */
 export type PositionGroup = 'GK' | 'DEF' | 'MID' | 'ATT';
@@ -65,5 +66,8 @@ export function positionPenalty(slotPosition: string, playerPosition: string): n
  * is still a player, however badly it is being used.
  */
 export function effectiveRating(player: OwnedPlayer, slotPosition: string): number {
-  return Math.max(1, player.rating - positionPenalty(slotPosition, player.position));
+  // The rank-up bonus is applied before the penalty, so a +8 winger played at
+  // striker keeps most of what it was upgraded for rather than losing the bonus
+  // twice over.
+  return Math.max(1, ratingWithPlus(player) - positionPenalty(slotPosition, player.position));
 }

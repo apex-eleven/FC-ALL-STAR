@@ -5,6 +5,7 @@ import AuthScreen from '@/components/auth/AuthScreen';
 import DraftScreen from '@/components/draft/DraftScreen';
 import ClubScreen from '@/components/club/ClubScreen';
 import LeagueScreen from '@/components/league/LeagueScreen';
+import RankUpScreen from '@/components/rankup/RankUpScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
@@ -55,6 +56,17 @@ export default function App() {
         <MobileGate />
         <Stage>
           <LeagueScreen />
+        </Stage>
+      </>
+    );
+  }
+
+  if (route === 'rankup') {
+    return (
+      <>
+        <MobileGate />
+        <Stage>
+          <RankUpScreen />
         </Stage>
       </>
     );

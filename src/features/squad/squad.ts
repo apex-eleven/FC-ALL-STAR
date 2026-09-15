@@ -1,4 +1,5 @@
 import type { OwnedPlayer } from '@/features/club/types';
+import { ratingWithPlus } from '@/features/rankup/plus';
 import { BENCH_SIZE, DEFAULT_FORMATION, FORMATIONS, STARTER_COUNT } from './constants';
 import { effectiveRating } from './rating';
 import type {
@@ -254,7 +255,7 @@ function benchOrDrop(squad: Squad, cardId: string): Squad {
  */
 export function autoBuild(squad: Squad, players: readonly OwnedPlayer[]): Squad {
   const formation = formationOf(squad);
-  const byRating = [...players].sort((a, b) => b.rating - a.rating);
+  const byRating = [...players].sort((a, b) => ratingWithPlus(b) - ratingWithPlus(a));
   const used = new Set<string>();
   // Names, not ids: ten copies of the same card are ten ids and one footballer.
   const names = new Set<string>();
@@ -339,7 +340,8 @@ export function squadValue(squad: Squad, owned: OwnedIndex): number {
   );
 
   return ids.reduce((total, id) => {
-    const rating = owned.get(id)?.rating ?? 0;
+    const card = owned.get(id);
+    const rating = card ? ratingWithPlus(card) : 0;
     // Steeply superlinear, so one great card is worth more than several ordinary
     // ones — which is what makes the number interesting to look at.
     return total + Math.round(rating ** 4 / 10);

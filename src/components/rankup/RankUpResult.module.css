@@ -1,0 +1,120 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 2, 8, 0.82);
+  cursor: default;
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 560px;
+  padding: 34px 40px 30px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(175deg, rgba(26, 12, 8, 0.96) 0%, rgba(10, 5, 12, 0.98) 100%);
+  border: 2px solid color-mix(in srgb, var(--tone) 65%, transparent);
+  box-shadow: 0 0 70px color-mix(in srgb, var(--tone) 32%, transparent);
+  animation: rise 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(24px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+/* Radial glow behind the card. Sits under everything in the panel, so it reads as
+   light coming off the card rather than as a coloured plate on top of it. */
+.burst {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 520px;
+  height: 520px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--tone) 40%, transparent) 0%,
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+.headline {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--tone);
+  text-shadow: 0 0 26px color-mix(in srgb, var(--tone) 60%, transparent);
+}
+
+.card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  transition: opacity var(--transition-base);
+}
+
+.win .card {
+  animation: pop 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.7);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+}
+
+/* A destroyed card is shown greyed and faded rather than hidden — the player needs
+   to see which one they lost. */
+.gone {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.detail {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ok {
+  position: relative;
+  margin-top: 6px;
+  width: 220px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #ff6a00 0%, #ffa23a 100%);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: #ffffff;
+  transition: transform var(--transition-fast);
+}
+
+.ok:hover {
+  transform: translateY(-2px);
+}

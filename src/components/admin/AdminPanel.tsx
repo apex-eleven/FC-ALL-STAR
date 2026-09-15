@@ -20,6 +20,7 @@ import AdminBackup from './AdminBackup';
 import AdminClub from './AdminClub';
 import AdminLeague from './AdminLeague';
 import AdminPlayers from './AdminPlayers';
+import AdminRankUp from './AdminRankUp';
 import AdminStore from './AdminStore';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
@@ -41,6 +42,7 @@ type Tab =
   | 'drafts'
   | 'rates'
   | 'league'
+  | 'rankup'
   | 'walkout'
   | 'backup';
 
@@ -54,6 +56,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'drafts', label: 'ดราฟต์' },
   { id: 'rates', label: 'อัตราสุ่ม' },
   { id: 'league', label: 'ลีก' },
+  { id: 'rankup', label: 'ตีบวกการ์ด' },
   { id: 'walkout', label: 'Walkout' },
   { id: 'backup', label: 'สำรองข้อมูล' },
 ];
@@ -225,6 +228,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'drafts' && <AdminDrafts />}
         {tab === 'rates' && <AdminDraftRates />}
         {tab === 'league' && <AdminLeague />}
+        {tab === 'rankup' && <AdminRankUp />}
         {tab === 'walkout' && <AdminWalkout />}
         {tab === 'backup' && <AdminBackup />}
 

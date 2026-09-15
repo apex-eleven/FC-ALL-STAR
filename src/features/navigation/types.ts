@@ -12,7 +12,7 @@ export interface RailItem extends Entity {
   badge?: BadgeInfo;
 }
 
-export type BottomNavIcon = 'missions' | 'league' | 'contracts' | 'exchange' | 'store';
+export type BottomNavIcon = 'missions' | 'league' | 'contracts' | 'rankup' | 'store';
 
 export interface BottomNavItem extends Entity {
   label: string;
