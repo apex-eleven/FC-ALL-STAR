@@ -35,8 +35,8 @@ export default function AdminLeague() {
   return (
     <div className={styles.wrap}>
       <p className={styles.note}>
-        ลีกประจำวัน · จำลองการแข่งทุกช่วงเวลา สรุปคะแนนวันละครั้ง ·
-        ค่าที่ตั้งที่นี่มีผลกับทุกไอดีในเครื่องนี้
+        ลีกประจำวัน · จับคู่แข่งแบบพบกันหมดจริง (round-robin) ทุกทีมเจอทุกทีมครบ
+        ไม่ใช่การจำลองแบบสุ่ม · สรุปคะแนนวันละครั้ง · ค่าที่ตั้งที่นี่มีผลกับทุกไอดีในเครื่องนี้
       </p>
 
       <div className={styles.columns}>
@@ -80,8 +80,13 @@ export default function AdminLeague() {
                 apply({ matchIntervalMinutes: number(event.target.value, config.matchIntervalMinutes) })
               }
             />
-            <span className={styles.unit}>นาที · 60 = ทุกชั่วโมง</span>
+            <span className={styles.unit}>นาที · 30 = ทุกครึ่งชั่วโมง, 60 = ทุกชั่วโมง</span>
           </div>
+
+          <p className={styles.legend}>
+            รอบพบกันหมดครบ 1 รอบใช้ {config.teamCount % 2 === 0 ? config.teamCount - 1 : config.teamCount} ช่วงเวลา
+            (ทีมคู่ = จำนวนทีม−1 รอบ, ทีมคี่ = จำนวนทีมรอบ เพราะมีทีมพักหนึ่งทีมต่อรอบ) แล้ววนรอบใหม่ต่อในวันเดียวกัน
+          </p>
 
           <div className={styles.line}>
             <span className={styles.lineLabel}>สรุปคะแนนเวลา</span>

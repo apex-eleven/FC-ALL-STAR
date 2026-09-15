@@ -34,12 +34,23 @@ but clumpy across a handful of near-identical ones — which is exactly the inpu
 the slot number ticking up. Measured over 400 sequential seeds it produced 0.75%
 draws where 20% was expected; with the mixer, 20%.
 
-## Rivals play too
+## Every team plays every team — for real
 
-Every rival resolves a fixture each slot, against the table's average rating, through
-the same `playMatch` the player uses. A flat win chance was tried first and made the
-ladder pointless: rivals gained about one star a day where a player at parity gained
-five, so first place went to whoever opened the app.
+A slot is not "the player's match plus some rival colour". It is one full round of a
+proper round-robin (`season.roundRobin`, the circle method) over
+`[PLAYER_TEAM_ID, ...rivals]`: every seat is paired with another seat, nobody plays
+twice before everyone has played once, and an odd team count gives exactly one team a
+bye per round, rotating fairly.
+
+The fixture board (`LeagueScreen`) and the star simulation (`standings.advance`)
+build that same schedule from the same seat order, so a pairing shown on screen is
+never invented separately from the one that actually moved a team's stars — including
+rival-versus-rival games, which used to be faked against a single "average rating"
+opponent instead of an actual other team.
+
+The cycle length is `teamCount - 1` rounds for an even team count, `teamCount` for an
+odd one (the extra round is where each team's bye falls). A day usually has more
+slots than that, so the schedule simply wraps and plays the same round-robin again.
 
 Measured over a full day, tuned as shipped: a 95-rated squad finishes ~17th, 110
 finishes ~7th, 125 finishes 1st.

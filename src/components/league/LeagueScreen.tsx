@@ -6,7 +6,8 @@ import BrandGlyph from '@/components/ui/BrandGlyph';
 import { useAccount } from '@/features/auth/AuthContext';
 import { formatCurrency } from '@/features/currencies/constants';
 import { useLeague } from '@/features/league/LeagueContext';
-import { nextReset, rivalFixtures, seasonStart, slotTime, slotsElapsed } from '@/features/league/season';
+import { PLAYER_TEAM_ID } from '@/features/league/constants';
+import { nextReset, roundRobin, seasonStart, slotTime, slotsElapsed } from '@/features/league/season';
 import { rewardEntries, rewardFor } from '@/features/league/standings';
 import { emptyRecord, type LeagueRecord, type LeagueRival } from '@/features/league/types';
 import { useNavigation } from '@/features/navigation/NavigationContext';
@@ -136,14 +137,22 @@ export default function LeagueScreen() {
   const totalSlots = Math.max(1, Math.floor((24 * 60) / config.matchIntervalMinutes));
 
   /**
-   * The day's fixture board.
+   * The day's fixture board — every slot, every team, played or not.
    *
-   * Every slot is listed, played or not: the player's own fixture, then two rival
-   * matches from the same slot. Results are read out of history rather than
-   * re-simulated, so the board and the table can never disagree.
+   * Built from the same round-robin (`season.roundRobin`) that `standings.advance`
+   * uses to resolve the day, over the same `[PLAYER_TEAM_ID, ...rivals]` seat order,
+   * so a pairing shown here is never separate from the one that actually moved
+   * someone's stars. The player's own result still comes out of `state.history`
+   * rather than being re-simulated; rival-versus-rival rows carry no live score,
+   * same as before — the board's job is to show who plays whom, not to duplicate
+   * the simulation.
    */
   const fixtures = useMemo(() => {
     const playerRow = rows.find((row) => row.isPlayer) ?? null;
+    const teamIds = [PLAYER_TEAM_ID, ...state.rivals.map((rival) => rival.id)];
+    const rounds = roundRobin(teamIds);
+    const cycleLength = Math.max(1, rounds.length);
+
     const list: {
       key: string;
       slot: number;
@@ -157,25 +166,28 @@ export default function LeagueScreen() {
 
     for (let slot = 0; slot < totalSlots; slot += 1) {
       const at = slotTime(now, config, slot);
-      const opponent = state.rivals[slot % Math.max(1, state.rivals.length)];
-      const match = state.history.find((entry) => entry.slot === slot);
+      const round = rounds[slot % cycleLength] ?? [];
 
-      list.push({
-        key: `you-${slot}`,
-        slot,
-        at,
-        home: playerRow,
-        away: opponent ? toRow(opponent) : null,
-        isPlayer: true,
-        delta: match ? match.delta : null,
-        score: match ? `${match.goalsFor} - ${match.goalsAgainst}` : null,
-      });
+      for (const [homeId, awayId] of round) {
+        if (homeId === PLAYER_TEAM_ID || awayId === PLAYER_TEAM_ID) {
+          const opponent = rivalsById.get(homeId === PLAYER_TEAM_ID ? awayId : homeId);
+          const match = state.history.find((entry) => entry.slot === slot);
 
-      // Two rival-versus-rival fixtures per slot is enough to read as a division
-      // without turning the board into a wall of names.
-      for (const fixture of rivalFixtures(state.rivals, slot, opponent?.id ?? '').slice(0, 2)) {
-        const home = rivalsById.get(fixture.homeId);
-        const away = rivalsById.get(fixture.awayId);
+          list.push({
+            key: `you-${slot}`,
+            slot,
+            at,
+            home: playerRow,
+            away: opponent ? toRow(opponent) : null,
+            isPlayer: true,
+            delta: match ? match.delta : null,
+            score: match ? `${match.goalsFor} - ${match.goalsAgainst}` : null,
+          });
+          continue;
+        }
+
+        const home = rivalsById.get(homeId);
+        const away = rivalsById.get(awayId);
         if (!home || !away) continue;
 
         list.push({
@@ -189,27 +201,34 @@ export default function LeagueScreen() {
           score: null,
         });
       }
+      // A round with an odd team count leaves exactly one seat on a bye each cycle;
+      // when it lands on the player, this slot simply adds no player row rather than
+      // inventing a fixture that was never played.
     }
 
     return list;
   }, [rows, state.rivals, state.history, rivalsById, config, now, totalSlots]);
 
+  // Every hour that actually has a fixture, in order — the tab strip used to stop
+  // at the first six, which left most of the day's schedule unreachable.
   const hours = useMemo(() => {
     const seen: number[] = [];
     for (const fixture of fixtures) {
       const hour = fixture.at.getHours();
       if (!seen.includes(hour)) seen.push(hour);
     }
-    return seen.slice(0, 6);
+    return seen;
   }, [fixtures]);
 
-  const shownFixtures = useMemo(
-    () =>
-      fixtures
-        .filter((fixture) => (hourFilter === 'all' ? true : fixture.at.getHours() === hourFilter))
-        .slice(0, 40),
-    [fixtures, hourFilter],
-  );
+  const shownFixtures = useMemo(() => {
+    const filtered = fixtures.filter((fixture) =>
+      hourFilter === 'all' ? true : fixture.at.getHours() === hourFilter,
+    );
+    // One hour's worth is always shown in full — that is what "the schedule is
+    // complete" means. "ทั้งหมด" (every hour at once) still caps, or the board would
+    // render the whole day's fixtures — every round, every pairing — in one list.
+    return hourFilter === 'all' ? filtered.slice(0, 60) : filtered;
+  }, [fixtures, hourFilter]);
 
   const topReward = rewardFor(1, config);
   const seasonDate = seasonStart(now, config.resetHour);

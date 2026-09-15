@@ -47,16 +47,6 @@ export interface LeagueMatch {
   delta: number;
 }
 
-/** A fixture between two rivals, derived for the schedule board. */
-export interface RivalFixture {
-  slot: number;
-  at: string;
-  homeId: string;
-  awayId: string;
-  /** Present once the slot has been played. */
-  result: { homeGoals: number; awayGoals: number } | null;
-}
-
 /** A finished season, kept only until the player has seen the result. */
 export interface LeagueResult {
   seasonId: string;

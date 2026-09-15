@@ -1,7 +1,7 @@
 import { avatarCatalogue } from '@/data/mock/avatars';
 import { RIVAL_NAMES } from './constants';
 import { emptyRecord } from './types';
-import type { LeagueConfig, LeagueRival, MatchOutcome, RivalFixture } from './types';
+import type { LeagueConfig, LeagueRival, MatchOutcome } from './types';
 
 /**
  * Season boundaries, match slots, and the simulation itself — all pure.
@@ -153,32 +153,50 @@ export function scoreFor(seed: string, outcome: MatchOutcome): [number, number] 
   return outcome === 'win' ? [winner, loser] : [loser, winner];
 }
 
-/**
- * The day's fixture list for everyone who is not the player.
- *
- * The player's own opponent is excluded, and the rest are paired off in order from a
- * rotation that shifts each slot, so the board never shows a club playing itself and
- * rarely repeats the same pairing twice in a day.
- */
-export function rivalFixtures(
-  rivals: readonly LeagueRival[],
-  slot: number,
-  playerOpponentId: string,
-): RivalFixture[] {
-  const others = rivals.filter((rival) => rival.id !== playerOpponentId);
-  const rotated = [...others.slice(slot % Math.max(1, others.length)), ...others.slice(0, slot % Math.max(1, others.length))];
+/** One pairing within a round: two team ids, order otherwise meaningless. */
+export type Fixture = readonly [string, string];
 
-  const fixtures: RivalFixture[] = [];
-  for (let i = 0; i + 1 < rotated.length; i += 2) {
-    fixtures.push({
-      slot,
-      at: '',
-      homeId: rotated[i]!.id,
-      awayId: rotated[i + 1]!.id,
-      result: null,
-    });
+/**
+ * A full round-robin over every id in `teamIds`, by the circle method.
+ *
+ * This is the one schedule both the fixture board and the star simulation read
+ * from — a club shown playing another on screen is exactly the club whose result
+ * moved its stars, never a fixture invented separately for display.
+ *
+ * Every id plays every other id in exactly one round, no repeats and no misses:
+ * fix the first seat, rotate every other seat one place each round, pair seat i
+ * with seat (n-1-i). An odd `teamIds` gets a bye seat that rotates through the
+ * same rule, so the bye lands on each real team exactly once per cycle rather
+ * than always the last one added.
+ *
+ * `teamIds.length - 1` rounds for an even count, `teamIds.length` for an odd one
+ * (the extra round is where each team's bye falls) — that count is the cycle
+ * length a season repeats through once everyone has played everyone.
+ */
+export function roundRobin(teamIds: readonly string[]): Fixture[][] {
+  const BYE = Symbol('bye');
+  const seats: (string | typeof BYE)[] =
+    teamIds.length % 2 === 0 ? [...teamIds] : [...teamIds, BYE];
+  const n = seats.length;
+  const rounds: Fixture[][] = [];
+
+  for (let round = 0; round < n - 1; round += 1) {
+    const pairs: Fixture[] = [];
+    for (let i = 0; i < n / 2; i += 1) {
+      const a = seats[i]!;
+      const b = seats[n - 1 - i]!;
+      if (a !== BYE && b !== BYE) pairs.push([a, b]);
+    }
+    rounds.push(pairs);
+
+    // Classic circle method: seat 0 stays put, every other seat rotates one place.
+    const fixed = seats[0]!;
+    const rest = seats.slice(1);
+    rest.unshift(rest.pop()!);
+    seats.splice(0, seats.length, fixed, ...rest);
   }
-  return fixtures;
+
+  return rounds;
 }
 
 export function starsFor(outcome: MatchOutcome, config: LeagueConfig): number {

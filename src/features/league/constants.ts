@@ -8,10 +8,20 @@ export const HISTORY_LIMIT = 24;
 export const MAX_TEAMS = 40;
 export const MIN_TEAMS = 4;
 
+/**
+ * Sentinel seat for the signed-in account in the round-robin (`season.roundRobin`).
+ * Never collides with a rival id — those are always `rv-{index}` — so the pairing
+ * that includes this id is unambiguously the player's own fixture, whatever the
+ * team count or round.
+ */
+export const PLAYER_TEAM_ID = 'you';
+
 export const DEFAULT_LEAGUE: LeagueConfig = {
   enabled: true,
   teamCount: 20,
-  matchIntervalMinutes: 60,
+  // Half-hourly: a full 20-team round-robin (19 rounds) then fits inside a day
+  // with room to repeat, instead of barely completing one lap at the hourly pace.
+  matchIntervalMinutes: 30,
   resetHour: 6,
   winStars: 1,
   drawStars: 0,

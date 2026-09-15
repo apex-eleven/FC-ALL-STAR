@@ -1,8 +1,9 @@
 import type { CurrencyKind } from '@/features/currencies/types';
-import { HISTORY_LIMIT } from './constants';
+import { HISTORY_LIMIT, PLAYER_TEAM_ID } from './constants';
 import {
   buildRivals,
   playMatch,
+  roundRobin,
   scoreFor,
   seasonIdAt,
   slotTime,
@@ -172,66 +173,77 @@ export function advance({
     return { state, finished: null, changed: false };
   }
 
-  // The yardstick every rival is measured against for the day.
-  const averageRating =
-    rivals.length > 0
-      ? Math.round(rivals.reduce((sum, rival) => sum + rival.rating, 0) / rivals.length)
-      : rating;
-
   let stars = state.stars;
   let played = state.played;
   let record = state.record ?? emptyRecord();
   const history = [...state.history];
   const table = rivals.map((rival) => ({ ...rival }));
+  const byId = new Map(table.map((rival) => [rival.id, rival]));
+
+  /**
+   * Every team's schedule for the day, the player included, built once from a
+   * proper round-robin (`season.roundRobin`) — the same schedule the fixture board
+   * reads to draw itself. A slot is one full round: everyone plays, or sits a bye
+   * if the team count is odd, never a fixture invented independently of what the
+   * board shows.
+   */
+  const teamIds = [PLAYER_TEAM_ID, ...table.map((rival) => rival.id)];
+  const rounds = roundRobin(teamIds);
+  const cycleLength = Math.max(1, rounds.length);
 
   for (let slot = state.lastSlot + 1; slot < due; slot += 1) {
-    // The player's fixture. The opponent rotates through the table so the same club
-    // is not played twice before everyone has been played once.
-    const opponent = table[slot % Math.max(1, table.length)];
-    if (!opponent) break;
+    const round = rounds[slot % cycleLength] ?? [];
 
-    const seed = `${accountId}:${seasonId}:${slot}`;
-    const outcome = playMatch(seed, rating, opponent.rating);
-    const [goalsFor, goalsAgainst] = scoreFor(seed, outcome);
-    const delta = starsFor(outcome, config);
+    for (const [homeId, awayId] of round) {
+      if (homeId === PLAYER_TEAM_ID || awayId === PLAYER_TEAM_ID) {
+        const opponent = byId.get(homeId === PLAYER_TEAM_ID ? awayId : homeId);
+        if (!opponent) continue;
 
-    stars = Math.max(config.starFloor, stars + delta);
-    played += 1;
-    record = withResult(record, outcome, goalsFor, goalsAgainst);
-    history.unshift({
-      slot,
-      at: slotTime(now, config, slot).toISOString(),
-      opponentId: opponent.id,
-      opponent: opponent.name,
-      opponentRating: opponent.rating,
-      opponentAvatarId: opponent.avatarId,
-      outcome,
-      goalsFor,
-      goalsAgainst,
-      delta,
-    });
+        const seed = `${accountId}:${seasonId}:${slot}`;
+        const outcome = playMatch(seed, rating, opponent.rating);
+        const [goalsFor, goalsAgainst] = scoreFor(seed, outcome);
+        const delta = starsFor(outcome, config);
 
-    // Every other club plays too, otherwise the table never moves and first place is
-    // whoever wins their first match.
-    for (const rival of table) {
-      if (rival.id === opponent.id) {
+        stars = Math.max(config.starFloor, stars + delta);
+        played += 1;
+        record = withResult(record, outcome, goalsFor, goalsAgainst);
+        history.unshift({
+          slot,
+          at: slotTime(now, config, slot).toISOString(),
+          opponentId: opponent.id,
+          opponent: opponent.name,
+          opponentRating: opponent.rating,
+          opponentAvatarId: opponent.avatarId,
+          outcome,
+          goalsFor,
+          goalsAgainst,
+          delta,
+        });
+
         // The club that played the human takes the mirror of that result, score
         // included — one match, one scoreline, read from both ends.
         const mirrored: MatchOutcome = outcome === 'win' ? 'loss' : outcome === 'loss' ? 'win' : 'draw';
-        rival.stars = Math.max(config.starFloor, rival.stars + starsFor(mirrored, config));
-        rival.record = withResult(rival.record ?? emptyRecord(), mirrored, goalsAgainst, goalsFor);
+        opponent.stars = Math.max(config.starFloor, opponent.stars + starsFor(mirrored, config));
+        opponent.record = withResult(opponent.record ?? emptyRecord(), mirrored, goalsAgainst, goalsFor);
         continue;
       }
 
-      // Rivals play each other through the same function the player's fixture uses,
-      // against the table's average rating. A flat win chance was tried first and
-      // made the ladder pointless: rivals gained about one star a day while a player
-      // at parity gained five, so first place went to whoever opened the app.
-      const rivalSeed = `${accountId}:${seasonId}:${slot}:${rival.id}`;
-      const result = playMatch(rivalSeed, rival.rating, averageRating);
-      const [scored, conceded] = scoreFor(rivalSeed, result);
-      rival.stars = Math.max(config.starFloor, rival.stars + starsFor(result, config));
-      rival.record = withResult(rival.record ?? emptyRecord(), result, scored, conceded);
+      // Two rivals, neither of them the player, paired by the same round-robin —
+      // resolved for real against each other's actual rating rather than against a
+      // fabricated average, so the table this produces is the table the board shows.
+      const home = byId.get(homeId);
+      const away = byId.get(awayId);
+      if (!home || !away) continue;
+
+      const pairSeed = `${accountId}:${seasonId}:${slot}:${homeId}-${awayId}`;
+      const outcome = playMatch(pairSeed, home.rating, away.rating);
+      const [homeGoals, awayGoals] = scoreFor(pairSeed, outcome);
+      const awayOutcome: MatchOutcome = outcome === 'win' ? 'loss' : outcome === 'loss' ? 'win' : 'draw';
+
+      home.stars = Math.max(config.starFloor, home.stars + starsFor(outcome, config));
+      home.record = withResult(home.record ?? emptyRecord(), outcome, homeGoals, awayGoals);
+      away.stars = Math.max(config.starFloor, away.stars + starsFor(awayOutcome, config));
+      away.record = withResult(away.record ?? emptyRecord(), awayOutcome, awayGoals, homeGoals);
     }
   }
 
