@@ -1,12 +1,12 @@
 import { useState, type CSSProperties, type PointerEvent } from 'react';
-import type { OwnedPlayer } from '@/features/club/types';
+import type { DisplayCard } from '@/features/club/types';
 import { plusTone } from '@/features/rankup/constants';
 import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
 import styles from './SquadCard.module.css';
 
 export interface SquadCardProps {
-  player: OwnedPlayer;
+  player: DisplayCard;
   /** 1 renders at CARD_WIDTH x CARD_HEIGHT. */
   scale?: number;
   dragging?: boolean;

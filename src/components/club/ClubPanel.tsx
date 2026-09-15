@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, RefreshCw, SlidersHorizontal, Users } from 'lucide-react';
+import { ChevronDown, Plus, RefreshCw, Trophy, Users } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { formatCurrency } from '@/features/currencies/constants';
 import ArtImage from '@/components/ui/ArtImage';
@@ -14,6 +14,7 @@ export interface ClubPanelProps {
   canAutoBuild: boolean;
   onAutoBuild(): void;
   onToggleCollection(): void;
+  onOpenLeaderboard(): void;
 }
 
 export default function ClubPanel({
@@ -25,6 +26,7 @@ export default function ClubPanel({
   canAutoBuild,
   onAutoBuild,
   onToggleCollection,
+  onOpenLeaderboard,
 }: ClubPanelProps) {
   return (
     <>
@@ -88,9 +90,9 @@ export default function ClubPanel({
           ตัวสำรอง
         </button>
 
-        <button type="button" className={styles.action} disabled>
-          <SlidersHorizontal size={28} strokeWidth={2.4} />
-          การแก้ไขทีม
+        <button type="button" className={styles.action} onClick={onOpenLeaderboard}>
+          <Trophy size={28} strokeWidth={2.4} />
+          Leaderboard
         </button>
       </div>
 

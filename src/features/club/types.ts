@@ -36,3 +36,20 @@ export interface OwnedPlayer extends Entity {
 export interface Club {
   players: OwnedPlayer[];
 }
+
+/**
+ * The minimal shape a card needs to be drawn — by `SquadCard`, positioned by
+ * `PitchSlot`, and rated by `effectiveRating`.
+ *
+ * `OwnedPlayer` satisfies this structurally, so every real card already works with
+ * no change. It exists so those same components can also draw a card that came back
+ * from someone else's published leaderboard entry, which is a snapshot with no
+ * `id`, `set`, or `acquiredAt` of its own.
+ */
+export interface DisplayCard {
+  name: string;
+  rating: number;
+  position: string;
+  portrait: string;
+  plus?: number;
+}

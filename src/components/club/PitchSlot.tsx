@@ -1,5 +1,5 @@
 import type { PointerEvent } from 'react';
-import type { OwnedPlayer } from '@/features/club/types';
+import type { DisplayCard } from '@/features/club/types';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
 import { effectiveRating, positionPenalty } from '@/features/squad/rating';
 import type { FormationSlot } from '@/features/squad/types';
@@ -8,7 +8,7 @@ import styles from './PitchSlot.module.css';
 
 export interface PitchSlotProps {
   slot: FormationSlot;
-  player: OwnedPlayer | null;
+  player: DisplayCard | null;
   dragging: boolean;
   over: boolean;
   blocked: boolean;

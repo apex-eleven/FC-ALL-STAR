@@ -1,4 +1,4 @@
-import type { OwnedPlayer } from '@/features/club/types';
+import type { DisplayCard } from '@/features/club/types';
 import { ratingWithPlus } from '@/features/rankup/plus';
 
 /** Coarse lines. Every position the catalogue allows maps into one of these. */
@@ -64,8 +64,12 @@ export function positionPenalty(slotPosition: string, playerPosition: string): n
 /**
  * What a card is worth in a given slot. Never drops below 1 — a card with a rating
  * is still a player, however badly it is being used.
+ *
+ * Takes `DisplayCard` rather than `OwnedPlayer`: this also rates a card read back
+ * from someone else's published leaderboard entry, which is not one this account
+ * owns.
  */
-export function effectiveRating(player: OwnedPlayer, slotPosition: string): number {
+export function effectiveRating(player: DisplayCard, slotPosition: string): number {
   // The rank-up bonus is applied before the penalty, so a +8 winger played at
   // striker keeps most of what it was upgraded for rather than losing the bonus
   // twice over.

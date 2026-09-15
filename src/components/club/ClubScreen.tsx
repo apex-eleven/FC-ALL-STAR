@@ -5,6 +5,9 @@ import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { syncOwned } from '@/features/club/sync';
+import { publishLeaderboardEntry } from '@/features/cloud/cloudLeaderboard';
+import { isCloudEnabled } from '@/features/cloud/firebase';
+import type { LeaderboardCard, LeaderboardEntry } from '@/features/leaderboard/types';
 import {
   autoBuild,
   canPlace,
@@ -27,6 +30,7 @@ import BenchStrip from './BenchStrip';
 import CollectionDrawer from './CollectionDrawer';
 import SlotPicker from './SlotPicker';
 import SquadCard from './SquadCard';
+import LeaderboardScreen from '@/components/leaderboard/LeaderboardScreen';
 import styles from './ClubScreen.module.css';
 
 const REFUSAL: Record<NonNullable<PlacementCheck['reason']>, string> = {
@@ -47,11 +51,15 @@ export default function ClubScreen() {
 
   const { byId } = usePlayers();
   const [collectionOpen, setCollectionOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   // A drag that ends on the slot it started from still fires a click. Without this
   // the picker would open every time a card was put back where it came from.
   const draggedAt = useRef(0);
+  // What was last published to the leaderboard, so a re-render that changed nothing
+  // does not turn into a write. Compared without `updatedAt`, which always differs.
+  const lastPublished = useRef<string | null>(null);
 
   /**
    * Owned cards, refreshed from the catalogue.
@@ -156,6 +164,47 @@ export default function ClubScreen() {
   const rating = useMemo(() => squadRating(squad, owned), [squad, owned]);
   const value = squadValue(squad, owned);
 
+  /**
+   * Publishes this account's starting eleven to the leaderboard whenever it
+   * actually changes — placing a card, swapping one out, a rank-up, an admin edit
+   * synced in from the catalogue. Never on a timer, and skipped entirely with no
+   * squad worth showing, so an empty club does not put a hollow row in the table.
+   */
+  useEffect(() => {
+    if (!isCloudEnabled() || rating <= 0) return;
+
+    const cards: LeaderboardCard[] = formation.slots.flatMap((slot) => {
+      const cardId = squad.starters[slot.id];
+      const player = cardId ? owned.get(cardId) : undefined;
+      if (!player) return [];
+      return [
+        {
+          slotId: slot.id,
+          position: player.position,
+          name: player.name,
+          rating: player.rating,
+          plus: player.plus ?? 0,
+          portrait: player.portrait,
+        },
+      ];
+    });
+
+    const snapshot = {
+      uid: account.id,
+      username: account.username,
+      avatarId: account.avatarId,
+      rating,
+      formation: squad.formation,
+      cards,
+    };
+    const signature = JSON.stringify(snapshot);
+    if (lastPublished.current === signature) return;
+    lastPublished.current = signature;
+
+    const entry: LeaderboardEntry = { ...snapshot, updatedAt: new Date().toISOString() };
+    void publishLeaderboardEntry(entry);
+  }, [account.id, account.username, account.avatarId, formation, squad, owned, rating]);
+
   const pointerFor = useCallback(
     (cardId: string) => (event: PointerEvent) => start(cardId, event),
     [start],
@@ -196,6 +245,7 @@ export default function ClubScreen() {
           }))
         }
         onToggleCollection={() => setCollectionOpen((open) => !open)}
+        onOpenLeaderboard={() => setLeaderboardOpen(true)}
       />
 
       {formation.slots.map((slot) => {
@@ -279,6 +329,10 @@ export default function ClubScreen() {
       )}
 
       {toast && <div className={styles.toast}>{toast}</div>}
+
+      {leaderboardOpen && (
+        <LeaderboardScreen selfUid={account.id} onClose={() => setLeaderboardOpen(false)} />
+      )}
     </>
   );
 }

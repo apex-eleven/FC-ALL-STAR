@@ -103,4 +103,5 @@ export const PATHS = {
   configDoc: 'admin',
   league: 'league',
   leagueEntries: 'entries',
+  leaderboard: 'leaderboard',
 } as const;
