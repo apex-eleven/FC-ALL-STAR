@@ -116,14 +116,16 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 14px 20px 18px;
   flex: none;
 }
 
 .go,
-.ok {
-  flex: 1;
+.ok,
+.refresh {
+  flex: 1 1 140px;
   height: 48px;
   border-radius: var(--radius-pill);
   border: none;
@@ -143,8 +145,18 @@
   color: var(--color-text);
 }
 
+/* Same weight as "รับทราบ" — this is still just closing the notice, reloading is
+   the extra step — but tinted with the notice's tone so it reads as the option
+   that does something rather than a second identical button. */
+.refresh {
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  color: var(--color-text);
+}
+
 .go:hover,
-.ok:hover {
+.ok:hover,
+.refresh:hover {
   transform: translateY(-2px);
   filter: brightness(1.08);
 }

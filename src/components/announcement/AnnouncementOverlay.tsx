@@ -78,6 +78,19 @@ export default function AnnouncementOverlay() {
           <button type="button" className={styles.ok} onClick={dismiss}>
             รับทราบ
           </button>
+          {/* For a notice telling players an update is out — dismiss the same way
+              "รับทราบ" does (so a "once" notice does not reopen after the reload),
+              then reload so they land on the latest deployed build. */}
+          <button
+            type="button"
+            className={styles.refresh}
+            onClick={() => {
+              dismiss();
+              window.location.reload();
+            }}
+          >
+            รีเฟรชหน้าจอ
+          </button>
         </div>
       </div>
     </div>
