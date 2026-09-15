@@ -7,7 +7,15 @@ import { useAccount } from '@/features/auth/AuthContext';
 import { formatCurrency } from '@/features/currencies/constants';
 import { useLeague } from '@/features/league/LeagueContext';
 import { PLAYER_TEAM_ID } from '@/features/league/constants';
-import { nextReset, roundRobin, seasonStart, slotTime, slotsElapsed } from '@/features/league/season';
+import {
+  nextReset,
+  playMatch,
+  roundRobin,
+  scoreFor,
+  seasonStart,
+  slotTime,
+  slotsElapsed,
+} from '@/features/league/season';
 import { rewardEntries, rewardFor } from '@/features/league/standings';
 import { emptyRecord, type LeagueRecord, type LeagueRival } from '@/features/league/types';
 import { useNavigation } from '@/features/navigation/NavigationContext';
@@ -142,10 +150,14 @@ export default function LeagueScreen() {
    * Built from the same round-robin (`season.roundRobin`) that `standings.advance`
    * uses to resolve the day, over the same `[PLAYER_TEAM_ID, ...rivals]` seat order,
    * so a pairing shown here is never separate from the one that actually moved
-   * someone's stars. The player's own result still comes out of `state.history`
-   * rather than being re-simulated; rival-versus-rival rows carry no live score,
-   * same as before — the board's job is to show who plays whom, not to duplicate
-   * the simulation.
+   * someone's stars.
+   *
+   * Every team's result is real, not just the player's. The player's own comes out
+   * of `state.history`. A rival-versus-rival slot that has already passed is
+   * recomputed with the exact same seed `standings.advance` used for it
+   * (`accountId:seasonId:slot:homeId-awayId`, against each rival's fixed rating) —
+   * pure and deterministic, so it reproduces the actual result rather than a second,
+   * different-looking guess. A slot still in the future is left with no score.
    */
   const fixtures = useMemo(() => {
     const playerRow = rows.find((row) => row.isPlayer) ?? null;
@@ -167,6 +179,7 @@ export default function LeagueScreen() {
     for (let slot = 0; slot < totalSlots; slot += 1) {
       const at = slotTime(now, config, slot);
       const round = rounds[slot % cycleLength] ?? [];
+      const played = slot < playedSlots;
 
       for (const [homeId, awayId] of round) {
         if (homeId === PLAYER_TEAM_ID || awayId === PLAYER_TEAM_ID) {
@@ -190,6 +203,14 @@ export default function LeagueScreen() {
         const away = rivalsById.get(awayId);
         if (!home || !away) continue;
 
+        let score: string | null = null;
+        if (played) {
+          const pairSeed = `${account.id}:${state.seasonId}:${slot}:${homeId}-${awayId}`;
+          const outcome = playMatch(pairSeed, home.rating, away.rating);
+          const [homeGoals, awayGoals] = scoreFor(pairSeed, outcome);
+          score = `${homeGoals} - ${awayGoals}`;
+        }
+
         list.push({
           key: `${slot}-${home.id}-${away.id}`,
           slot,
@@ -198,7 +219,7 @@ export default function LeagueScreen() {
           away: toRow(away),
           isPlayer: false,
           delta: null,
-          score: null,
+          score,
         });
       }
       // A round with an odd team count leaves exactly one seat on a bye each cycle;
@@ -207,7 +228,18 @@ export default function LeagueScreen() {
     }
 
     return list;
-  }, [rows, state.rivals, state.history, rivalsById, config, now, totalSlots]);
+  }, [
+    rows,
+    state.rivals,
+    state.history,
+    state.seasonId,
+    rivalsById,
+    config,
+    now,
+    totalSlots,
+    playedSlots,
+    account.id,
+  ]);
 
   // Every hour that actually has a fixture, in order — the tab strip used to stop
   // at the first six, which left most of the day's schedule unreachable.
@@ -221,13 +253,11 @@ export default function LeagueScreen() {
   }, [fixtures]);
 
   const shownFixtures = useMemo(() => {
-    const filtered = fixtures.filter((fixture) =>
-      hourFilter === 'all' ? true : fixture.at.getHours() === hourFilter,
-    );
-    // One hour's worth is always shown in full — that is what "the schedule is
-    // complete" means. "ทั้งหมด" (every hour at once) still caps, or the board would
-    // render the whole day's fixtures — every round, every pairing — in one list.
-    return hourFilter === 'all' ? filtered.slice(0, 60) : filtered;
+    // "ทั้งหมด" is the player's own match history for the day — every slot their
+    // team played or will play — not the whole day's schedule for every team mixed
+    // together; browsing another team's games is what the hour tabs are for.
+    if (hourFilter === 'all') return fixtures.filter((fixture) => fixture.isPlayer);
+    return fixtures.filter((fixture) => fixture.at.getHours() === hourFilter);
   }, [fixtures, hourFilter]);
 
   const topReward = rewardFor(1, config);
@@ -355,7 +385,7 @@ export default function LeagueScreen() {
               className={`${styles.tab} ${hourFilter === 'all' ? styles.tabOn : ''}`}
               onClick={() => setHourFilter('all')}
             >
-              ทั้งหมด
+              ทีมเรา
             </button>
             {hours.map((hour) => (
               <button
@@ -399,18 +429,22 @@ export default function LeagueScreen() {
                   <span className={styles.fixtureLeague}>ลีกประจำวัน</span>
                   <span
                     className={`${styles.fixtureDelta} ${
-                      fixture.delta === null
+                      fixture.score === null
                         ? styles.deltaIdle
-                        : fixture.delta > 0
-                          ? styles.deltaUp
-                          : fixture.delta < 0
-                            ? styles.deltaDown
-                            : styles.deltaFlat
+                        : fixture.delta === null
+                          ? styles.deltaFlat
+                          : fixture.delta > 0
+                            ? styles.deltaUp
+                            : fixture.delta < 0
+                              ? styles.deltaDown
+                              : styles.deltaFlat
                     }`}
                   >
-                    {fixture.delta === null
+                    {fixture.score === null
                       ? 'ยังไม่แข่ง'
-                      : `${fixture.delta > 0 ? '+' : ''}${fixture.delta} ดาว`}
+                      : fixture.delta === null
+                        ? 'แข่งจบแล้ว'
+                        : `${fixture.delta > 0 ? '+' : ''}${fixture.delta} ดาว`}
                   </span>
                 </span>
               </div>

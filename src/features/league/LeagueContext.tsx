@@ -73,6 +73,18 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     [entries, account?.id],
   );
 
+  /**
+   * Everyone the rank is measured against: other real players plus the generated
+   * bots filling the rest of the table. Used to be real players only whenever any
+   * were in the table, which dropped every bot from the count and could show rank 1
+   * while several bots still sat above on the board — the number on screen has to
+   * match the position in the standings the player can see right below it.
+   */
+  const tableStars = useMemo(
+    () => [...realStars, ...state.rivals.map((rival) => rival.stars)],
+    [realStars, state.rivals],
+  );
+
   const rating = useMemo(() => {
     if (!account) return 0;
     const owned = indexOwned(syncOwned(account.club.players, byId));
@@ -95,9 +107,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       accountId: account.id,
       rating,
       now: new Date(),
-      // Only when somebody else is actually in the table. One lone player would
-      // otherwise be ranked first against an empty list every single day.
-      rivalStars: realStars.length > 0 ? realStars : undefined,
+      rivalStars: tableStars,
     });
     if (!result.changed) return;
 
@@ -134,7 +144,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     // `state` is read from the account, which updateAccount replaces — depending on it
     // directly would loop. The account object identity is the honest trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, config, rating, updateAccount, realStars]);
+  }, [account, config, rating, updateAccount, tableStars]);
 
   /**
    * Refreshes the shared table.
@@ -208,7 +218,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       config,
       state,
       entries,
-      rank: rankOf(state, realStars.length > 0 ? realStars : undefined),
+      rank: rankOf(state, tableStars),
       rating,
       updateConfig,
       resetConfig,
@@ -220,7 +230,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       config,
       state,
       entries,
-      realStars,
+      tableStars,
       rating,
       updateConfig,
       resetConfig,

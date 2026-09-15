@@ -368,29 +368,24 @@
 
 .tabs {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 5px;
   margin-bottom: 10px;
   /* The schedule now covers the full day (up to 24 hour tabs, was capped at
-     six), which no longer fits the board's width. Scroll the strip inside
-     its own row instead of letting flex overflow bleed into the standings
-     column next to it. */
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
+     six), which no longer fits on one row. A single scrolling row hid most
+     of the hours behind a swipe; wrapping keeps every hour visible at once.
+     Tab padding and type size below are sized down from the rest of the
+     board so 24 hours plus "ทีมเรา" settle onto two rows instead of three. */
 }
 
 .tab {
   flex: 0 0 auto;
-  padding: 6px 16px;
+  padding: 5px 10px;
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   font-family: var(--font-ui);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   font-weight: 700;
   color: rgba(220, 236, 255, 0.75);
   white-space: nowrap;
