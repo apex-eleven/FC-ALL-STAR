@@ -43,7 +43,16 @@ export function addPlayers(club: Club, incoming: readonly OwnedPlayer[]): Club {
 }
 
 /**
- * Club rating: the average of the best eleven, rounded.
+ * Club rating: the average of the best eleven cards owned, rounded.
+ *
+ * Deliberately not the same question as `squadRating`, which grades the eleven
+ * actually picked and docks a card for playing out of position. This one is "how
+ * strong is the collection", so upgrading a card moves it whether or not that card
+ * is in the lineup — which is what the OVR badge on the home tile and the club panel
+ * both show.
+ *
+ * Ranked and totalled on the upgraded rating: a +8 card still counted at its printed
+ * number would make rank-up invisible here.
  *
  * A club with fewer than eleven cards averages what it has rather than padding with
  * zeroes, which would make a strong new account look worse than an empty one.
@@ -51,8 +60,6 @@ export function addPlayers(club: Club, incoming: readonly OwnedPlayer[]): Club {
 export function clubRating(club: Club): number {
   if (club.players.length === 0) return 0;
 
-  // Ranked and totalled on the upgraded rating, not the base one — a +8 card that
-  // still counted as its printed rating would make the whole screen pointless.
   const best = [...club.players]
     .sort((a, b) => ratingWithPlus(b) - ratingWithPlus(a))
     .slice(0, SQUAD_SIZE);

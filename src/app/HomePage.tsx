@@ -1,8 +1,11 @@
+import { useMemo } from 'react';
 import { club, hero, playCard } from '@/data/mock/home';
 import { FEATURED_DRAFT_ID } from '@/data/mock/draft';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { useAccount } from '@/features/auth/AuthContext';
 import { clubRating } from '@/features/club/club';
+import { syncOwned } from '@/features/club/sync';
+import { usePlayers } from '@/features/players/PlayerContext';
 import HeroSection from '@/components/home/HeroSection';
 import NewsBanner from '@/components/home/NewsBanner';
 import ClubCard from '@/components/home/ClubCard';
@@ -15,11 +18,20 @@ import PlayCard from '@/components/home/PlayCard';
 export default function HomePage() {
   const { navigate } = useNavigation();
   const account = useAccount();
+  const { byId } = usePlayers();
 
-  // OVR is derived from what the account actually owns, so pulling a good card on
-  // the draft screen is visible on the home screen straight away. An empty club
-  // falls back to the catalogue number rather than showing 0.
-  const rating = clubRating(account.club) || club.overallRating;
+  /**
+   * Strength of the collection: the best eleven cards owned, rank-up included.
+   *
+   * The club panel shows the same figure from the same function, so the two screens
+   * cannot disagree. Cards are re-synced against the catalogue first, as every other
+   * screen does, so an admin editing a card moves both at once.
+   */
+  const rating = useMemo(() => {
+    const players = syncOwned(account.club.players, byId);
+    // An empty club falls back to the catalogue number rather than showing 0.
+    return clubRating({ players }) || club.overallRating;
+  }, [account.club.players, byId]);
 
   return (
     <>

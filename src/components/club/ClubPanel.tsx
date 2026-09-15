@@ -8,8 +8,6 @@ import styles from './ClubPanel.module.css';
 export interface ClubPanelProps {
   name: string;
   rating: number;
-  /** Rating points in the eleven that come from rank-up. 0 hides the line. */
-  rankUpBonus: number;
   formationName: string;
   value: number;
   collectionOpen: boolean;
@@ -21,7 +19,6 @@ export interface ClubPanelProps {
 export default function ClubPanel({
   name,
   rating,
-  rankUpBonus,
   formationName,
   value,
   collectionOpen,
@@ -39,12 +36,6 @@ export default function ClubPanel({
 
         <div className={styles.ovrRow}>
           <OvrBadge rating={rating} size={132} labelSize={17} valueSize={48} />
-          {/* Says out loud where part of the number came from. Without it, a player
-              who upgrades a card sitting on the bench sees the OVR not move and
-              concludes the bonus is not counted at all. */}
-          {rankUpBonus > 0 && (
-            <span className={styles.rankUp}>รวมตีบวก +{rankUpBonus}</span>
-          )}
         </div>
 
         <div className={styles.divider} />
