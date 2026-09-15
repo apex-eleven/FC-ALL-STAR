@@ -2,6 +2,7 @@ import { useMemo, useState, type PointerEvent } from 'react';
 import { X } from 'lucide-react';
 import type { OwnedPlayer } from '@/features/club/types';
 import { PLAYER_SETS, type PlayerSet } from '@/features/draft/types';
+import { ratingWithPlus } from '@/features/rankup/plus';
 import { groupOf, type PositionGroup } from '@/features/squad/rating';
 import { isInSquad } from '@/features/squad/squad';
 import type { Squad } from '@/features/squad/types';
@@ -74,13 +75,15 @@ export default function CollectionDrawer({
     return list.sort((a, b) => {
       switch (sort) {
         case 'position':
-          return a.position.localeCompare(b.position) || b.rating - a.rating;
+          return a.position.localeCompare(b.position) || ratingWithPlus(b) - ratingWithPlus(a);
         case 'name':
-          return a.name.localeCompare(b.name) || b.rating - a.rating;
+          return a.name.localeCompare(b.name) || ratingWithPlus(b) - ratingWithPlus(a);
         case 'newest':
           return b.acquiredAt.localeCompare(a.acquiredAt);
         default:
-          return b.rating - a.rating || a.position.localeCompare(b.position);
+          // Sorted on the upgraded rating, or a +8 card would sit below the raw
+          // number it was upgraded past and the OVR sort would look broken.
+          return ratingWithPlus(b) - ratingWithPlus(a) || a.position.localeCompare(b.position);
       }
     });
   }, [players, tier, line, sort, query]);
@@ -190,7 +193,7 @@ export default function CollectionDrawer({
                   <span className={`${styles.cellTier} ${styles[`set${player.set}`] ?? ''}`}>
                     {player.set}
                   </span>
-                  {player.position} · {player.rating}
+                  {player.position} · {ratingWithPlus(player)}
                 </span>
               </div>
             );

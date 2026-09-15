@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { X } from 'lucide-react';
 import type { OwnedPlayer } from '@/features/club/types';
 import { canPlace } from '@/features/squad/squad';
+import { ratingWithPlus } from '@/features/rankup/plus';
 import { effectiveRating, positionPenalty } from '@/features/squad/rating';
 import styles from './SlotPicker.module.css';
 
@@ -51,7 +52,11 @@ export default function SlotPicker({
         .filter((player) => (position ? canPlace(position, player).ok : true))
         .map((player) => ({
           player,
-          rating: position ? effectiveRating(player, position) : player.rating,
+          // Both sides of the "before → after" are upgraded ratings. Showing the
+          // printed number on the left and the upgraded one on the right would make
+          // the penalty look smaller than it is.
+          rating: position ? effectiveRating(player, position) : ratingWithPlus(player),
+          base: ratingWithPlus(player),
           penalty: position ? positionPenalty(position, player.position) : 0,
         }))
         // Best in this slot first, which is not the same as highest rated.
@@ -76,7 +81,7 @@ export default function SlotPicker({
         </div>
 
         <div className={styles.grid}>
-          {eligible.map(({ player, rating, penalty }) => {
+          {eligible.map(({ player, rating, base, penalty }) => {
             // Another card with this name is already in the eleven or on the bench.
             const blocked = isDuplicate(player.id) && player.id !== currentId;
 
@@ -97,10 +102,10 @@ export default function SlotPicker({
               <span className={styles.line}>
                 <span className={styles.position}>{player.position}</span>
                 {penalty === 0 ? (
-                  <span className={styles.exact}>{player.rating} · ตรงตำแหน่ง</span>
+                  <span className={styles.exact}>{base} · ตรงตำแหน่ง</span>
                 ) : (
                   <span className={styles.off}>
-                    {player.rating} <span className={styles.arrow}>→</span> {rating}
+                    {base} <span className={styles.arrow}>→</span> {rating}
                     <span className={styles.penalty}>-{penalty}</span>
                   </span>
                 )}

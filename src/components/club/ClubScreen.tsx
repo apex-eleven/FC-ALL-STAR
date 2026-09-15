@@ -5,6 +5,7 @@ import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { syncOwned } from '@/features/club/sync';
+import { plusBonus } from '@/features/rankup/plus';
 import {
   autoBuild,
   canPlace,
@@ -153,6 +154,22 @@ export default function ClubScreen() {
   const rating = squadRating(squad, owned);
   const value = squadValue(squad, owned);
 
+  /**
+   * How much of the OVR the eleven owes to rank-up.
+   *
+   * Only starters count, because only starters are in the rating — a +8 card on the
+   * bench contributes nothing, and saying otherwise would explain a number the badge
+   * is not showing.
+   */
+  const rankUpBonus = useMemo(
+    () =>
+      Object.values(squad.starters).reduce((total, id) => {
+        const card = id ? owned.get(id) : undefined;
+        return total + (card ? plusBonus(card.plus ?? 0) : 0);
+      }, 0),
+    [squad.starters, owned],
+  );
+
   const pointerFor = useCallback(
     (cardId: string) => (event: PointerEvent) => start(cardId, event),
     [start],
@@ -182,6 +199,7 @@ export default function ClubScreen() {
       <ClubPanel
         name="ทีมของฉัน"
         rating={rating}
+        rankUpBonus={rankUpBonus}
         formationName={formation.name}
         value={value}
         collectionOpen={collectionOpen}
