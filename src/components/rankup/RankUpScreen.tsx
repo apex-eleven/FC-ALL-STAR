@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsUp, Dna, Home, Plus, Star, Dumbbell } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
+import { ASSETS } from '@/assets/assetMap';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { syncOwned } from '@/features/club/sync';
@@ -15,18 +16,22 @@ import { FAIL_LABEL, attempt, checkReady, isMaterial } from '@/features/rankup/r
 import type { RankUpOutcome } from '@/features/rankup/types';
 import { useSound } from '@/features/sound/SoundContext';
 import { isInSquad, removeFromSquad } from '@/features/squad/squad';
-import IconButton from '@/components/ui/IconButton';
 import SquadCard from '@/components/club/SquadCard';
 import CardPicker from './CardPicker';
 import RankUpResult from './RankUpResult';
 import styles from './RankUpScreen.module.css';
 
-/** The reference screen's four modes. Only the first is built. */
+/**
+ * The reference screen's four modes. Only the first is built.
+ *
+ * Each tab is a single finished image with its own frame and lettering, so the
+ * label here is for the accessible name only — nothing draws it.
+ */
 const MODES = [
-  { id: 'rankup', label: 'ตีบวก', icon: ChevronsUp, ready: true },
-  { id: 'training', label: 'ฝึกซ้อม', icon: Dumbbell, ready: false },
-  { id: 'skill', label: 'สกิล', icon: Star, ready: false },
-  { id: 'evolution', label: 'วิวัฒนาการ', icon: Dna, ready: false },
+  { id: 'rankup', label: 'ตีบวก', art: ASSETS.rankup.tabRankUp, ready: true },
+  { id: 'training', label: 'ฝึกซ้อม', art: ASSETS.rankup.tabTraining, ready: false },
+  { id: 'skill', label: 'สกิล', art: ASSETS.rankup.tabSkill, ready: false },
+  { id: 'evolution', label: 'วิวัฒนาการ', art: ASSETS.rankup.tabEvolution, ready: false },
 ] as const;
 
 /** How long the button spins before the result lands. */
@@ -203,7 +208,7 @@ export default function RankUpScreen() {
     return (
       <div className={styles.closed}>
         <button type="button" className={styles.back} onClick={back} aria-label="ย้อนกลับ">
-          <ChevronLeft size={36} strokeWidth={3} />
+          <img src={ASSETS.rankup.back} alt="" />
         </button>
         <p>ระบบตีบวกปิดปรับปรุงอยู่</p>
       </div>
@@ -224,36 +229,36 @@ export default function RankUpScreen() {
 
       <header className={styles.topBar}>
         <button type="button" className={styles.back} onClick={back} aria-label="ย้อนกลับ">
-          <ChevronLeft size={36} strokeWidth={3} />
+          <img src={ASSETS.rankup.back} alt="" />
         </button>
         <span className={styles.titleBlock}>
           <h1 className={styles.title}>RANK UP</h1>
           <span className={styles.subtitle}>ตีบวกการ์ด</span>
         </span>
-        <span className={styles.homeButton}>
-          <IconButton label="หน้าหลัก" size={46} onClick={() => navigate('home')}>
-            <Home size={40} strokeWidth={2} />
-          </IconButton>
-        </span>
+        <button
+          type="button"
+          className={styles.homeButton}
+          onClick={() => navigate('home')}
+          aria-label="หน้าหลัก"
+        >
+          <img src={ASSETS.rankup.home} alt="" />
+        </button>
       </header>
 
       <nav className={styles.modes} aria-label="โหมด">
-        {MODES.map((mode) => {
-          const Icon = mode.icon;
-          return (
-            <button
-              type="button"
-              key={mode.id}
-              className={`${styles.mode} ${mode.ready ? styles.modeOn : ''}`}
-              disabled={!mode.ready}
-              aria-current={mode.ready ? 'page' : undefined}
-            >
-              <Icon size={30} strokeWidth={2.4} />
-              <span>{mode.label}</span>
-              {!mode.ready && <span className={styles.soon}>เร็ว ๆ นี้</span>}
-            </button>
-          );
-        })}
+        {MODES.map((mode) => (
+          <button
+            type="button"
+            key={mode.id}
+            className={`${styles.mode} ${mode.ready ? styles.modeOn : ''}`}
+            disabled={!mode.ready}
+            aria-label={mode.label}
+            aria-current={mode.ready ? 'page' : undefined}
+          >
+            <img src={mode.art} alt="" />
+            {!mode.ready && <span className={styles.soon}>เร็ว ๆ นี้</span>}
+          </button>
+        ))}
       </nav>
 
       <section className={styles.targetPanel}>
@@ -380,14 +385,14 @@ export default function RankUpScreen() {
 
           return (
             <span className={styles.step} key={level}>
-              <span
+              <img
                 className={`${styles.tile} ${reached ? styles.tileOn : ''} ${
                   nextUp ? styles.tileNext : ''
                 }`}
+                src={ASSETS.rankup.frames[i]}
+                alt={`+${level}`}
                 style={{ '--pip': plusTone(level) } as CSSProperties}
-              >
-                +{level}
-              </span>
+              />
               {level < MAX_PLUS && <ChevronRight className={styles.arrow} size={22} strokeWidth={3} />}
             </span>
           );
@@ -399,8 +404,10 @@ export default function RankUpScreen() {
         className={styles.action}
         onClick={run}
         disabled={!readiness.ok || rolling}
+        aria-label="ยืนยันการตีบวก"
       >
-        {rolling ? 'กำลังตีบวก…' : 'RANK UP'}
+        <img src={ASSETS.rankup.confirm} alt="" />
+        {rolling && <span className={styles.rollingLabel}>กำลังตีบวก…</span>}
       </button>
 
       {blockMessage && !rolling && <p className={styles.block}>{blockMessage}</p>}

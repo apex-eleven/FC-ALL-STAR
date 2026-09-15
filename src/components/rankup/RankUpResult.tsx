@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { ASSETS } from '@/assets/assetMap';
 import type { OwnedPlayer } from '@/features/club/types';
 import { plusTone } from '@/features/rankup/constants';
 import type { RankUpOutcome } from '@/features/rankup/types';
@@ -44,6 +45,16 @@ export default function RankUpResult({ outcome, card, onClose }: RankUpResultPro
         <span className={styles.burst} aria-hidden="true" />
 
         <h2 className={styles.headline}>{headline}</h2>
+
+        {/* The frame the card now sits at. Skipped at +0 and on a destroy, where
+            there is no level to celebrate. */}
+        {!outcome.destroyed && outcome.to > 0 && (
+          <img
+            className={styles.frame}
+            src={ASSETS.rankup.frames[outcome.to - 1]}
+            alt={`+${outcome.to}`}
+          />
+        )}
 
         <div className={`${styles.card} ${outcome.destroyed ? styles.gone : ''}`}>
           <SquadCard player={shown} scale={2.4} interactive={false} />

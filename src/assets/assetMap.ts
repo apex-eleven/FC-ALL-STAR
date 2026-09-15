@@ -66,6 +66,40 @@ import navHighlight from './images/brand/nav-highlight.png';
 import navStarPass from './images/brand/nav-starpass.png';
 import navOvertime from './images/brand/nav-overtime.png';
 
+// Rank-up screen art. Supplied as finished PNGs with their own frames, glow and
+// lettering baked in, so the screen draws no tile, border or label behind them —
+// it positions the image and nothing else.
+//
+// Filenames are kept exactly as they were exported, so a redraw can be dropped in
+// without renaming. Sizes that matter when replacing:
+//   icon_rankup / training / skill / evolution — wide tabs, ~120-136px tall, widths
+//     from 449 down to 256. The rail sizes them by height and left-aligns, so an
+//     odd width is fine but a different HEIGHT will change how they line up.
+//   rank_frame_01..08 — the ladder tiles, ~190x230 portrait, one per plus level.
+//     The order is the plus level; index 0 is +1.
+//   icon_confirm_rankup — the action button, 379x154.
+//   icon_back 177x145, icon_home 126x108.
+//
+// These were delivered flattened, with a checkerboard painted in as real pixels
+// rather than an alpha channel. That has been keyed out and the dead margin
+// cropped, so a replacement must be saved with genuine transparency — a flattened
+// PNG dropped in here will show its grid on the screen.
+import rankupTabRankUp from './images/rankup/icon_rankup.png';
+import rankupTabTraining from './images/rankup/icon_training.png';
+import rankupTabSkill from './images/rankup/icon_skill.png';
+import rankupTabEvolution from './images/rankup/icon_evolution.png';
+import rankupBack from './images/rankup/icon_back.png';
+import rankupHome from './images/rankup/icon_home.png';
+import rankupConfirm from './images/rankup/icon_confirm_rankup.png';
+import rankFrame01 from './images/rankup/rank_frame_01.png';
+import rankFrame02 from './images/rankup/rank_frame_02.png';
+import rankFrame03 from './images/rankup/rank_frame_03.png';
+import rankFrame04 from './images/rankup/rank_frame_04.png';
+import rankFrame05 from './images/rankup/rank_frame_05.png';
+import rankFrame06 from './images/rankup/rank_frame_06.png';
+import rankFrame07 from './images/rankup/rank_frame_07.png';
+import rankFrame08 from './images/rankup/rank_frame_08.png';
+
 export const ASSETS = {
   backgrounds: {
     heroBackground,
@@ -89,6 +123,26 @@ export const ASSETS = {
     navHighlight,
     navStarPass,
     navOvertime,
+  },
+  rankup: {
+    tabRankUp: rankupTabRankUp,
+    tabTraining: rankupTabTraining,
+    tabSkill: rankupTabSkill,
+    tabEvolution: rankupTabEvolution,
+    back: rankupBack,
+    home: rankupHome,
+    confirm: rankupConfirm,
+    /** Indexed by plus level minus one: frames[0] is +1, frames[7] is +8. */
+    frames: [
+      rankFrame01,
+      rankFrame02,
+      rankFrame03,
+      rankFrame04,
+      rankFrame05,
+      rankFrame06,
+      rankFrame07,
+      rankFrame08,
+    ],
   },
   draft: {
     bannerNumero10: draftBannerNumero10,

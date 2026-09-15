@@ -60,18 +60,28 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 100px;
+  height: 80px;
   flex: none;
-  border-radius: 50%;
-  background: rgba(30, 14, 10, 0.86);
-  border: 2px solid rgba(255, 150, 60, 0.6);
-  color: var(--color-text);
-  transition: transform var(--transition-fast);
+  background: none;
+  border: none;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
-.back:hover {
-  transform: scale(1.06);
+/* The art carries its own frame and glow, so nothing is drawn behind it — the
+   button is a hit area and a hover transform, no more. */
+.back img,
+.homeButton img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.back:hover,
+.homeButton:hover {
+  transform: scale(1.07);
+  filter: brightness(1.12);
 }
 
 .titleBlock {
@@ -103,55 +113,75 @@
 .homeButton {
   position: relative;
   margin-left: auto;
+  width: 78px;
+  height: 66px;
+  flex: none;
+  background: none;
+  border: none;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
 /* ---- Mode rail ------------------------------------------------- */
 
 .modes {
   position: absolute;
-  left: 96px;
+  left: 78px;
   top: 150px;
   z-index: var(--z-panel);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 252px;
+  gap: 10px;
+  width: 276px;
 }
 
+/* Each tab is one finished image. The tiles are a fixed box and the art is sized by
+   height with `contain`, so the four widths (465px down to 277px) keep their own
+   proportions instead of being stretched to match each other. */
 .mode {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 86px;
-  padding: 0 18px;
-  /* Cut corner on the right, matching the reference's angled tabs. */
-  clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
-  background: rgba(16, 8, 14, 0.66);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  font-family: var(--font-ui);
-  font-size: var(--text-md);
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.42);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 84px;
+  padding: 0;
+  background: none;
+  border: none;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.mode img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+  pointer-events: none;
+}
+
+/* Unbuilt tabs are drained rather than hidden — the reference shows all four, and a
+   greyed one reads as "later" where a missing one reads as "broken". */
+.mode:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.85) brightness(0.55);
 }
 
 .modeOn {
-  background: linear-gradient(90deg, rgba(255, 106, 0, 0.9) 0%, rgba(120, 38, 6, 0.6) 100%);
-  border-color: rgba(255, 180, 90, 0.75);
-  color: #ffffff;
-  box-shadow: 0 0 26px rgba(255, 110, 20, 0.45);
+  filter: drop-shadow(0 0 18px rgba(255, 120, 20, 0.6));
 }
 
-.mode:disabled {
-  cursor: not-allowed;
+.modeOn:hover {
+  transform: translateX(4px);
 }
 
 .soon {
-  margin-left: auto;
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font-family: var(--font-ui);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
 }
 
 /* ---- Target card ----------------------------------------------- */
@@ -455,35 +485,28 @@
   gap: 10px;
 }
 
+/* The frames arrive as ~195x240 PNGs with the number already drawn in, so the tile
+   is just a sized box. Levels not yet reached are dimmed rather than swapped for a
+   different image — the whole ladder stays visible, which is the point of showing
+   all eight. */
 .tile {
-  display: grid;
-  place-items: center;
-  width: 118px;
-  height: 120px;
-  /* Shield silhouette, cut rather than drawn, so it stays crisp at any stage scale. */
-  clip-path: polygon(12% 0, 88% 0, 100% 16%, 100% 74%, 50% 100%, 0 74%, 0 16%);
-  background: rgba(255, 255, 255, 0.07);
-  border: none;
-  font-family: var(--font-display);
-  font-size: 42px;
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.4);
-  transition: transform var(--transition-base);
+  display: block;
+  width: 120px;
+  height: 148px;
+  object-fit: contain;
+  filter: grayscale(0.9) brightness(0.42);
+  transition: transform var(--transition-base), filter var(--transition-base);
 }
 
 .tileOn {
-  background: linear-gradient(180deg, var(--pip) 0%, rgba(0, 0, 0, 0.6) 165%);
-  color: #ffffff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--pip) 45%, transparent));
 }
 
-/* The step the button would buy. Outlined rather than filled, so it reads as a
-   target instead of as something already earned. */
+/* The step the button would buy. Lit and pulsing, but still short of a reached
+   tile's full brightness, so "next" never gets mistaken for "earned". */
 .tileNext {
-  outline: 3px solid var(--pip);
-  outline-offset: -3px;
-  color: var(--pip);
-  box-shadow: 0 0 26px color-mix(in srgb, var(--pip) 55%, transparent);
+  filter: grayscale(0.25) brightness(0.92)
+    drop-shadow(0 0 16px color-mix(in srgb, var(--pip) 70%, transparent));
   animation: pulse 1.6s ease-in-out infinite;
 }
 
@@ -501,41 +524,58 @@
 
 .action {
   position: absolute;
-  left: 1640px;
-  top: 700px;
+  left: 1616px;
+  top: 640px;
   z-index: var(--z-panel);
-  width: 350px;
-  height: 96px;
-  clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
-  background: linear-gradient(90deg, #ff5a00 0%, #ffab3a 52%, #ff5a00 100%);
+  display: grid;
+  place-items: center;
+  width: 378px;
+  height: 158px;
+  padding: 0;
+  background: none;
   border: none;
-  font-family: var(--font-display);
-  font-size: 40px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  color: #ffffff;
-  text-shadow: 0 2px 10px rgba(120, 30, 0, 0.8);
-  box-shadow: 0 0 40px rgba(255, 110, 20, 0.5);
+  filter: drop-shadow(0 0 26px rgba(255, 110, 20, 0.5));
   transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+.action img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .action:hover:not(:disabled) {
   transform: translateY(-2px);
-  filter: brightness(1.08);
+  filter: drop-shadow(0 0 34px rgba(255, 150, 40, 0.75)) brightness(1.08);
 }
 
 .action:disabled {
-  filter: grayscale(0.7) brightness(0.6);
+  filter: grayscale(0.75) brightness(0.55);
   cursor: not-allowed;
-  box-shadow: none;
+}
+
+/* Sits over the artwork during the roll. The image stays put rather than being
+   swapped out, so the button does not change size mid-press. */
+.rollingLabel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 3, 10, 0.68);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: #ffd39a;
+  pointer-events: none;
 }
 
 .block {
   position: absolute;
-  left: 1640px;
+  left: 1616px;
   top: 806px;
   z-index: var(--z-panel);
-  width: 350px;
+  width: 378px;
   margin: 0;
   font-family: var(--font-ui);
   font-size: var(--text-xs);
@@ -594,4 +634,10 @@
   position: absolute;
   left: 96px;
   top: 40px;
+}
+
+.closed .back img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
