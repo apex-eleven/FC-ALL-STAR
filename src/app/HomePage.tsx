@@ -3,9 +3,9 @@ import { club, hero, playCard } from '@/data/mock/home';
 import { FEATURED_DRAFT_ID } from '@/data/mock/draft';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { useAccount } from '@/features/auth/AuthContext';
-import { clubRating } from '@/features/club/club';
 import { syncOwned } from '@/features/club/sync';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { indexOwned, squadRating } from '@/features/squad/squad';
 import HeroSection from '@/components/home/HeroSection';
 import NewsBanner from '@/components/home/NewsBanner';
 import ClubCard from '@/components/home/ClubCard';
@@ -21,17 +21,17 @@ export default function HomePage() {
   const { byId } = usePlayers();
 
   /**
-   * Strength of the collection: the best eleven cards owned, rank-up included.
-   *
-   * The club panel shows the same figure from the same function, so the two screens
-   * cannot disagree. Cards are re-synced against the catalogue first, as every other
-   * screen does, so an admin editing a card moves both at once.
+   * Strength of the actual starting eleven, rank-up included and docked for anyone
+   * out of position — the same number `squadRating` gives the club panel, so the two
+   * screens cannot disagree. Cards are re-synced against the catalogue first, as
+   * every other screen does, so an admin editing a card moves both at once.
    */
   const rating = useMemo(() => {
     const players = syncOwned(account.club.players, byId);
-    // An empty club falls back to the catalogue number rather than showing 0.
-    return clubRating({ players }) || club.overallRating;
-  }, [account.club.players, byId]);
+    const owned = indexOwned(players);
+    // An empty/unfilled squad falls back to the catalogue number rather than showing 0.
+    return squadRating(account.squad, owned) || club.overallRating;
+  }, [account.club.players, account.squad, byId]);
 
   return (
     <>

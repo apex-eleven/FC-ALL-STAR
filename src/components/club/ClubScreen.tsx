@@ -4,7 +4,6 @@ import { ASSETS } from '@/assets/assetMap';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { usePlayers } from '@/features/players/PlayerContext';
-import { clubRating } from '@/features/club/club';
 import { syncOwned } from '@/features/club/sync';
 import {
   autoBuild,
@@ -16,6 +15,7 @@ import {
   placeInSlot,
   placeOnBench,
   removeFromSquad,
+  squadRating,
   squadValue,
 } from '@/features/squad/squad';
 import type { FormationSlot, PlacementCheck } from '@/features/squad/types';
@@ -150,8 +150,10 @@ export default function ClubScreen() {
     return slot ? !canPlace(slot.position, draggedPlayer).ok : false;
   }, [over, draggedPlayer, formation]);
 
-  // Same function as the home tile, so the badge reads the same on both screens.
-  const rating = useMemo(() => clubRating({ players }), [players]);
+  // The eleven actually on the pitch, not the best eleven owned: a card benched or
+  // stuck on the bench doesn't count, and one played out of position is docked by
+  // the same penalty `effectiveRating` shows on its own card.
+  const rating = useMemo(() => squadRating(squad, owned), [squad, owned]);
   const value = squadValue(squad, owned);
 
   const pointerFor = useCallback(

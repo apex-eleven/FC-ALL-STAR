@@ -48,8 +48,9 @@ export function addPlayers(club: Club, incoming: readonly OwnedPlayer[]): Club {
  * Deliberately not the same question as `squadRating`, which grades the eleven
  * actually picked and docks a card for playing out of position. This one is "how
  * strong is the collection", so upgrading a card moves it whether or not that card
- * is in the lineup — which is what the OVR badge on the home tile and the club panel
- * both show.
+ * is in the lineup. Not currently shown anywhere — the home tile and the club panel
+ * both show `squadRating` instead, since a collection number was reading as if it
+ * were the fielded team's OVR.
  *
  * Ranked and totalled on the upgraded rating: a +8 card still counted at its printed
  * number would make rank-up invisible here.
