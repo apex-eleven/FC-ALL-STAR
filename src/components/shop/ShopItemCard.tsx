@@ -1,6 +1,8 @@
+import type { CSSProperties } from 'react';
 import { Clock, ThumbsUp } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { formatCurrency } from '@/features/currencies/constants';
+import { plusTone } from '@/features/rankup/constants';
 import { countdown, formatBaht, payOptions } from '@/features/shop/shop';
 import type { CardSize, ShopItem } from '@/features/shop/types';
 import ShopRewardLine from './ShopRewardLine';
@@ -40,6 +42,7 @@ export default function ShopItemCard({
   const first = item.rewards[0];
   const lead = first?.kind ?? 'fcpoint';
   const leadIcon = first ? view(first).icon : currencies.fcpoint.icon;
+  const leadPlus = first?.kind === 'card' ? first.plus : 0;
   const soldOut = remaining !== null && remaining <= 0;
   const options = payOptions(item);
   const hasCountdown = item.showCountdown && item.endAt !== '';
@@ -74,6 +77,15 @@ export default function ShopItemCard({
         <img className={styles.art} src={item.image} alt="" draggable={false} />
       ) : (
         <span className={styles.fallback}>
+          {/* Above the portrait, never on it — the art carries its own rating. */}
+          {leadPlus > 0 && (
+            <span
+              className={styles.plus}
+              style={{ '--plus-tone': plusTone(leadPlus) } as CSSProperties}
+            >
+              +{leadPlus}
+            </span>
+          )}
           <img
             className={`${styles.fallbackIcon} ${lead === 'card' ? styles.fallbackCard : ''}`}
             src={leadIcon}
