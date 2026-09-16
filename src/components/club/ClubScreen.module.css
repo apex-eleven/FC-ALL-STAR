@@ -112,11 +112,15 @@
   z-index: var(--z-background);
 }
 
+/* Portalled to body, outside every stacking context, so the z-index here only has to
+   clear the page itself. Moved by translate3d from useCardDrag, never by left/top. */
 .ghost {
   position: fixed;
+  left: 0;
+  top: 0;
   z-index: 999;
   pointer-events: none;
-  transform: translate(-50%, -50%);
+  will-change: transform;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
 }
 

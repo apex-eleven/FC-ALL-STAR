@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, Home } from 'lucide-react';
 import { ASSETS } from '@/assets/assetMap';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
@@ -23,6 +24,7 @@ import {
 } from '@/features/squad/squad';
 import type { FormationSlot, PlacementCheck } from '@/features/squad/types';
 import { useCardDrag, type DropTarget } from '@/hooks/useCardDrag';
+import { CARD_WIDTH } from '@/features/squad/constants';
 import IconButton from '@/components/ui/IconButton';
 import ClubPanel from './ClubPanel';
 import PitchSlot from './PitchSlot';
@@ -113,7 +115,7 @@ export default function ClubScreen() {
     [updateAccount, byId],
   );
 
-  const { drag, over, start } = useCardDrag(handleDrop);
+  const { drag, over, start, ghostRef, ghostSize } = useCardDrag(handleDrop);
 
   /** Places a card from the picker, applying the same rules a drop would. */
   const pickInto = useCallback(
@@ -319,16 +321,26 @@ export default function ClubScreen() {
         />
       )}
 
-      {/* The ghost follows the pointer in client pixels, outside the scaled stage, so
-          it tracks the cursor exactly whatever the stage scale happens to be. */}
-      {drag && draggedPlayer && (
-        <div
-          className={styles.ghost}
-          style={{ left: drag.x, top: drag.y }}
-        >
-          <SquadCard player={draggedPlayer} scale={1.15} interactive={false} />
-        </div>
-      )}
+      {/* The ghost lives outside the scaled stage (a portal to body) so it is placed in
+          the same client pixels as the pointer. The hook moves it every frame with a
+          transform; React does not re-render while it travels. */}
+      {drag &&
+        draggedPlayer &&
+        ghostSize &&
+        createPortal(
+          <div
+            ref={ghostRef}
+            className={styles.ghost}
+            style={{ width: ghostSize.width, height: ghostSize.height }}
+          >
+            <SquadCard
+              player={draggedPlayer}
+              scale={ghostSize.width / CARD_WIDTH}
+              interactive={false}
+            />
+          </div>,
+          document.body,
+        )}
 
       {toast && <div className={styles.toast}>{toast}</div>}
 
