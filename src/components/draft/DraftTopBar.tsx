@@ -4,7 +4,6 @@ import { useNavigation } from '@/features/navigation/NavigationContext';
 import { DRAFT_CURRENCIES } from '@/features/currencies/constants';
 import CurrencyBar from '@/components/currency/CurrencyBar';
 import IconButton from '@/components/ui/IconButton';
-import NotificationBadge from '@/components/navigation/NotificationBadge';
 import styles from './DraftTopBar.module.css';
 
 export interface DraftTopBarProps {
@@ -39,7 +38,6 @@ export default function DraftTopBar({ title }: DraftTopBarProps) {
             <IconButton label="กิจกรรม" size={46}>
               <Volleyball size={40} strokeWidth={2} />
             </IconButton>
-            <NotificationBadge badge={{ variant: 'dot' }} />
           </span>
           <IconButton label="ร้านค้า" size={46}>
             <ShoppingCart size={40} strokeWidth={2} />

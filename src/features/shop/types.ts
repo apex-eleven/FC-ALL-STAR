@@ -86,7 +86,7 @@ export interface ShopCategory {
   id: string;
   name: string;
   enabled: boolean;
-  /** Red dot beside the name in the left rail. */
+  /** Kept so saved shops still load; the red dot is no longer drawn. */
   dot: boolean;
   cardSize: CardSize;
   items: ShopItem[];

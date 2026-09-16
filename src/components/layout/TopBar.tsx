@@ -61,7 +61,6 @@ export default function TopBar({
       <div className={styles.right}>
         <CurrencyBar
           balances={account.wallet}
-          mailBadge={{ variant: 'count', count: 1 }}
           onSettings={onSettingsClick}
         />
       </div>

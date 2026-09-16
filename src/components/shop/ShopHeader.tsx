@@ -5,7 +5,6 @@ import { useNavigation } from '@/features/navigation/NavigationContext';
 import { SHOP_PAY_KINDS } from '@/features/shop/types';
 import CurrencyItem from '@/components/currency/CurrencyItem';
 import IconButton from '@/components/ui/IconButton';
-import NotificationBadge from '@/components/navigation/NotificationBadge';
 import styles from './ShopHeader.module.css';
 
 export interface ShopHeaderProps {
@@ -38,7 +37,6 @@ export default function ShopHeader({ title }: ShopHeaderProps) {
           <IconButton label="กิจกรรม" size={46}>
             <Volleyball size={40} strokeWidth={2} />
           </IconButton>
-          <NotificationBadge badge={{ variant: 'dot' }} />
         </span>
         <IconButton label="หน้าหลัก" size={46} onClick={() => navigate('home')}>
           <Home size={40} strokeWidth={2} />

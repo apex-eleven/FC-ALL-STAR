@@ -24,7 +24,6 @@ export default function ShopSidebar({ categories, activeId, footerNote, onSelect
               onClick={() => onSelect(category.id)}
             >
               <span className={styles.name}>{category.name}</span>
-              {category.dot && <span className={styles.dot} />}
             </button>
           );
         })}

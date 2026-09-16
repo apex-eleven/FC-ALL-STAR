@@ -24,15 +24,14 @@ export const railItems: RailItem[] = [
     id: 'rail-overtime',
     label: 'ต่อเวลาพิเศษ',
     artwork: ASSETS.brand.navOvertime,
-    badge: { variant: 'dot' },
   },
 ];
 
 /** Fixed bottom bar, left to right. */
 export const bottomNavItems: BottomNavItem[] = [
   { id: 'nav-missions', label: 'ภารกิจ', icon: 'missions' },
-  { id: 'nav-league', label: 'ลีก', icon: 'league', badge: { variant: 'dot' } },
+  { id: 'nav-league', label: 'ลีก', icon: 'league' },
   { id: 'nav-contracts', label: 'การเซ็นสัญญา', icon: 'contracts' },
-  { id: 'nav-rankup', label: 'ตีบวกการ์ด', icon: 'rankup', badge: { variant: 'dot' } },
-  { id: 'nav-store', label: 'ร้านค้า', icon: 'store', badge: { variant: 'dot' }, active: true },
+  { id: 'nav-rankup', label: 'ตีบวกการ์ด', icon: 'rankup' },
+  { id: 'nav-store', label: 'ร้านค้า', icon: 'store', active: true },
 ];

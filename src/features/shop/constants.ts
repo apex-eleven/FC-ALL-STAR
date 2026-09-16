@@ -140,7 +140,7 @@ export function defaultShop(): ShopConfig {
               rewards: [reward('ticket', 1), reward('exchange', 1_000)],
             },
           ]),
-          category('cat-resources', 'ทรัพยากร', [], { dot: true }),
+          category('cat-resources', 'ทรัพยากร'),
         ],
       },
       {
@@ -173,7 +173,7 @@ export function defaultShop(): ShopConfig {
           ]),
           category('cat-daily', 'ข้อเสนอ FP ประจำวัน'),
           category('cat-fc', 'แต้ม FC'),
-          category('cat-gem', 'อัญมณี', [], { dot: true }),
+          category('cat-gem', 'อัญมณี'),
         ],
       },
       {

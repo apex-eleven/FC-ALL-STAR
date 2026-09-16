@@ -703,13 +703,6 @@ export default function AdminShop() {
                 </button>
                 <button
                   type="button"
-                  className={`${styles.toggle} ${category.dot ? styles.toggleOn : ''}`}
-                  onClick={() => patchCategory(category.id, { dot: !category.dot })}
-                >
-                  จุดแดง
-                </button>
-                <button
-                  type="button"
                   className={`${styles.toggle} ${category.enabled ? styles.toggleOn : ''}`}
                   onClick={() => patchCategory(category.id, { enabled: !category.enabled })}
                 >

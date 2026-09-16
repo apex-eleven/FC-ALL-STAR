@@ -12,7 +12,6 @@ import {
   type SwapSort,
 } from '@/features/squad/swapList';
 import IconButton from '@/components/ui/IconButton';
-import NotificationBadge from '@/components/navigation/NotificationBadge';
 import PlayerStatTable from './PlayerStatTable';
 import SquadCard from './SquadCard';
 import StatRadar from './StatRadar';
@@ -115,7 +114,6 @@ export default function SlotPicker({
             <IconButton label="กิจกรรม" size={46}>
               <Volleyball size={40} strokeWidth={2} />
             </IconButton>
-            <NotificationBadge badge={{ variant: 'dot' }} />
           </span>
           <IconButton label="ร้านค้า" size={46} onClick={onShop}>
             <ShoppingCart size={40} strokeWidth={2} />

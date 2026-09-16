@@ -67,16 +67,6 @@
   white-space: nowrap;
 }
 
-.dot {
-  position: absolute;
-  top: 6px;
-  right: 12px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #e3313d;
-}
-
 .footer {
   margin: auto 22px 36px 126px;
   font-family: var(--font-ui);
