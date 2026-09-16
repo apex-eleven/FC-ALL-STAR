@@ -45,7 +45,7 @@ export default function HomePage() {
         playerCount={account.club.players.length}
         onClick={() => navigate('club')}
       />
-      <PlayCard content={playCard} />
+      <PlayCard content={playCard} onClick={() => navigate('manager')} />
     </>
   );
 }

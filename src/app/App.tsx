@@ -10,6 +10,7 @@ import LeagueScreen from '@/components/league/LeagueScreen';
 import RankUpScreen from '@/components/rankup/RankUpScreen';
 import TransferScreen from '@/components/transfer/TransferScreen';
 import ShopScreen from '@/components/shop/ShopScreen';
+import ManagerScreen from '@/components/manager/ManagerScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
@@ -77,6 +78,12 @@ export default function App() {
     screen = (
       <Stage>
         <ShopScreen />
+      </Stage>
+    );
+  } else if (route === 'manager') {
+    screen = (
+      <Stage>
+        <ManagerScreen />
       </Stage>
     );
   } else if (route === 'club') {

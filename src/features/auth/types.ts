@@ -6,6 +6,7 @@ import type { LeagueState } from '@/features/league/types';
 import type { Squad } from '@/features/squad/types';
 import type { TransferProgress } from '@/features/transfers/types';
 import type { ShopProgress } from '@/features/shop/types';
+import type { ManagerState } from '@/features/manager/types';
 
 export type Role = 'player' | 'admin';
 
@@ -52,6 +53,8 @@ export interface Account extends Entity {
   transfer?: TransferProgress;
   /** Shop purchase counts, for limits and first-purchase bonuses. Absent = nothing bought. */
   shop?: ShopProgress;
+  /** Manager-mode ladder and weekly wins. Absent until the mode is first played. */
+  manager?: ManagerState;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

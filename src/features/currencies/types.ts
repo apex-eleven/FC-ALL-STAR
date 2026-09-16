@@ -37,7 +37,9 @@ export type WalletReason =
   /** A card exchanged back for points in the signing market. */
   | 'sale'
   /** Rewards from an item bought in the shop. */
-  | 'shop';
+  | 'shop'
+  /** A weekly win milestone in manager mode. */
+  | 'manager';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

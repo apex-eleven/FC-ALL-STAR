@@ -1,0 +1,286 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 4, 14, 0.8);
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  width: 1080px;
+  padding: 30px 40px 32px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #2a1650 0%, #120a24 100%);
+  border: 2px solid rgba(170, 120, 255, 0.45);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.win {
+  border-color: #c6f23a;
+  box-shadow: 0 0 40px rgba(198, 242, 58, 0.35), 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.loss {
+  border-color: #ff5b5b;
+}
+
+.mode {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 600;
+  color: #b9a6e6;
+}
+
+.teams {
+  display: grid;
+  grid-template-columns: 1fr 320px 1fr;
+  align-items: center;
+  width: 100%;
+}
+
+.team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.3s;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+.avatar {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.35);
+  background: #1e1440;
+}
+
+.name {
+  max-width: 320px;
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: #f2cf45;
+}
+
+.bot {
+  padding: 1px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.14);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-style: normal;
+  color: #d6d0e8;
+}
+
+.middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 150px;
+  justify-content: center;
+}
+
+.score {
+  font-family: var(--font-display);
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.score i {
+  font-style: normal;
+  color: #8f80b8;
+}
+
+.outcome {
+  font-family: var(--font-ui);
+  font-size: 40px;
+  font-weight: 800;
+}
+
+.win .outcome {
+  color: #c6f23a;
+}
+
+.draw .outcome {
+  color: #f2cf45;
+}
+
+.loss .outcome {
+  color: #ff6b6b;
+}
+
+.spinner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 7px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #c6f23a;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.searching {
+  font-family: var(--font-ui);
+  font-size: 24px;
+  color: #d6d0e8;
+}
+
+.ladder {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 28px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.rung {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 24px;
+}
+
+.starRow {
+  display: flex;
+  gap: 2px;
+}
+
+.starOn {
+  fill: #f6c21d;
+}
+
+.starOff {
+  fill: rgba(170, 170, 185, 0.5);
+}
+
+.arrow {
+  font-size: 32px;
+  color: #8f80b8;
+}
+
+.change {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.up {
+  color: #c6f23a;
+}
+
+.down {
+  color: #ff6b6b;
+}
+
+.paid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.paidTitle {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  color: #f2cf45;
+}
+
+.paidList {
+  display: flex;
+  gap: 18px;
+}
+
+.reward {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.reward img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 18px;
+  color: #b9a6e6;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+
+.close,
+.again {
+  min-width: 220px;
+  height: 64px;
+  border-radius: 32px;
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.close {
+  background: rgba(20, 20, 26, 0.92);
+  border: 3px solid #2e8f95;
+  color: #ffffff;
+}
+
+.again {
+  background: linear-gradient(90deg, #b8f23a 0%, #f5ff3a 100%);
+  color: #101010;
+}
+
+.again:disabled {
+  opacity: 0.4;
+}

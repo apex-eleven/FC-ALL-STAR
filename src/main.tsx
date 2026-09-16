@@ -11,6 +11,7 @@ import { AnnouncementProvider } from '@/features/announcement/AnnouncementContex
 import { RankUpProvider } from '@/features/rankup/RankUpContext';
 import { TransferProvider } from '@/features/transfers/TransferContext';
 import { ShopProvider } from '@/features/shop/ShopContext';
+import { ManagerProvider } from '@/features/manager/ManagerContext';
 import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
 import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
@@ -43,12 +44,14 @@ function render() {
                       <RankUpProvider>
                         <TransferProvider>
                           <ShopProvider>
-                            <NavigationProvider>
-                              <AnnouncementProvider>
-                                <CloudConfigSync />
-                                <App />
-                              </AnnouncementProvider>
-                            </NavigationProvider>
+                            <ManagerProvider>
+                              <NavigationProvider>
+                                <AnnouncementProvider>
+                                  <CloudConfigSync />
+                                  <App />
+                                </AnnouncementProvider>
+                              </NavigationProvider>
+                            </ManagerProvider>
                           </ShopProvider>
                         </TransferProvider>
                       </RankUpProvider>
