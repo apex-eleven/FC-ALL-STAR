@@ -12,10 +12,24 @@ import type { CurrencyKind } from '@/features/currencies/types';
 export type ShopPayKind = Extract<CurrencyKind, 'fcpoint' | 'gem'>;
 export const SHOP_PAY_KINDS: readonly ShopPayKind[] = ['fcpoint', 'gem'];
 
-export interface ShopReward {
+export interface ShopCurrencyReward {
   kind: CurrencyKind;
   amount: number;
 }
+
+/**
+ * A player card from the catalogue. `amount` is the number of copies. The copies are
+ * snapshots taken at purchase time, like any other card in a club.
+ */
+export interface ShopCardReward {
+  kind: 'card';
+  /** Catalogue id — resolved when the item is bought, not when it is set up. */
+  cardId: string;
+  amount: number;
+}
+
+export type ShopReward = ShopCurrencyReward | ShopCardReward;
+export type ShopRewardKind = ShopReward['kind'];
 
 /**
  * `band` is the dark strip across the card with the price on it; `button` is the
@@ -119,4 +133,6 @@ export type ShopBuyError =
   | 'limit-reached'
   | 'no-such-price'
   | 'insufficient-funds'
-  | 'at-cap';
+  | 'at-cap'
+  | 'club-full'
+  | 'card-missing';

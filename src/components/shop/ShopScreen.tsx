@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
-import { formatCurrency } from '@/features/currencies/constants';
 import {
   bonusPending,
   liveItems,
@@ -17,6 +15,7 @@ import ShopItemCard from './ShopItemCard';
 import ShopItemDialog from './ShopItemDialog';
 import ShopSidebar from './ShopSidebar';
 import ShopTabs from './ShopTabs';
+import useRewardView from './useRewardView';
 import styles from './ShopScreen.module.css';
 
 const BUY_ERROR: Record<string, string> = {
@@ -26,12 +25,15 @@ const BUY_ERROR: Record<string, string> = {
   'no-such-price': 'ไอเท็มนี้ไม่ได้ขายด้วยสกุลนี้',
   'insufficient-funds': 'ยอดเงินไม่พอ',
   'at-cap': 'ยอดเงินเต็มแล้ว รับของเพิ่มไม่ได้',
+  'club-full': 'คลังนักเตะเต็ม รับการ์ดเพิ่มไม่ได้',
+  'card-missing': 'การ์ดในไอเท็มนี้ไม่มีแล้ว ติดต่อแอดมิน',
 };
 
 /** ร้านค้า — admin-defined tabs, category rail, and a row of item cards. */
 export default function ShopScreen() {
   const account = useAccount();
   const { config, buy } = useShop();
+  const view = useRewardView();
   const [now, setNow] = useState(() => new Date());
   const [sectionId, setSectionId] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -67,9 +69,7 @@ export default function ShopScreen() {
     setToast({
       id: Date.now(),
       text: result.ok
-        ? `ได้รับ ${result.payout
-            .map((reward) => `${currencies[reward.kind].label} x${formatCurrency(reward.amount)}`)
-            .join(', ')}`
+        ? `ได้รับ ${result.payout.map((reward) => view(reward).text).join(', ')}`
         : (BUY_ERROR[result.error ?? ''] ?? 'ซื้อไม่สำเร็จ'),
     });
   }

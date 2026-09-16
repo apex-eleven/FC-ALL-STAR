@@ -1,9 +1,16 @@
 import type { Account } from '@/features/auth/types';
+import { addPlayers } from '@/features/club/club';
+import { CLUB_CAPACITY } from '@/features/club/constants';
+import type { Club, OwnedPlayer } from '@/features/club/types';
 import { appendEntry, credit, debit } from '@/features/currencies/wallet';
 import type { Wallet, WalletEntry } from '@/features/currencies/types';
+import { cardToPlayer } from '@/features/draft/pool';
 import { seasonIdAt } from '@/features/league/season';
+import type { PlayerCard } from '@/features/players/types';
+import { SHOP_EVENT_ID } from './constants';
 import type {
   ShopBuyError,
+  ShopCardReward,
   ShopCategory,
   ShopConfig,
   ShopItem,
@@ -100,6 +107,32 @@ export function payoutOf(item: ShopItem, progress: ShopProgress): ShopReward[] {
   return bonusPending(item, progress) ? [...item.rewards, ...item.firstBonus] : item.rewards;
 }
 
+/** Card rewards resolve against the live catalogue at purchase time. */
+export type CardLookup = (id: string) => PlayerCard | undefined;
+
+/**
+ * Identity for the cards a purchase hands out, fixed by the caller.
+ *
+ * `updateAccount` may run its mutator more than once; the copies are numbered off one
+ * seed so every run produces the same ids.
+ */
+export interface ShopStamp {
+  seed: string;
+  at: string;
+}
+
+export function shopStamp(): ShopStamp {
+  const seed =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `shop-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return { seed, at: new Date().toISOString() };
+}
+
+export function isCardReward(reward: ShopReward): reward is ShopCardReward {
+  return reward.kind === 'card';
+}
+
 function credited(
   wallet: Wallet,
   ledger: WalletEntry[],
@@ -110,12 +143,58 @@ function credited(
   let nextWallet = wallet;
   let nextLedger = ledger;
   for (const reward of payout) {
+    if (isCardReward(reward)) continue;
     const result = credit(nextWallet, reward.kind, reward.amount, { reason, by });
     if (!result.ok || !result.entry) return { ok: false, wallet, ledger };
     nextWallet = result.wallet;
     nextLedger = appendEntry(nextLedger, result.entry);
   }
   return { ok: true, wallet: nextWallet, ledger: nextLedger };
+}
+
+type Delivery = { ok: true; club: Club; cards: OwnedPlayer[] } | { ok: false; error: ShopBuyError };
+
+/**
+ * The card copies a payout gives, added to the club.
+ *
+ * Checked in full before anything is charged: a card the admin has since deleted
+ * refuses the purchase, and so does a club without room for every copy — `addPlayers`
+ * trims to capacity and would otherwise drop a card the player paid for.
+ */
+function delivered(
+  club: Club,
+  payout: readonly ShopReward[],
+  lookup: CardLookup,
+  stamp: ShopStamp,
+): Delivery {
+  const lines = payout.filter(isCardReward);
+  if (lines.length === 0) return { ok: true, club, cards: [] };
+
+  const copies = lines.reduce((sum, line) => sum + line.amount, 0);
+  if (club.players.length + copies > CLUB_CAPACITY) return { ok: false, error: 'club-full' };
+
+  const cards: OwnedPlayer[] = [];
+  for (const line of lines) {
+    const card = lookup(line.cardId);
+    if (!card) return { ok: false, error: 'card-missing' };
+    const resolved = cardToPlayer(card);
+    for (let copy = 0; copy < line.amount; copy += 1) {
+      cards.push({
+        id: `${stamp.seed}-${cards.length + 1}`,
+        playerId: card.id,
+        eventId: SHOP_EVENT_ID,
+        name: resolved.name,
+        rating: resolved.rating,
+        position: resolved.position,
+        set: resolved.set,
+        nation: resolved.nation,
+        club: resolved.club,
+        portrait: resolved.portrait,
+        acquiredAt: stamp.at,
+      });
+    }
+  }
+  return { ok: true, club: addPlayers(club, cards), cards };
 }
 
 function recorded(
@@ -143,6 +222,8 @@ export interface ShopBuyOutcome {
   error: ShopBuyError | null;
   account: Account;
   payout: ShopReward[];
+  /** The card copies added to the club, newest first as they were filed. */
+  cards: OwnedPlayer[];
 }
 
 /**
@@ -158,8 +239,16 @@ export function buyWith(
   kind: ShopPayKind,
   config: ShopConfig,
   now: Date,
+  lookup: CardLookup,
+  stamp: ShopStamp = shopStamp(),
 ): ShopBuyOutcome {
-  const fail = (error: ShopBuyError): ShopBuyOutcome => ({ ok: false, error, account, payout: [] });
+  const fail = (error: ShopBuyError): ShopBuyOutcome => ({
+    ok: false,
+    error,
+    account,
+    payout: [],
+    cards: [],
+  });
 
   if (!config.enabled) return fail('closed');
   if (!isLive(item, now)) return fail('unavailable');
@@ -171,10 +260,13 @@ export function buyWith(
   const cost = payPrice(item, kind);
   if (cost === null) return fail('no-such-price');
 
+  const payout = payoutOf(item, progress);
+  const cards = delivered(account.club, payout, lookup, stamp);
+  if (!cards.ok) return fail(cards.error);
+
   const paid = debit(account.wallet, kind, cost, { reason: 'purchase' });
   if (!paid.ok || !paid.entry) return fail('insufficient-funds');
 
-  const payout = payoutOf(item, progress);
   const given = credited(paid.wallet, appendEntry(account.ledger, paid.entry), payout, 'shop');
   if (!given.ok) return fail('at-cap');
 
@@ -182,10 +274,12 @@ export function buyWith(
     ok: true,
     error: null,
     payout,
+    cards: cards.cards,
     account: {
       ...account,
       wallet: given.wallet,
       ledger: given.ledger,
+      club: cards.club,
       shop: recorded(progress, item, now, config),
     },
   };
@@ -204,14 +298,25 @@ export function grantPurchase(
   config: ShopConfig,
   now: Date,
   by: string,
+  lookup: CardLookup,
+  stamp: ShopStamp = shopStamp(),
 ): ShopBuyOutcome {
-  const fail = (error: ShopBuyError): ShopBuyOutcome => ({ ok: false, error, account, payout: [] });
+  const fail = (error: ShopBuyError): ShopBuyOutcome => ({
+    ok: false,
+    error,
+    account,
+    payout: [],
+    cards: [],
+  });
 
   const progress = progressOf(account);
   const remaining = remainingOf(item, progress, now, config);
   if (remaining !== null && remaining <= 0) return fail('limit-reached');
 
   const payout = payoutOf(item, progress);
+  const cards = delivered(account.club, payout, lookup, stamp);
+  if (!cards.ok) return fail(cards.error);
+
   const given = credited(account.wallet, account.ledger, payout, 'admin-grant', by);
   if (!given.ok) return fail('at-cap');
 
@@ -219,10 +324,12 @@ export function grantPurchase(
     ok: true,
     error: null,
     payout,
+    cards: cards.cards,
     account: {
       ...account,
       wallet: given.wallet,
       ledger: given.ledger,
+      club: cards.club,
       shop: recorded(progress, item, now, config),
     },
   };

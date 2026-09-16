@@ -305,3 +305,35 @@
   grid-template-columns: 1fr 90px auto;
   gap: 6px;
 }
+
+.rewardBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Card reward: search, dropdown, and a thumbnail of the chosen card. */
+.cardPick {
+  display: grid;
+  grid-template-columns: 1fr 44px;
+  grid-template-rows: auto auto;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(246, 215, 104, 0.6);
+}
+
+.cardPick > input,
+.cardPick > select {
+  grid-column: 1;
+}
+
+.cardThumb {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 44px;
+  height: 58px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 4px;
+  align-self: center;
+}

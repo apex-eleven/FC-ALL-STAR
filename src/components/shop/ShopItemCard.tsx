@@ -4,6 +4,7 @@ import { formatCurrency } from '@/features/currencies/constants';
 import { countdown, formatBaht, payOptions } from '@/features/shop/shop';
 import type { CardSize, ShopItem } from '@/features/shop/types';
 import ShopRewardLine from './ShopRewardLine';
+import useRewardView from './useRewardView';
 import styles from './ShopItemCard.module.css';
 
 export interface ShopItemCardProps {
@@ -35,7 +36,10 @@ export default function ShopItemCard({
   bonusPending,
   onOpen,
 }: ShopItemCardProps) {
-  const lead = item.rewards[0]?.kind ?? 'fcpoint';
+  const view = useRewardView();
+  const first = item.rewards[0];
+  const lead = first?.kind ?? 'fcpoint';
+  const leadIcon = first ? view(first).icon : currencies.fcpoint.icon;
   const soldOut = remaining !== null && remaining <= 0;
   const options = payOptions(item);
   const hasCountdown = item.showCountdown && item.endAt !== '';
@@ -70,7 +74,11 @@ export default function ShopItemCard({
         <img className={styles.art} src={item.image} alt="" draggable={false} />
       ) : (
         <span className={styles.fallback}>
-          <img className={styles.fallbackIcon} src={currencies[lead].icon} alt="" />
+          <img
+            className={`${styles.fallbackIcon} ${lead === 'card' ? styles.fallbackCard : ''}`}
+            src={leadIcon}
+            alt=""
+          />
         </span>
       )}
 

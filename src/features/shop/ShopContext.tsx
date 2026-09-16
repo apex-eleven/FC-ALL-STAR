@@ -9,8 +9,9 @@ import {
 } from 'react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
+import { usePlayers } from '@/features/players/PlayerContext';
 import { defaultShop } from './constants';
-import { buyWith, grantPurchase, type ShopBuyOutcome } from './shop';
+import { buyWith, grantPurchase, shopStamp, type ShopBuyOutcome } from './shop';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './shopConfigStore';
 import type { ShopConfig, ShopItem, ShopPayKind, ShopReward } from './types';
 
@@ -35,6 +36,8 @@ const ShopContext = createContext<ShopValue | null>(null);
 export function ShopProvider({ children }: { children: ReactNode }) {
   // useAuth, not useAccount: this sits above the sign-in gate.
   const { account, updateAccount, updateOther } = useAuth();
+  // Card rewards are resolved against the catalogue at the moment of purchase.
+  const { byId } = usePlayers();
   const [config, setConfig] = useState<ShopConfig>(loadConfig);
 
   useEffect(() => {
@@ -54,38 +57,41 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 
   /**
    * Checked against the account on screen, then applied to the latest save with the
-   * same clock — the mutator may run twice, and both runs must agree on the shop day.
+   * same clock and card ids — the mutator may run twice, and both runs must agree on
+   * the shop day and on which copies were filed.
    */
   const buy = useCallback(
     (item: ShopItem, kind: ShopPayKind): ShopBuyResult => {
       if (!account) return { ok: false, error: 'closed', payout: [] };
       const now = new Date();
-      const preview = buyWith(account, item, kind, config, now);
+      const stamp = shopStamp();
+      const preview = buyWith(account, item, kind, config, now, byId, stamp);
       if (!preview.ok) return { ok: false, error: preview.error, payout: [] };
 
       updateAccount((current) => {
-        const outcome = buyWith(current, item, kind, config, now);
+        const outcome = buyWith(current, item, kind, config, now, byId, stamp);
         return outcome.ok ? outcome.account : current;
       });
       return { ok: true, error: null, payout: preview.payout };
     },
-    [account, config, updateAccount],
+    [account, config, updateAccount, byId],
   );
 
   const grant = useCallback(
     async (username: string, item: ShopItem): Promise<ShopBuyResult> => {
       const now = new Date();
+      const stamp = shopStamp();
       const by = account?.username ?? 'admin';
       let result: ShopBuyResult = { ok: false, error: 'unavailable', payout: [] };
 
       const saved = await updateOther(username, (current) => {
-        const outcome = grantPurchase(current, item, config, now, by);
+        const outcome = grantPurchase(current, item, config, now, by, byId, stamp);
         result = { ok: outcome.ok, error: outcome.error, payout: outcome.payout };
         return outcome.ok ? outcome.account : current;
       });
       return saved ? result : { ok: false, error: 'unavailable', payout: [] };
     },
-    [account?.username, config, updateOther],
+    [account?.username, config, updateOther, byId],
   );
 
   const value = useMemo<ShopValue>(

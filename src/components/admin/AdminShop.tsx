@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { currencies, currencyList } from '@/data/mock/currencies';
+import { currencyList } from '@/data/mock/currencies';
 import { useAuth } from '@/features/auth/AuthContext';
 import type { Account } from '@/features/auth/types';
 import { formatCurrency } from '@/features/currencies/constants';
 import type { CurrencyKind } from '@/features/currencies/types';
+import { usePlayers } from '@/features/players/PlayerContext';
 import {
   IMAGE_BUDGET_WARN,
   IMAGE_MAX_BYTES,
   IMAGE_MAX_H,
   IMAGE_MAX_W,
+  MAX_CARD_COPIES,
   MAX_CATEGORIES,
   MAX_ITEMS,
   MAX_REWARDS,
@@ -31,6 +33,7 @@ import type {
   ShopSection,
 } from '@/features/shop/types';
 import { encodeUploadedImage, type UploadedImageError } from '@/lib/imageEncoding';
+import useRewardView, { type RewardView } from '@/components/shop/useRewardView';
 import styles from './AdminShop.module.css';
 
 type Status = { tone: 'ok' | 'bad'; text: string } | null;
@@ -45,6 +48,8 @@ const UPLOAD_ERROR: Record<UploadedImageError, string> = {
 const GRANT_ERROR: Record<string, string> = {
   'limit-reached': 'ไอดีนี้ซื้อครบตามจำนวนที่กำหนดแล้ว',
   'at-cap': 'ยอดเงินของไอดีนี้เต็ม รับของเพิ่มไม่ได้',
+  'club-full': 'คลังนักเตะของไอดีนี้เต็ม รับการ์ดเพิ่มไม่ได้',
+  'card-missing': 'การ์ดในไอเท็มนี้ถูกลบออกจากคลังการ์ดแล้ว',
   unavailable: 'หาไอดีไม่เจอหรือบันทึกไม่สำเร็จ',
 };
 
@@ -90,10 +95,15 @@ function move<T>(list: readonly T[], index: number, delta: number): T[] {
   return next;
 }
 
-function itemLabel(item: ShopItem): string {
+/** Shown in the reward "ได้รับ" dropdown next to the currencies. */
+const CARD_OPTION_LABEL = 'การ์ดนักเตะ';
+/** The card dropdown lists at most this many matches; search narrows it. */
+const CARD_OPTIONS_MAX = 200;
+
+function itemLabel(item: ShopItem, view: (reward: ShopReward) => RewardView): string {
   if (item.title) return item.title;
   const first = item.rewards[0];
-  return first ? `${currencies[first.kind].label} x${formatCurrency(first.amount)}` : '(ไม่มีชื่อ)';
+  return first ? view(first).text : '(ไม่มีชื่อ)';
 }
 
 function priceLabel(item: ShopItem): string {
@@ -111,6 +121,11 @@ function priceLabel(item: ShopItem): string {
 export default function AdminShop() {
   const { config, replace, reset, grant } = useShop();
   const { listAccounts } = useAuth();
+  const { players } = usePlayers();
+  const view = useRewardView();
+  const label = (entry: ShopItem) => itemLabel(entry, view);
+  // Search text for each card reward row, keyed by editor and row.
+  const [cardQuery, setCardQuery] = useState<Record<string, string>>({});
   // Edits build on the newest config, not the one captured when a handler was
   // created — an image upload resolves after an await, by which time the render
   // that started it may be stale.
@@ -150,6 +165,11 @@ export default function AdminShop() {
         ),
       ),
     [config],
+  );
+
+  const cardsByRating = useMemo(
+    () => [...players].sort((a, b) => b.rating - a.rating || a.name.localeCompare(b.name)),
+    [players],
   );
 
   const imageBytes = useMemo(
@@ -242,11 +262,66 @@ export default function AdminShop() {
       result.ok
         ? {
             tone: 'ok',
-            text: `ส่ง "${itemLabel(target)}" ให้ ${grantUser} แล้ว — ${result.payout
-              .map((reward) => `${currencies[reward.kind].label} x${formatCurrency(reward.amount)}`)
+            text: `ส่ง "${label(target)}" ให้ ${grantUser} แล้ว — ${result.payout
+              .map((reward) => view(reward).text)
               .join(', ')}`,
           }
         : { tone: 'bad', text: GRANT_ERROR[result.error ?? ''] ?? 'ส่งของไม่สำเร็จ' },
+    );
+  }
+
+  /** Keeps the amount when switching between currencies; a card starts at one copy. */
+  function withKind(reward: ShopReward, kind: string): ShopReward {
+    if (kind === 'card') {
+      if (reward.kind === 'card') return reward;
+      const first = cardsByRating[0];
+      return first ? { kind: 'card', cardId: first.id, amount: 1 } : reward;
+    }
+    const amount = reward.kind === 'card' ? 100 : reward.amount;
+    return { kind: kind as CurrencyKind, amount };
+  }
+
+  function cardPicker(
+    key: string,
+    reward: Extract<ShopReward, { kind: 'card' }>,
+    onPick: (id: string) => void,
+  ) {
+    const query = (cardQuery[key] ?? '').trim().toLowerCase();
+    const matches = cardsByRating.filter(
+      (card) =>
+        card.id === reward.cardId ||
+        query === '' ||
+        [card.name, card.id, card.club, card.nation, card.position, String(card.rating)].some((field) =>
+          field.toLowerCase().includes(query),
+        ),
+    );
+    const selected = matches.find((card) => card.id === reward.cardId);
+    const shown = matches.slice(0, CARD_OPTIONS_MAX);
+    if (selected && !shown.includes(selected)) shown.unshift(selected);
+
+    return (
+      <div className={styles.cardPick}>
+        <input
+          className={styles.input}
+          placeholder="ค้นหาการ์ด ชื่อ / OVR / ตำแหน่ง / สโมสร"
+          value={cardQuery[key] ?? ''}
+          onChange={(event) => setCardQuery((prev) => ({ ...prev, [key]: event.target.value }))}
+        />
+        <select
+          className={styles.input}
+          value={reward.cardId}
+          onChange={(event) => onPick(event.target.value)}
+        >
+          {!selected && <option value={reward.cardId}>(การ์ดนี้ถูกลบแล้ว — เลือกใบใหม่)</option>}
+          {shown.map((card) => (
+            <option key={card.id} value={card.id}>
+              {card.name} · OVR {card.rating} · {card.position} · {card.set}
+              {card.club ? ` · ${card.club}` : ''}
+            </option>
+          ))}
+        </select>
+        {selected && <img className={styles.cardThumb} src={view(reward).icon} alt="" />}
+      </div>
     );
   }
 
@@ -255,47 +330,57 @@ export default function AdminShop() {
     list: readonly ShopReward[],
     onChange: (next: ShopReward[]) => void,
   ) {
+    const replaceAt = (index: number, next: ShopReward) =>
+      onChange(list.map((entry, i) => (i === index ? next : entry)));
+
     return (
       <div className={styles.field}>
         <span className={styles.label}>{title}</span>
         {list.map((reward, index) => (
-          <div className={styles.rewardRow} key={index}>
-            <select
-              className={styles.input}
-              value={reward.kind}
-              onChange={(event) =>
-                onChange(
-                  list.map((entry, i) =>
-                    i === index ? { ...entry, kind: event.target.value as CurrencyKind } : entry,
-                  ),
-                )
-              }
-            >
-              {currencyList.map((currency) => (
-                <option key={currency.kind} value={currency.kind}>
-                  {currency.label}
+          <div className={styles.rewardBlock} key={index}>
+            <div className={styles.rewardRow}>
+              <select
+                className={styles.input}
+                value={reward.kind}
+                onChange={(event) => replaceAt(index, withKind(reward, event.target.value))}
+              >
+                {currencyList.map((currency) => (
+                  <option key={currency.kind} value={currency.kind}>
+                    {currency.label}
+                  </option>
+                ))}
+                <option value="card" disabled={cardsByRating.length === 0}>
+                  {CARD_OPTION_LABEL}
+                  {cardsByRating.length === 0 ? ' (คลังการ์ดว่าง)' : ''}
                 </option>
-              ))}
-            </select>
-            <input
-              className={styles.input}
-              inputMode="numeric"
-              value={reward.amount}
-              onChange={(event) =>
-                onChange(
-                  list.map((entry, i) =>
-                    i === index ? { ...entry, amount: whole(event.target.value) } : entry,
-                  ),
-                )
-              }
-            />
-            <button
-              type="button"
-              className={styles.danger}
-              onClick={() => onChange(list.filter((_, i) => i !== index))}
-            >
-              ลบ
-            </button>
+              </select>
+              <input
+                className={styles.input}
+                inputMode="numeric"
+                title={reward.kind === 'card' ? `จำนวนใบ (สูงสุด ${MAX_CARD_COPIES})` : 'จำนวน'}
+                value={reward.amount}
+                onChange={(event) => {
+                  const amount = whole(event.target.value);
+                  replaceAt(
+                    index,
+                    reward.kind === 'card'
+                      ? { ...reward, amount: Math.min(MAX_CARD_COPIES, amount) }
+                      : { ...reward, amount },
+                  );
+                }}
+              />
+              <button
+                type="button"
+                className={styles.danger}
+                onClick={() => onChange(list.filter((_, i) => i !== index))}
+              >
+                ลบ
+              </button>
+            </div>
+            {reward.kind === 'card' &&
+              cardPicker(`${title}-${index}`, reward, (cardId) =>
+                replaceAt(index, { ...reward, cardId }),
+              )}
           </div>
         ))}
         <button
@@ -439,7 +524,7 @@ export default function AdminShop() {
               <option value="">— เลือกไอเท็ม —</option>
               {allItems.map(({ item: entry, path }) => (
                 <option key={entry.id} value={entry.id}>
-                  {itemLabel(entry)} · {priceLabel(entry)} · {path}
+                  {label(entry)} · {priceLabel(entry)} · {path}
                 </option>
               ))}
             </select>
@@ -639,7 +724,7 @@ export default function AdminShop() {
               className={`${styles.node} ${entry.id === item?.id ? styles.nodeOn : ''}`}
             >
               <button type="button" className={styles.pick} onClick={() => setItemId(entry.id)}>
-                {itemLabel(entry)} <small>{priceLabel(entry)}</small>{' '}
+                {label(entry)} <small>{priceLabel(entry)}</small>{' '}
                 {!entry.enabled && <em>ซ่อน</em>}
               </button>
               <button type="button" className={styles.icon} onClick={() => mapItems((l) => move(l, index, -1))}>
@@ -683,7 +768,7 @@ export default function AdminShop() {
       {/* ---- item editor ---- */}
       {item && (
         <div className={`${styles.block} ${styles.editor}`}>
-          <h3 className={styles.blockTitle}>แก้ไขไอเท็ม · {itemLabel(item)}</h3>
+          <h3 className={styles.blockTitle}>แก้ไขไอเท็ม · {label(item)}</h3>
 
           <div className={styles.editorGrid}>
             <div className={styles.artCol}>
@@ -884,7 +969,7 @@ export default function AdminShop() {
                   type="button"
                   className={styles.danger}
                   onClick={() => {
-                    if (!window.confirm(`ลบไอเท็ม "${itemLabel(item)}"?`)) return;
+                    if (!window.confirm(`ลบไอเท็ม "${label(item)}"?`)) return;
                     mapItems((list) => list.filter((e) => e.id !== item.id), 'ลบไอเท็มแล้ว');
                     setItemId('');
                   }}

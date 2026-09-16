@@ -5,6 +5,7 @@ import { useAccount } from '@/features/auth/AuthContext';
 import { formatCurrency } from '@/features/currencies/constants';
 import { formatBaht, payOptions } from '@/features/shop/shop';
 import type { ShopConfig, ShopItem, ShopPayKind, ShopReward } from '@/features/shop/types';
+import useRewardView, { type RewardView } from './useRewardView';
 import styles from './ShopItemDialog.module.css';
 
 export interface ShopItemDialogProps {
@@ -17,10 +18,14 @@ export interface ShopItemDialogProps {
   onClose(): void;
 }
 
-function itemName(item: ShopItem, payout: readonly ShopReward[]): string {
+function itemName(
+  item: ShopItem,
+  payout: readonly ShopReward[],
+  view: (reward: ShopReward) => RewardView,
+): string {
   if (item.title) return item.title;
   const first = payout[0];
-  return first ? `${currencies[first.kind].label} x${formatCurrency(first.amount)}` : 'ไอเท็ม';
+  return first ? view(first).text : 'ไอเท็ม';
 }
 
 /**
@@ -38,10 +43,11 @@ export default function ShopItemDialog({
   onClose,
 }: ShopItemDialogProps) {
   const account = useAccount();
+  const view = useRewardView();
   const [copied, setCopied] = useState(false);
   const options = payOptions(item);
   const soldOut = remaining !== null && remaining <= 0;
-  const name = itemName(item, payout);
+  const name = itemName(item, payout, view);
 
   const copyOrder = () => {
     const text = `ไอดี: ${account.username}\nไอเท็ม: ${name}\nราคา: ${formatBaht(item.priceBaht ?? 0)}`;
@@ -69,16 +75,19 @@ export default function ShopItemDialog({
           <div className={styles.details}>
             <span className={styles.label}>ได้รับ</span>
             <ul className={styles.rewards}>
-              {payout.map((reward, index) => (
-                <li key={`${reward.kind}-${index}`} className={styles.reward}>
-                  <img src={currencies[reward.kind].icon} alt="" />
-                  <span>{currencies[reward.kind].label}</span>
-                  <strong>x{formatCurrency(reward.amount)}</strong>
-                  {bonusPending && index >= item.rewards.length && (
-                    <em className={styles.bonus}>โบนัสซื้อครั้งแรก</em>
-                  )}
-                </li>
-              ))}
+              {payout.map((reward, index) => {
+                const shown = view(reward);
+                return (
+                  <li key={`${reward.kind}-${index}`} className={styles.reward}>
+                    <img className={shown.isCard ? styles.cardIcon : undefined} src={shown.icon} alt="" />
+                    <span>{shown.label}</span>
+                    <strong>x{formatCurrency(reward.amount)}</strong>
+                    {bonusPending && index >= item.rewards.length && (
+                      <em className={styles.bonus}>โบนัสซื้อครั้งแรก</em>
+                    )}
+                  </li>
+                );
+              })}
               {payout.length === 0 && <li className={styles.muted}>ไอเท็มนี้ยังไม่ได้ตั้งของรางวัล</li>}
             </ul>
 

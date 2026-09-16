@@ -32,3 +32,15 @@ buys the item, and the card's BONUS line disappears once it has been claimed.
 Uploaded in the admin tab and re-encoded to at most 45 KB. They live in the one shared
 settings document, which Firestore caps at 1 MiB for everything, so the admin tab shows
 the running total.
+
+## Card rewards
+
+A reward (or first-purchase bonus) can be a player card from the catalogue instead of a
+currency: `{ kind: 'card', cardId, amount }`, where `amount` is the number of copies
+(at most 10). The card is looked up when the item is bought, and the copies are
+snapshots with `eventId: 'shop'`, like any other card in a club.
+
+The purchase is refused before anything is charged if the card has since been deleted
+(`card-missing`) or the club has no room for every copy (`club-full`). Copy ids are
+numbered off one seed fixed by the context, so a re-run of the account mutator files
+the same cards.

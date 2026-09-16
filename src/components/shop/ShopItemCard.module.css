@@ -88,12 +88,27 @@
     linear-gradient(160deg, #10284a 0%, #0a1426 100%);
 }
 
+.card[data-lead='card'] .fallback {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(246, 215, 104, 0.4) 0%, transparent 55%),
+    linear-gradient(160deg, #3a2e10 0%, #16110a 100%);
+}
+
 .fallbackIcon {
   width: 46%;
   max-width: 180px;
   aspect-ratio: 1;
   object-fit: contain;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+}
+
+/* A player portrait, not a coin — fill more of the card. */
+.fallbackCard {
+  width: 72%;
+  max-width: 260px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top;
 }
 
 .head {

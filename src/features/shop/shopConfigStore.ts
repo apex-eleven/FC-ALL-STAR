@@ -2,6 +2,7 @@ import { CURRENCY_ORDER } from '@/features/currencies/constants';
 import type { CurrencyKind } from '@/features/currencies/types';
 import {
   MAX_BAHT,
+  MAX_CARD_COPIES,
   MAX_CATEGORIES,
   MAX_ITEMS,
   MAX_PRICE,
@@ -70,16 +71,25 @@ function timestamp(value: unknown): string {
   return Number.isNaN(Date.parse(value)) ? '' : value;
 }
 
+/** Catalogue ids are short; anything longer is not one. */
+const CARD_ID_MAX = 80;
+
+function oneReward(entry: Source): ShopReward | null {
+  if (entry.kind === 'card') {
+    const cardId = typeof entry.cardId === 'string' ? entry.cardId.trim().slice(0, CARD_ID_MAX) : '';
+    const amount = clampInt(entry.amount, 0, MAX_CARD_COPIES, 0);
+    return cardId !== '' && amount > 0 ? { kind: 'card', cardId, amount } : null;
+  }
+  if (!CURRENCY_ORDER.includes(entry.kind as CurrencyKind)) return null;
+  const amount = clampInt(entry.amount, 0, MAX_PRICE, 0);
+  return amount > 0 ? { kind: entry.kind as CurrencyKind, amount } : null;
+}
+
 function rewards(value: unknown): ShopReward[] {
   if (!Array.isArray(value)) return [];
   return value
-    .map((entry) => record(entry))
-    .filter((entry) => CURRENCY_ORDER.includes(entry.kind as CurrencyKind))
-    .map((entry) => ({
-      kind: entry.kind as CurrencyKind,
-      amount: clampInt(entry.amount, 0, MAX_PRICE, 0),
-    }))
-    .filter((entry) => entry.amount > 0)
+    .map((entry) => oneReward(record(entry)))
+    .filter((entry): entry is ShopReward => entry !== null)
     .slice(0, MAX_REWARDS);
 }
 

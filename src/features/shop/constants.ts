@@ -7,6 +7,10 @@ export const MAX_SECTIONS = 8;
 export const MAX_CATEGORIES = 16;
 export const MAX_ITEMS = 40;
 export const MAX_REWARDS = 6;
+/** Copies of one card a single reward line can give. */
+export const MAX_CARD_COPIES = 10;
+/** `eventId` on cards that came from the shop — provenance only. */
+export const SHOP_EVENT_ID = 'shop';
 export const MAX_PRICE = 100_000_000;
 export const MAX_BAHT = 1_000_000;
 export const NAME_MAX = 40;

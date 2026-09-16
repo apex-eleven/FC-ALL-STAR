@@ -122,6 +122,13 @@
   object-fit: contain;
 }
 
+.reward .cardIcon {
+  height: 54px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 4px;
+}
+
 .reward strong {
   margin-left: auto;
   font-family: var(--font-display);
