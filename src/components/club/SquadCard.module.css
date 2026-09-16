@@ -77,26 +77,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* Rank-up chip. Sized off the card box rather than a fixed px so it stays legible
-   on a 66px bench card and does not swell on the 300px drag ghost. */
-.plus {
-  position: absolute;
-  right: 4%;
-  bottom: 4%;
-  z-index: 2;
-  min-width: 26%;
-  padding: 2px 4px;
-  border-radius: var(--radius-xs);
-  background: linear-gradient(180deg, var(--plus-tone) 0%, rgba(0, 0, 0, 0.55) 180%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--plus-tone) 60%, transparent);
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 900;
-  line-height: 1.1;
-  color: #ffffff;
-  text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
-}

@@ -15,6 +15,7 @@ import { usePlayers } from '@/features/players/PlayerContext';
 import { fetchEntries, publishEntry, type LeagueEntry } from '@/features/cloud/cloudLeague';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import { loadConfig, saveConfig, normalizeConfig, type SaveResult } from './leagueConfigStore';
+import type { RealOpponent } from './season';
 import { advance, emptyLeague, rankOf, rewardFor } from './standings';
 import type { LeagueConfig, LeagueState } from './types';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
@@ -67,10 +68,29 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
 
   const state = account?.league ?? emptyLeague();
 
-  /** Star totals of the other real players, used for both the rank and the reward. */
-  const realStars = useMemo(
-    () => entries.filter((entry) => entry.uid !== account?.id).map((entry) => entry.stars),
+  /** The other real players in today's table, ratings and all — never this account's own row. */
+  const otherEntries = useMemo(
+    () => entries.filter((entry) => entry.uid !== account?.id),
     [entries, account?.id],
+  );
+
+  /** Star totals of the other real players, used for both the rank and the reward. */
+  const realStars = useMemo(() => otherEntries.map((entry) => entry.stars), [otherEntries]);
+
+  /**
+   * The same real players, shaped for `standings.advance` to seat into the day's
+   * round-robin — a real opponent takes a real seat instead of the schedule being
+   * bots from end to end.
+   */
+  const realOpponents = useMemo<RealOpponent[]>(
+    () =>
+      otherEntries.map((entry) => ({
+        id: entry.uid,
+        name: entry.username,
+        rating: entry.rating,
+        avatarId: entry.avatarId,
+      })),
+    [otherEntries],
   );
 
   /**
@@ -108,6 +128,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       rating,
       now: new Date(),
       rivalStars: tableStars,
+      realOpponents,
     });
     if (!result.changed) return;
 
@@ -144,7 +165,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     // `state` is read from the account, which updateAccount replaces — depending on it
     // directly would loop. The account object identity is the honest trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, config, rating, updateAccount, tableStars]);
+  }, [account, config, rating, updateAccount, tableStars, realOpponents]);
 
   /**
    * Refreshes the shared table.

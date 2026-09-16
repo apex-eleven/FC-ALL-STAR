@@ -2,6 +2,7 @@ import type { CurrencyKind } from '@/features/currencies/types';
 import { HISTORY_LIMIT, PLAYER_TEAM_ID } from './constants';
 import {
   buildRivals,
+  buildRoster,
   playMatch,
   roundRobin,
   scoreFor,
@@ -9,6 +10,7 @@ import {
   slotTime,
   slotsElapsed,
   starsFor,
+  type RealOpponent,
 } from './season';
 import { emptyRecord } from './types';
 import type { LeagueConfig, LeagueRecord, LeagueResult, LeagueState, MatchOutcome, RankReward } from './types';
@@ -84,6 +86,12 @@ interface AdvanceInput {
   now: Date;
   /** Real players' star totals, when the cloud table has any. Used for the final rank. */
   rivalStars?: readonly number[];
+  /**
+   * Real players to seat in today's round-robin, ratings and all. Empty when the
+   * cloud table has nobody else in it yet — the schedule then falls back to bots
+   * alone, same as before this existed.
+   */
+  realOpponents?: readonly RealOpponent[];
 }
 
 export interface AdvanceOutput {
@@ -112,6 +120,7 @@ export function advance({
   rating,
   now,
   rivalStars,
+  realOpponents = [],
 }: AdvanceInput): AdvanceOutput {
   if (!config.enabled) return { state, finished: null, changed: false };
 
@@ -178,16 +187,22 @@ export function advance({
   let record = state.record ?? emptyRecord();
   const history = [...state.history];
   const table = rivals.map((rival) => ({ ...rival }));
+  // Bots only — used to tell a seat that can be mutated (this account's own
+  // fiction) from a real player's seat (their own published stats, not ours to
+  // touch) when a fixture involves one.
   const byId = new Map(table.map((rival) => [rival.id, rival]));
 
   /**
    * Every team's schedule for the day, the player included, built once from a
    * proper round-robin (`season.roundRobin`) — the same schedule the fixture board
-   * reads to draw itself. A slot is one full round: everyone plays, or sits a bye
-   * if the team count is odd, never a fixture invented independently of what the
-   * board shows.
+   * reads to draw itself. Real players take real seats here (`buildRoster`), bots
+   * padding out whatever the table has not filled with actual people, so a slot
+   * can pair the player against someone real rather than only ever a generated
+   * name.
    */
-  const teamIds = [PLAYER_TEAM_ID, ...table.map((rival) => rival.id)];
+  const roster = buildRoster(realOpponents, table, config.teamCount);
+  const rosterById = new Map(roster.map((seat) => [seat.id, seat]));
+  const teamIds = [PLAYER_TEAM_ID, ...roster.map((seat) => seat.id)];
   const rounds = roundRobin(teamIds);
   const cycleLength = Math.max(1, rounds.length);
 
@@ -196,7 +211,8 @@ export function advance({
 
     for (const [homeId, awayId] of round) {
       if (homeId === PLAYER_TEAM_ID || awayId === PLAYER_TEAM_ID) {
-        const opponent = byId.get(homeId === PLAYER_TEAM_ID ? awayId : homeId);
+        const opponentId = homeId === PLAYER_TEAM_ID ? awayId : homeId;
+        const opponent = rosterById.get(opponentId);
         if (!opponent) continue;
 
         const seed = `${accountId}:${seasonId}:${slot}`;
@@ -220,30 +236,45 @@ export function advance({
           delta,
         });
 
-        // The club that played the human takes the mirror of that result, score
-        // included — one match, one scoreline, read from both ends.
-        const mirrored: MatchOutcome = outcome === 'win' ? 'loss' : outcome === 'loss' ? 'win' : 'draw';
-        opponent.stars = Math.max(config.starFloor, opponent.stars + starsFor(mirrored, config));
-        opponent.record = withResult(opponent.record ?? emptyRecord(), mirrored, goalsAgainst, goalsFor);
+        // A generated bot takes the mirror of that result on its own local record —
+        // one match, one scoreline, read from both ends, because this account owns
+        // that fiction. A real opponent's row comes from their own client's publish;
+        // there is nothing of theirs to write from here.
+        const bot = byId.get(opponentId);
+        if (bot) {
+          const mirrored: MatchOutcome = outcome === 'win' ? 'loss' : outcome === 'loss' ? 'win' : 'draw';
+          bot.stars = Math.max(config.starFloor, bot.stars + starsFor(mirrored, config));
+          bot.record = withResult(bot.record ?? emptyRecord(), mirrored, goalsAgainst, goalsFor);
+        }
         continue;
       }
 
-      // Two rivals, neither of them the player, paired by the same round-robin —
-      // resolved for real against each other's actual rating rather than against a
-      // fabricated average, so the table this produces is the table the board shows.
-      const home = byId.get(homeId);
-      const away = byId.get(awayId);
+      // Two seats, neither of them the player, paired by the same round-robin —
+      // resolved for real against each other's actual rating rather than a
+      // fabricated average. Only a bot's own side is written back: a real player
+      // has no local record here to mutate, and a real-versus-real pairing has
+      // nothing on either side that this account is allowed to touch.
+      const home = rosterById.get(homeId);
+      const away = rosterById.get(awayId);
       if (!home || !away) continue;
+
+      const homeBot = byId.get(homeId);
+      const awayBot = byId.get(awayId);
+      if (!homeBot && !awayBot) continue;
 
       const pairSeed = `${accountId}:${seasonId}:${slot}:${homeId}-${awayId}`;
       const outcome = playMatch(pairSeed, home.rating, away.rating);
       const [homeGoals, awayGoals] = scoreFor(pairSeed, outcome);
       const awayOutcome: MatchOutcome = outcome === 'win' ? 'loss' : outcome === 'loss' ? 'win' : 'draw';
 
-      home.stars = Math.max(config.starFloor, home.stars + starsFor(outcome, config));
-      home.record = withResult(home.record ?? emptyRecord(), outcome, homeGoals, awayGoals);
-      away.stars = Math.max(config.starFloor, away.stars + starsFor(awayOutcome, config));
-      away.record = withResult(away.record ?? emptyRecord(), awayOutcome, awayGoals, homeGoals);
+      if (homeBot) {
+        homeBot.stars = Math.max(config.starFloor, homeBot.stars + starsFor(outcome, config));
+        homeBot.record = withResult(homeBot.record ?? emptyRecord(), outcome, homeGoals, awayGoals);
+      }
+      if (awayBot) {
+        awayBot.stars = Math.max(config.starFloor, awayBot.stars + starsFor(awayOutcome, config));
+        awayBot.record = withResult(awayBot.record ?? emptyRecord(), awayOutcome, awayGoals, homeGoals);
+      }
     }
   }
 

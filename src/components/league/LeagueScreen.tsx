@@ -8,6 +8,7 @@ import { formatCurrency } from '@/features/currencies/constants';
 import { useLeague } from '@/features/league/LeagueContext';
 import { PLAYER_TEAM_ID } from '@/features/league/constants';
 import {
+  buildRoster,
   nextReset,
   playMatch,
   roundRobin,
@@ -15,6 +16,7 @@ import {
   seasonStart,
   slotTime,
   slotsElapsed,
+  type RealOpponent,
 } from '@/features/league/season';
 import { rewardEntries, rewardFor } from '@/features/league/standings';
 import { emptyRecord, type LeagueRecord, type LeagueRival } from '@/features/league/types';
@@ -80,9 +82,28 @@ export default function LeagueScreen() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const rivalsById = useMemo(
+  // Bots only — the seats this account owns and can mutate. Used to tell a real
+  // opponent's seat apart from one of this account's own generated fictions.
+  const botsById = useMemo(
     () => new Map(state.rivals.map((rival) => [rival.id, rival])),
     [state.rivals],
+  );
+
+  const otherEntries = useMemo(
+    () => entries.filter((entry) => entry.uid !== account.id),
+    [entries, account.id],
+  );
+
+  /** Shaped for `season.buildRoster` — the same real seats `standings.advance` plays. */
+  const realOpponents = useMemo<RealOpponent[]>(
+    () =>
+      otherEntries.map((entry) => ({
+        id: entry.uid,
+        name: entry.username,
+        rating: entry.rating,
+        avatarId: entry.avatarId,
+      })),
+    [otherEntries],
   );
 
   const rows = useMemo<Row[]>(() => {
@@ -104,17 +125,15 @@ export default function LeagueScreen() {
       the generated ones are pushed out from the bottom rather than the list suddenly
       changing character.
     */
-    const real: Row[] = entries
-      .filter((entry) => entry.uid !== account.id)
-      .map((entry) => ({
-        id: entry.uid,
-        name: entry.username,
-        rating: entry.rating,
-        stars: entry.stars,
-        avatarId: entry.avatarId,
-        record: entry.record ?? emptyRecord(),
-        isPlayer: false,
-      }));
+    const real: Row[] = otherEntries.map((entry) => ({
+      id: entry.uid,
+      name: entry.username,
+      rating: entry.rating,
+      stars: entry.stars,
+      avatarId: entry.avatarId,
+      record: entry.record ?? emptyRecord(),
+      isPlayer: false,
+    }));
 
     const padding = Math.max(0, config.teamCount - 1 - real.length);
     const all: Row[] = [...real, ...state.rivals.slice(0, padding).map(toRow), me];
@@ -133,9 +152,8 @@ export default function LeagueScreen() {
     state.rivals,
     state.stars,
     state.record,
-    entries,
+    otherEntries,
     config.teamCount,
-    account.id,
     account.username,
     account.avatarId,
     rating,
@@ -144,24 +162,31 @@ export default function LeagueScreen() {
   const playedSlots = slotsElapsed(now, config);
   const totalSlots = Math.max(1, Math.floor((24 * 60) / config.matchIntervalMinutes));
 
+  /** Every seat's display row, real players and bots alike — keyed by id for lookups. */
+  const rowsById = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
+
   /**
    * The day's fixture board — every slot, every team, played or not.
    *
    * Built from the same round-robin (`season.roundRobin`) that `standings.advance`
-   * uses to resolve the day, over the same `[PLAYER_TEAM_ID, ...rivals]` seat order,
-   * so a pairing shown here is never separate from the one that actually moved
-   * someone's stars.
+   * uses to resolve the day, over the same seats (`season.buildRoster`: real
+   * players first, bots padding the rest) — so a pairing shown here is never
+   * separate from the one that actually moved someone's stars, and the player is
+   * scheduled against real opponents exactly as often as the simulation plays them.
    *
-   * Every team's result is real, not just the player's. The player's own comes out
-   * of `state.history`. A rival-versus-rival slot that has already passed is
-   * recomputed with the exact same seed `standings.advance` used for it
-   * (`accountId:seasonId:slot:homeId-awayId`, against each rival's fixed rating) —
-   * pure and deterministic, so it reproduces the actual result rather than a second,
-   * different-looking guess. A slot still in the future is left with no score.
+   * The player's own result comes out of `state.history`. A bot's fixture that has
+   * already passed is recomputed with the exact same seed `standings.advance` used
+   * for it (`accountId:seasonId:slot:homeId-awayId`, against each side's fixed
+   * rating) — pure and deterministic, so it reproduces the actual result rather
+   * than a second, different-looking guess. A pairing between two other real
+   * players has no result this device can know (each resolves their own matches
+   * locally, same as this account does), so it stays scoreless even once the slot
+   * has passed — only a pairing this account's own bot took part in can be shown.
    */
   const fixtures = useMemo(() => {
     const playerRow = rows.find((row) => row.isPlayer) ?? null;
-    const teamIds = [PLAYER_TEAM_ID, ...state.rivals.map((rival) => rival.id)];
+    const roster = buildRoster(realOpponents, state.rivals, config.teamCount);
+    const teamIds = [PLAYER_TEAM_ID, ...roster.map((seat) => seat.id)];
     const rounds = roundRobin(teamIds);
     const cycleLength = Math.max(1, rounds.length);
 
@@ -183,7 +208,8 @@ export default function LeagueScreen() {
 
       for (const [homeId, awayId] of round) {
         if (homeId === PLAYER_TEAM_ID || awayId === PLAYER_TEAM_ID) {
-          const opponent = rivalsById.get(homeId === PLAYER_TEAM_ID ? awayId : homeId);
+          const opponentId = homeId === PLAYER_TEAM_ID ? awayId : homeId;
+          const opponent = rowsById.get(opponentId) ?? null;
           const match = state.history.find((entry) => entry.slot === slot);
 
           list.push({
@@ -191,7 +217,7 @@ export default function LeagueScreen() {
             slot,
             at,
             home: playerRow,
-            away: opponent ? toRow(opponent) : null,
+            away: opponent,
             isPlayer: true,
             delta: match ? match.delta : null,
             score: match ? `${match.goalsFor} - ${match.goalsAgainst}` : null,
@@ -199,12 +225,15 @@ export default function LeagueScreen() {
           continue;
         }
 
-        const home = rivalsById.get(homeId);
-        const away = rivalsById.get(awayId);
+        const home = rowsById.get(homeId);
+        const away = rowsById.get(awayId);
         if (!home || !away) continue;
 
+        const homeIsBot = botsById.has(homeId);
+        const awayIsBot = botsById.has(awayId);
+
         let score: string | null = null;
-        if (played) {
+        if (played && (homeIsBot || awayIsBot)) {
           const pairSeed = `${account.id}:${state.seasonId}:${slot}:${homeId}-${awayId}`;
           const outcome = playMatch(pairSeed, home.rating, away.rating);
           const [homeGoals, awayGoals] = scoreFor(pairSeed, outcome);
@@ -215,8 +244,8 @@ export default function LeagueScreen() {
           key: `${slot}-${home.id}-${away.id}`,
           slot,
           at,
-          home: toRow(home),
-          away: toRow(away),
+          home,
+          away,
           isPlayer: false,
           delta: null,
           score,
@@ -230,10 +259,12 @@ export default function LeagueScreen() {
     return list;
   }, [
     rows,
+    rowsById,
+    realOpponents,
     state.rivals,
     state.history,
     state.seasonId,
-    rivalsById,
+    botsById,
     config,
     now,
     totalSlots,

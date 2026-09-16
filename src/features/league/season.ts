@@ -204,3 +204,36 @@ export function starsFor(outcome: MatchOutcome, config: LeagueConfig): number {
   if (outcome === 'draw') return config.drawStars;
   return config.lossStars;
 }
+
+/** A real player, as far as another account's local round-robin needs to know. */
+export interface RealOpponent {
+  id: string;
+  name: string;
+  rating: number;
+  avatarId: string;
+}
+
+/**
+ * The seats the round-robin plays across: real players first, generated bots
+ * filling whatever the table has not filled with actual people.
+ *
+ * Real players used to be display-only — the standings table interleaved them
+ * among the bots, but the schedule itself was built from bots alone, so a player
+ * could scroll the whole day's fixtures and never once be paired against someone
+ * real. This is the one seat list both `standings.advance` and the fixture board
+ * build their round-robin from, so a real player takes a real seat in both.
+ *
+ * Sorted by id, not by stars — the cloud table sorts by stars for its own display,
+ * but seating the round-robin off a total that changes with every match played
+ * would reshuffle who plays whom mid-season, and a schedule that reorders itself
+ * is not a schedule.
+ */
+export function buildRoster(
+  real: readonly RealOpponent[],
+  bots: readonly LeagueRival[],
+  teamCount: number,
+): (RealOpponent | LeagueRival)[] {
+  const sortedReal = [...real].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const padding = Math.max(0, teamCount - 1 - sortedReal.length);
+  return [...sortedReal, ...bots.slice(0, padding)];
+}
