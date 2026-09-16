@@ -312,23 +312,31 @@
   gap: 6px;
 }
 
-/* Card reward: search, dropdown, and a thumbnail of the chosen card. */
+/* Card reward: search, card and plus dropdowns, and a thumbnail of the chosen card. */
 .cardPick {
   display: grid;
-  grid-template-columns: 1fr 44px;
+  grid-template-columns: 1fr 76px 44px;
   grid-template-rows: auto auto;
   gap: 6px;
   padding-left: 12px;
   border-left: 2px solid rgba(246, 215, 104, 0.6);
 }
 
-.cardPick > input,
+.cardPick > input {
+  grid-column: 1 / span 2;
+}
+
 .cardPick > select {
   grid-column: 1;
+  grid-row: 2;
+}
+
+.cardPick > .plusPick {
+  grid-column: 2;
 }
 
 .cardThumb {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1 / span 2;
   width: 44px;
   height: 58px;

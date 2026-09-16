@@ -191,6 +191,7 @@ function delivered(
         club: resolved.club,
         portrait: resolved.portrait,
         acquiredAt: stamp.at,
+        ...(line.plus > 0 ? { plus: line.plus } : {}),
       });
     }
   }

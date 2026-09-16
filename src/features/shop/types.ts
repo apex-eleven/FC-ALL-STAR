@@ -26,6 +26,8 @@ export interface ShopCardReward {
   /** Catalogue id — resolved when the item is bought, not when it is set up. */
   cardId: string;
   amount: number;
+  /** Rank-up level the copies arrive at, 0..MAX_PLUS (+0 to +8). */
+  plus: number;
 }
 
 export type ShopReward = ShopCurrencyReward | ShopCardReward;

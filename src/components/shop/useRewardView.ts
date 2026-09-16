@@ -3,15 +3,16 @@ import { currencies } from '@/data/mock/currencies';
 import { formatCurrency } from '@/features/currencies/constants';
 import { cardToPlayer } from '@/features/draft/pool';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { ratingWithPlus } from '@/features/rankup/plus';
 import type { ShopReward } from '@/features/shop/types';
 
 export interface RewardView {
   /** Currency icon, or the card's portrait. */
   icon: string;
   label: string;
-  /** "5,000" for a currency, "x2" for card copies. */
+  /** "5,000" for a currency, "x2" or "+5 x2" for card copies. */
   count: string;
-  /** "เจม x2,000" / "Somchai (OVR 88) x1" — for toasts and lists. */
+  /** "เจม x2,000" / "Somchai +5 (OVR 93) x1" — for toasts and lists. */
   text: string;
   isCard: boolean;
 }
@@ -28,11 +29,14 @@ export default function useRewardView(): (reward: ShopReward) => RewardView {
     (reward: ShopReward): RewardView => {
       if (reward.kind === 'card') {
         const card = byId(reward.cardId);
-        const label = card ? `${card.name} (OVR ${card.rating})` : 'การ์ดที่ถูกลบแล้ว';
+        const plus = reward.plus > 0 ? ` +${reward.plus}` : '';
+        const label = card
+          ? `${card.name}${plus} (OVR ${ratingWithPlus({ rating: card.rating, plus: reward.plus })})`
+          : 'การ์ดที่ถูกลบแล้ว';
         return {
           icon: card ? cardToPlayer(card).portrait : currencies.ticket.icon,
           label,
-          count: `x${formatCurrency(reward.amount)}`,
+          count: `${plus.trim()} x${formatCurrency(reward.amount)}`.trim(),
           text: `${label} x${formatCurrency(reward.amount)}`,
           isCard: true,
         };

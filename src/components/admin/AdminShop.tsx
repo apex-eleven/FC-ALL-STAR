@@ -5,6 +5,7 @@ import type { Account } from '@/features/auth/types';
 import { formatCurrency } from '@/features/currencies/constants';
 import type { CurrencyKind } from '@/features/currencies/types';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { MAX_PLUS } from '@/features/rankup/constants';
 import {
   IMAGE_BUDGET_WARN,
   IMAGE_MAX_BYTES,
@@ -99,6 +100,8 @@ function move<T>(list: readonly T[], index: number, delta: number): T[] {
 const CARD_OPTION_LABEL = 'การ์ดนักเตะ';
 /** The card dropdown lists at most this many matches; search narrows it. */
 const CARD_OPTIONS_MAX = 200;
+/** +0 … +8, the rank-up range. */
+const PLUS_LEVELS = Array.from({ length: MAX_PLUS + 1 }, (_, level) => level);
 
 function itemLabel(item: ShopItem, view: (reward: ShopReward) => RewardView): string {
   if (item.title) return item.title;
@@ -275,7 +278,7 @@ export default function AdminShop() {
     if (kind === 'card') {
       if (reward.kind === 'card') return reward;
       const first = cardsByRating[0];
-      return first ? { kind: 'card', cardId: first.id, amount: 1 } : reward;
+      return first ? { kind: 'card', cardId: first.id, amount: 1, plus: 0 } : reward;
     }
     const amount = reward.kind === 'card' ? 100 : reward.amount;
     return { kind: kind as CurrencyKind, amount };
@@ -284,7 +287,7 @@ export default function AdminShop() {
   function cardPicker(
     key: string,
     reward: Extract<ShopReward, { kind: 'card' }>,
-    onPick: (id: string) => void,
+    onPick: (changes: { cardId?: string; plus?: number }) => void,
   ) {
     const query = (cardQuery[key] ?? '').trim().toLowerCase();
     const matches = cardsByRating.filter(
@@ -310,13 +313,25 @@ export default function AdminShop() {
         <select
           className={styles.input}
           value={reward.cardId}
-          onChange={(event) => onPick(event.target.value)}
+          onChange={(event) => onPick({ cardId: event.target.value })}
         >
           {!selected && <option value={reward.cardId}>(การ์ดนี้ถูกลบแล้ว — เลือกใบใหม่)</option>}
           {shown.map((card) => (
             <option key={card.id} value={card.id}>
               {card.name} · OVR {card.rating} · {card.position} · {card.set}
               {card.club ? ` · ${card.club}` : ''}
+            </option>
+          ))}
+        </select>
+        <select
+          className={`${styles.input} ${styles.plusPick}`}
+          title="ระดับบวกของการ์ดที่ได้รับ"
+          value={reward.plus}
+          onChange={(event) => onPick({ plus: Number(event.target.value) })}
+        >
+          {PLUS_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              +{level}
             </option>
           ))}
         </select>
@@ -378,8 +393,8 @@ export default function AdminShop() {
               </button>
             </div>
             {reward.kind === 'card' &&
-              cardPicker(`${title}-${index}`, reward, (cardId) =>
-                replaceAt(index, { ...reward, cardId }),
+              cardPicker(`${title}-${index}`, reward, (changes) =>
+                replaceAt(index, { ...reward, ...changes }),
               )}
           </div>
         ))}
