@@ -34,6 +34,7 @@ const ROUTE_LABEL: Record<string, string> = {
   club: 'สโมสร',
   league: 'ลีก',
   rankup: 'ตีบวกการ์ด',
+  transfer: 'การเซ็นสัญญา',
 };
 
 const TONES: readonly AnnouncementTone[] = ['info', 'event', 'warning'];

@@ -9,6 +9,7 @@ import { DraftProvider } from '@/features/draft/DraftContext';
 import { LeagueProvider } from '@/features/league/LeagueContext';
 import { AnnouncementProvider } from '@/features/announcement/AnnouncementContext';
 import { RankUpProvider } from '@/features/rankup/RankUpContext';
+import { TransferProvider } from '@/features/transfers/TransferContext';
 import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
 import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
@@ -39,12 +40,14 @@ function render() {
                   <LeagueProvider>
                     <WalkoutProvider>
                       <RankUpProvider>
-                        <NavigationProvider>
-                          <AnnouncementProvider>
-                            <CloudConfigSync />
-                            <App />
-                          </AnnouncementProvider>
-                        </NavigationProvider>
+                        <TransferProvider>
+                          <NavigationProvider>
+                            <AnnouncementProvider>
+                              <CloudConfigSync />
+                              <App />
+                            </AnnouncementProvider>
+                          </NavigationProvider>
+                        </TransferProvider>
                       </RankUpProvider>
                     </WalkoutProvider>
                   </LeagueProvider>

@@ -1,0 +1,66 @@
+/* Reference cell: 264x350, art top at +23, price centred at +310. */
+.cell {
+  position: relative;
+  width: 264px;
+  height: 350px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(26, 28, 40, 0.92) 0%, rgba(18, 20, 30, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.open {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding-top: 12px;
+  border-radius: inherit;
+  transition: background var(--transition-fast);
+}
+
+.open:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.open:hover .art {
+  transform: translateY(-4px);
+}
+
+.art {
+  display: grid;
+  place-items: center;
+  height: 256px;
+  transition: transform var(--transition-fast);
+}
+
+.price {
+  margin-top: 26px;
+}
+
+/* 32px round button, centred 30px in from the right edge and 27px down. */
+.star {
+  position: absolute;
+  top: 11px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(44, 46, 60, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.star:hover {
+  transform: scale(1.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.starOn,
+.starOn:hover {
+  color: #ffd23f;
+}

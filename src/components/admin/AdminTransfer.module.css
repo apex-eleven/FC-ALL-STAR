@@ -1,0 +1,267 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.block {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 5, 18, 0.55);
+}
+
+.blockTitle {
+  margin: 0 0 12px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lineLabel {
+  min-width: 120px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.num,
+.price,
+.search {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 800;
+  text-align: center;
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.num {
+  width: 72px;
+}
+
+.price {
+  width: 100%;
+}
+
+.price::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+}
+
+.num:disabled {
+  opacity: 0.5;
+}
+
+.search {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-align: left;
+}
+
+.unit {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  color: var(--color-dim);
+}
+
+.toggle {
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+  white-space: nowrap;
+}
+
+.toggleOn {
+  background: var(--gradient-cta);
+  border-color: rgba(255, 255, 255, 0.42);
+  color: #ffffff;
+}
+
+.ghost,
+.danger {
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.ghost {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.danger {
+  background: rgba(229, 52, 63, 0.28);
+}
+
+.ghost:disabled,
+.danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bandHead,
+.bandRow {
+  display: grid;
+  grid-template-columns: 72px 1fr 1fr 48px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.bandHead span,
+.cardHead span {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-dim);
+}
+
+/* Full width under the other two: a card row needs a readable name column. */
+.cards {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.cardHead,
+.cardRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 150px 150px 72px 60px;
+  gap: 6px;
+  align-items: center;
+}
+
+.cardHead {
+  margin-bottom: 6px;
+}
+
+.cardHead span:first-child {
+  text-align: left;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cardRow {
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cardHidden {
+  opacity: 0.55;
+}
+
+.cardName {
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardPos {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--color-dim);
+}
+
+.cardOvr {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 900;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.legend {
+  margin: 8px 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  line-height: 1.6;
+  color: var(--color-dim);
+}
+
+.warn {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(229, 52, 63, 0.16);
+  border: 1px solid rgba(229, 52, 63, 0.4);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.status {
+  align-self: flex-start;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(43, 224, 140, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.statusBad {
+  background: rgba(229, 52, 63, 0.3);
+}

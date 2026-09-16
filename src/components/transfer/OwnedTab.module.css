@@ -1,0 +1,166 @@
+/*
+  Reference, 2048x942 stage: sort pill 249,107 · filter 1617,108 175x58 ·
+  grid 204,190 seven 224px columns with 12px gaps · action band from 752,
+  auto-select 836,766 470x60 · sell 1320,766 470x60.
+*/
+.tab {
+  position: absolute;
+  inset: 0;
+}
+
+.sort {
+  position: absolute;
+  left: 249px;
+  top: 107px;
+}
+
+.filter {
+  position: absolute;
+  left: 1617px;
+  top: 108px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 175px;
+  height: 58px;
+  border-radius: var(--radius-pill);
+  border: 3px solid transparent;
+  background:
+    linear-gradient(rgba(10, 12, 22, 0.95), rgba(10, 12, 22, 0.95)) padding-box,
+    linear-gradient(90deg, #36d6b0 0%, #2a8fe0 100%) border-box;
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: filter var(--transition-fast);
+}
+
+.filter:hover {
+  filter: brightness(1.15);
+}
+
+.filterOn {
+  background:
+    linear-gradient(rgba(20, 70, 80, 0.95), rgba(20, 70, 80, 0.95)) padding-box,
+    linear-gradient(90deg, #36d6b0 0%, #2a8fe0 100%) border-box;
+}
+
+.grid {
+  position: absolute;
+  left: 204px;
+  top: 190px;
+  width: 1660px;
+  bottom: 106px;
+  display: grid;
+  grid-template-columns: repeat(7, 224px);
+  grid-auto-rows: 280px;
+  column-gap: 12px;
+  row-gap: 15px;
+  align-content: start;
+  overflow-y: auto;
+  /* Room for the last row to scroll clear of the action band. */
+  padding-bottom: 110px;
+  scrollbar-width: none;
+}
+
+.grid::-webkit-scrollbar {
+  display: none;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: 80px 0 0;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.actionBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 752px;
+  height: 84px;
+  background: linear-gradient(180deg, rgba(8, 10, 24, 0.7) 0%, rgba(8, 10, 24, 0.92) 30%);
+  pointer-events: none;
+}
+
+.auto,
+.sell {
+  position: absolute;
+  top: 14px;
+  width: 470px;
+  height: 60px;
+  border-radius: var(--radius-pill);
+  pointer-events: auto;
+  transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+.auto {
+  left: 836px;
+  border: 3px solid transparent;
+  background:
+    linear-gradient(rgba(12, 14, 26, 0.96), rgba(12, 14, 26, 0.96)) padding-box,
+    linear-gradient(90deg, #36d6b0 0%, #2a8fe0 100%) border-box;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.auto:hover {
+  filter: brightness(1.15);
+}
+
+.sell {
+  left: 1320px;
+  display: flex;
+  align-items: center;
+  background: rgba(64, 68, 72, 0.92);
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.sell:disabled {
+  cursor: not-allowed;
+}
+
+.sellReady {
+  background: linear-gradient(90deg, #1fb89a 0%, #1c8fe0 100%);
+  color: #ffffff;
+}
+
+.sellReady:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.sellLabel {
+  width: 221px;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.sellDivider {
+  width: 2px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.sellTotal {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+.sell:disabled .sellTotal {
+  opacity: 0.55;
+}
+
+.warn {
+  font-size: 20px;
+  color: #ffb14a;
+}

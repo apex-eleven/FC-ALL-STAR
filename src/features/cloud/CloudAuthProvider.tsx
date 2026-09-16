@@ -22,6 +22,7 @@ import { withoutLegacy } from '@/features/club/legacy';
 import { normalizeWallet, startingWallet } from '@/features/currencies/wallet';
 import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/leveling';
 import { emptySquad, indexOwned, normalizeSquad } from '@/features/squad/squad';
+import { normalizeProgress } from '@/features/transfers/transferConfigStore';
 import {
   ADMIN_SIGNUP_CODE,
   checkPassword,
@@ -79,6 +80,12 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
     club,
     squad: normalizeSquad(data.squad, owned),
     league: (data.league as Account['league']) ?? undefined,
+    // Listed field by field like everything else here — an unlisted field is
+    // dropped on load, and the watch list and locks would vanish on every refresh.
+    transfer:
+      data.transfer === undefined
+        ? undefined
+        : normalizeProgress(data.transfer, new Set(club.players.map((card) => card.id))),
   };
 }
 

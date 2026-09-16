@@ -1,0 +1,23 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.icon {
+  object-fit: contain;
+  flex: none;
+}
+
+.amount {
+  text-shadow: var(--shadow-text);
+}
+
+.dimmed {
+  opacity: 0.38;
+}

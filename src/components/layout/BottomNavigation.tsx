@@ -9,6 +9,7 @@ import {
 import { bottomNavItems } from '@/data/mock/navigation';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { useRankUp } from '@/features/rankup/RankUpContext';
+import { useTransfer } from '@/features/transfers/TransferContext';
 import type { BottomNavIcon } from '@/features/navigation/types';
 import styles from './BottomNavigation.module.css';
 
@@ -24,6 +25,7 @@ const ICONS: Record<BottomNavIcon, typeof Crosshair> = {
 export default function BottomNavigation() {
   const { navigate } = useNavigation();
   const { config: rankup } = useRankUp();
+  const { config: transfer } = useTransfer();
 
   /**
    * Which tabs actually go somewhere.
@@ -34,6 +36,7 @@ export default function BottomNavigation() {
   const targets: Partial<Record<BottomNavIcon, () => void>> = {
     league: () => navigate('league'),
     ...(rankup.enabled ? { rankup: () => navigate('rankup') } : {}),
+    ...(transfer.enabled ? { contracts: () => navigate('transfer') } : {}),
   };
 
   return (

@@ -1,0 +1,65 @@
+/* Reference: back button 164,13 68x68 · title at 268 · right cluster ends at 1876. */
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  height: 92px;
+  padding: 13px 172px 0 164px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+}
+
+.back {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(28, 30, 44, 0.78);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+  box-shadow: var(--shadow-tile);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+  flex: none;
+}
+
+.back:hover {
+  transform: scale(1.06);
+  background: rgba(48, 52, 72, 0.88);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text-strong);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  margin-left: auto;
+  padding-top: 8px;
+}
+
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.action {
+  position: relative;
+}

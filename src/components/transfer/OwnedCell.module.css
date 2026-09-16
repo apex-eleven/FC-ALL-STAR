@@ -1,0 +1,126 @@
+/* Reference cell: 224x280, art top at +20, price centred at +251. */
+.cell {
+  position: relative;
+  width: 224px;
+  height: 280px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(26, 28, 40, 0.9) 0%, rgba(18, 20, 30, 0.9) 100%);
+  border: 2px solid transparent;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.selected {
+  border-color: #3fe0c0;
+  box-shadow: 0 0 0 1px rgba(63, 224, 192, 0.4), 0 0 18px rgba(63, 224, 192, 0.35);
+}
+
+.open {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding-top: 14px;
+  border-radius: inherit;
+}
+
+.art {
+  display: grid;
+  place-items: center;
+  height: 200px;
+  transition: opacity var(--transition-fast);
+}
+
+.faded {
+  opacity: 0.32;
+}
+
+.price {
+  margin-top: 22px;
+}
+
+.noPrice {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+/* The "in the lineup" mark, centred over the faded art. */
+.lineup {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.shirt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.tick {
+  position: absolute;
+  top: 20px;
+  color: #1a1f33;
+}
+
+.lineupText {
+  font-family: var(--font-ui);
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: var(--shadow-text-strong);
+}
+
+.mark {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #4ff0cf 0%, #1faa96 100%);
+  color: #04221d;
+  box-shadow: var(--shadow-badge);
+}
+
+/* 26px round lock, centred 25px in from the right and 41px down. */
+.lock {
+  position: absolute;
+  top: 28px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(70, 72, 84, 0.92);
+  color: rgba(255, 255, 255, 0.82);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.lock:hover {
+  transform: scale(1.12);
+}
+
+.lockOn {
+  background: #ffffff;
+  color: #1a1f33;
+}
+
+.lockIdle {
+  opacity: 0.4;
+  pointer-events: none;
+}

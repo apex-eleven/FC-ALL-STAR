@@ -8,6 +8,7 @@ import DraftScreen from '@/components/draft/DraftScreen';
 import ClubScreen from '@/components/club/ClubScreen';
 import LeagueScreen from '@/components/league/LeagueScreen';
 import RankUpScreen from '@/components/rankup/RankUpScreen';
+import TransferScreen from '@/components/transfer/TransferScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
@@ -63,6 +64,12 @@ export default function App() {
     screen = (
       <Stage>
         <RankUpScreen />
+      </Stage>
+    );
+  } else if (route === 'transfer') {
+    screen = (
+      <Stage>
+        <TransferScreen />
       </Stage>
     );
   } else if (route === 'club') {

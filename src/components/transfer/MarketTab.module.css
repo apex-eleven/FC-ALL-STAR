@@ -1,0 +1,224 @@
+/*
+  Positions are the reference's, measured on the 2048x942 stage:
+  side panel 219,107 464x716 · sort pill 707,107 · watch box 1030,118 ·
+  grid 707,190 four 264px columns with 25px gaps, ending at 1838.
+*/
+.tab {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---- left panel ---------------------------------------------------- */
+
+.side {
+  position: absolute;
+  left: 219px;
+  top: 107px;
+  width: 464px;
+  height: 716px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 2px solid rgba(60, 150, 140, 0.55);
+  background: #0b1618;
+}
+
+.sideArt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Drawn when transfer_banner.jpg is not in public/brand/ yet. */
+.sideFallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-bottom: 180px;
+  color: rgba(220, 236, 232, 0.55);
+  background:
+    linear-gradient(135deg, transparent 0 46%, rgba(80, 230, 150, 0.35) 46% 47%, transparent 47% 100%),
+    linear-gradient(45deg, transparent 0 60%, rgba(80, 230, 150, 0.3) 60% 61%, transparent 61% 100%),
+    linear-gradient(180deg, #16302c 0%, #0c1a1a 100%);
+}
+
+/* Keeps the white count readable over a bright paper photo. */
+.sideShade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 300px;
+  background: linear-gradient(180deg, transparent 0%, rgba(4, 10, 12, 0.72) 55%, rgba(2, 6, 8, 0.92) 100%);
+  pointer-events: none;
+}
+
+.sideText {
+  position: absolute;
+  left: 23px;
+  top: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.totalLabel {
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: var(--shadow-text);
+}
+
+.total {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  text-shadow: var(--shadow-text-strong);
+}
+
+.search {
+  position: absolute;
+  left: 11px;
+  top: 600px;
+  width: 440px;
+  height: 70px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #34b8ff 0%, #0e8cf3 55%, #0a7de4 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 6px 16px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-ui);
+  font-size: 36px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+.search:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.searchActive {
+  font-size: 30px;
+}
+
+/* ---- toolbar ------------------------------------------------------- */
+
+.main {
+  position: absolute;
+  left: 707px;
+  top: 107px;
+  width: 1160px;
+  bottom: 106px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 31px;
+  height: 58px;
+}
+
+.watch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 29px;
+  cursor: pointer;
+}
+
+.checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.box {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.checkbox:checked + .box {
+  background: linear-gradient(180deg, #34b8ff 0%, #0e8cf3 100%);
+  border-color: transparent;
+}
+
+.checkbox:checked + .box::after {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 4px;
+  width: 9px;
+  height: 17px;
+  border-right: 4px solid #ffffff;
+  border-bottom: 4px solid #ffffff;
+  transform: rotate(45deg);
+}
+
+.checkbox:focus-visible + .box {
+  outline: 2px solid #3fd8ff;
+  outline-offset: 2px;
+}
+
+.watchText {
+  font-family: var(--font-ui);
+  font-size: 32px;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: var(--shadow-text);
+}
+
+/* ---- grid ---------------------------------------------------------- */
+
+.grid {
+  position: absolute;
+  left: 0;
+  top: 83px;
+  bottom: 0;
+  width: 1160px;
+  display: grid;
+  grid-template-columns: repeat(4, 264px);
+  grid-auto-rows: 350px;
+  column-gap: 25px;
+  row-gap: 26px;
+  align-content: start;
+  overflow-y: auto;
+  padding-bottom: 30px;
+  scrollbar-width: none;
+}
+
+.grid::-webkit-scrollbar {
+  display: none;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: 80px 0 0;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+/* ---- buy dialog ---------------------------------------------------- */
+
+.dialogName {
+  font-family: var(--font-ui);
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.dialogBalance {
+  font-size: 22px;
+  color: var(--color-muted);
+}

@@ -1,0 +1,78 @@
+/* Reference pill: 292x58, dark, label at +24, solid caret at the right. */
+.root {
+  position: relative;
+  width: 292px;
+  height: 58px;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 28px 0 24px;
+  border-radius: var(--radius-pill);
+  background: rgba(34, 36, 48, 0.88);
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.pill:hover {
+  background: rgba(46, 48, 62, 0.92);
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.caret {
+  margin-left: auto;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 14px solid rgba(255, 255, 255, 0.62);
+  transition: transform var(--transition-fast);
+}
+
+.caretOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: var(--z-panel);
+  width: 100%;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  border-radius: var(--radius-md);
+  background: rgba(22, 24, 36, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--shadow-card);
+}
+
+.option {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.optionOn {
+  color: #3fd8ff;
+}

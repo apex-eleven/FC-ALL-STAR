@@ -4,6 +4,7 @@ import type { DraftProgress } from '@/features/draft/types';
 import type { Club } from '@/features/club/types';
 import type { LeagueState } from '@/features/league/types';
 import type { Squad } from '@/features/squad/types';
+import type { TransferProgress } from '@/features/transfers/types';
 
 export type Role = 'player' | 'admin';
 
@@ -43,6 +44,11 @@ export interface Account extends Entity {
    * the provider fills it in on first open.
    */
   league?: LeagueState;
+  /**
+   * Signing-market watch list and sell locks. Absent on accounts created before the
+   * market existed, which reads as nothing watched and nothing locked.
+   */
+  transfer?: TransferProgress;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

@@ -33,7 +33,9 @@ export type WalletReason =
   | 'admin-set'
   | 'purchase'
   | 'reward'
-  | 'refund';
+  | 'refund'
+  /** A card exchanged back for points in the signing market. */
+  | 'sale';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

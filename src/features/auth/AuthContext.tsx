@@ -15,6 +15,7 @@ import { normalizeWallet, startingWallet } from '@/features/currencies/wallet';
 import { emptyClub, normalizeClub } from '@/features/club/club';
 import { withoutLegacy } from '@/features/club/legacy';
 import { emptySquad, indexOwned, normalizeSquad } from '@/features/squad/squad';
+import { normalizeProgress } from '@/features/transfers/transferConfigStore';
 import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/leveling';
 import {
   ADMIN_SIGNUP_CODE,
@@ -98,6 +99,14 @@ function toPublic(stored: StoredAccount): Account {
         : {},
     club,
     squad: normalizeSquad(account.squad, indexOwned(club.players)),
+    ...(account.transfer === undefined
+      ? {}
+      : {
+          transfer: normalizeProgress(
+            account.transfer,
+            new Set(club.players.map((card) => card.id)),
+          ),
+        }),
   };
 }
 
