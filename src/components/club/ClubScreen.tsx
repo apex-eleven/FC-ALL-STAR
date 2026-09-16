@@ -304,6 +304,8 @@ export default function ClubScreen() {
             if (current) clearSlot(current);
           }}
           onClose={() => setPicking(null)}
+          onHome={() => navigate('home')}
+          onShop={() => navigate('shop')}
         />
       )}
 

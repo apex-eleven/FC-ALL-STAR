@@ -1,0 +1,202 @@
+/* Reference: sort pill 204x61, filter button 174x61, 19px apart, on the list's
+   bottom bar. Both menus open upwards — the bar is at the foot of the stage. */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 19px;
+}
+
+.anchor {
+  position: relative;
+}
+
+.sort,
+.filter {
+  display: flex;
+  align-items: center;
+  height: 61px;
+  border-radius: 31px;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.sort {
+  justify-content: space-between;
+  width: 204px;
+  padding: 0 22px 0 24px;
+  background: rgba(38, 41, 48, 0.95);
+}
+
+/* Solid triangle, pointing up while closed like the reference. */
+.caret {
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 13px solid #a4a9b0;
+  transition: transform var(--transition-fast);
+}
+
+.caretOpen {
+  transform: rotate(180deg);
+}
+
+.filter {
+  position: relative;
+  gap: 10px;
+  justify-content: center;
+  width: 174px;
+  background: rgba(20, 30, 34, 0.95);
+  border: 3px solid #37d3bd;
+  box-shadow: 0 0 12px rgba(55, 211, 189, 0.45), inset 0 0 10px rgba(55, 211, 189, 0.25);
+}
+
+.filterOn {
+  background: rgba(22, 64, 58, 0.95);
+}
+
+.count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 14px;
+  background: #e5302f;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.pop {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  z-index: var(--z-badge);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(22, 26, 32, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.sortMenu {
+  width: 240px;
+  gap: 4px;
+}
+
+.option {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 24px;
+  font-weight: 600;
+  color: #c8ccd2;
+  text-align: left;
+}
+
+.option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.optionOn {
+  color: #37d3bd;
+  background: rgba(55, 211, 189, 0.12);
+}
+
+.filterMenu {
+  width: 360px;
+  gap: 10px;
+}
+
+.heading {
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 600;
+  color: #a4a9b0;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  flex: 1;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid transparent;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: #c8ccd2;
+}
+
+.chipOn {
+  border-color: #37d3bd;
+  background: rgba(55, 211, 189, 0.18);
+  color: #ffffff;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--font-ui);
+  font-size: 20px;
+  color: #ffffff;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a4a9b0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.reset,
+.done {
+  flex: 1;
+  height: 46px;
+  border-radius: 23px;
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.reset {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c8ccd2;
+}
+
+.reset:disabled {
+  opacity: 0.4;
+}
+
+.done {
+  background: linear-gradient(180deg, #43e0c8 0%, #1fa892 100%);
+  color: #06201c;
+}

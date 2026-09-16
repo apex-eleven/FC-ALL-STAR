@@ -1,13 +1,26 @@
-import { useMemo } from 'react';
-import { X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronLeft, GitCompareArrows, Home, RefreshCw, ShoppingCart, User, Volleyball } from 'lucide-react';
 import type { OwnedPlayer } from '@/features/club/types';
 import { canPlace } from '@/features/squad/squad';
-import { ratingWithPlus } from '@/features/rankup/plus';
-import { effectiveRating, positionPenalty } from '@/features/squad/rating';
+import { positionPenalty } from '@/features/squad/rating';
+import { cardStats } from '@/features/squad/stats';
+import {
+  EMPTY_SWAP_FILTER,
+  matchesFilter,
+  sortSwapList,
+  type SwapFilter,
+  type SwapSort,
+} from '@/features/squad/swapList';
+import IconButton from '@/components/ui/IconButton';
+import NotificationBadge from '@/components/navigation/NotificationBadge';
+import PlayerStatTable from './PlayerStatTable';
+import SquadCard from './SquadCard';
+import StatRadar from './StatRadar';
+import SwapListControls from './SwapListControls';
 import styles from './SlotPicker.module.css';
 
 export interface SlotPickerProps {
-  /** Shown on the chip. A bench seat passes its number. */
+  /** Names the slot for screen readers. A bench seat passes its number. */
   label: string;
   /**
    * The slot's position, or null for a bench seat — a substitute has no position to
@@ -23,14 +36,20 @@ export interface SlotPickerProps {
   onPick(cardId: string): void;
   onClear(): void;
   onClose(): void;
+  onHome(): void;
+  onShop(): void;
+}
+
+function unique(values: readonly string[]): string[] {
+  return [...new Set(values.filter((value) => value !== ''))].sort((a, b) => a.localeCompare(b));
 }
 
 /**
- * Everyone who could take this slot, best fit first.
+ * สลับนักเตะ — the swap screen a slot opens.
  *
- * Dragging is fine when you know which card you want; it is miserable when you do
- * not, because the card you need might be the fortieth in a drawer. Tapping the slot
- * answers the actual question — who can play here, and what does it cost me.
+ * Left: the card in the slot, its six-stat radar, and the detail rows. Right: every
+ * card that could take the slot. Tapping one puts it in the compare frame and over
+ * the radar and rows; the swap only happens on the confirm button.
  *
  * Keepers are left out of outfield slots entirely (and vice versa): that placement is
  * refused, so listing it would only invite a tap that does nothing.
@@ -45,110 +64,191 @@ export default function SlotPicker({
   onPick,
   onClear,
   onClose,
+  onHome,
+  onShop,
 }: SlotPickerProps) {
+  const [compareId, setCompareId] = useState<string | null>(null);
+  const [sort, setSort] = useState<SwapSort>('position');
+  const [filter, setFilter] = useState<SwapFilter>(EMPTY_SWAP_FILTER);
+
+  const current = currentId ? (players.find((player) => player.id === currentId) ?? null) : null;
+
   const eligible = useMemo(
     () =>
-      players
-        .filter((player) => (position ? canPlace(position, player).ok : true))
-        .map((player) => ({
-          player,
-          // Both sides of the "before → after" are upgraded ratings. Showing the
-          // printed number on the left and the upgraded one on the right would make
-          // the penalty look smaller than it is.
-          rating: position ? effectiveRating(player, position) : ratingWithPlus(player),
-          base: ratingWithPlus(player),
-          penalty: position ? positionPenalty(position, player.position) : 0,
-        }))
-        // Best in this slot first, which is not the same as highest rated.
-        .sort((a, b) => b.rating - a.rating || a.player.name.localeCompare(b.player.name)),
-    [players, position],
+      players.filter(
+        (player) => player.id !== currentId && (position ? canPlace(position, player).ok : true),
+      ),
+    [players, position, currentId],
   );
 
-  return (
-    <div className={styles.screen} role="dialog" aria-modal="true" aria-label={`เลือกนักเตะ ${label}`}>
-      <div className={styles.backdrop} onClick={onClose} />
+  const listed = useMemo(
+    () => sortSwapList(eligible.filter((player) => matchesFilter(player, filter)), sort, position),
+    [eligible, filter, sort, position],
+  );
 
-      <div className={styles.panel}>
-        <div className={styles.head}>
-          <span className={styles.slotTag}>{label}</span>
-          <h2 className={styles.title}>
-            {position ? 'เลือกนักเตะลงตำแหน่งนี้' : 'เลือกนักเตะลงตัวสำรอง'}
-          </h2>
-          <span className={styles.count}>{eligible.length} ใบ</span>
-          <button type="button" className={styles.close} data-sound="back" onClick={onClose}>
-            <X size={22} strokeWidth={2.8} />
-          </button>
+  const clubs = useMemo(() => unique(eligible.map((player) => player.club)), [eligible]);
+  const nations = useMemo(() => unique(eligible.map((player) => player.nation)), [eligible]);
+
+  // Cleared if the compared card is filtered away, so the confirm button never swaps
+  // in a card the player can no longer see.
+  const compared = listed.find((player) => player.id === compareId) ?? null;
+  const currentStats = useMemo(() => (current ? cardStats(current) : null), [current]);
+  const comparedStats = useMemo(() => (compared ? cardStats(compared) : null), [compared]);
+
+  return (
+    <div className={styles.screen} role="dialog" aria-modal="true" aria-label={`สลับนักเตะ ${label}`}>
+      <div className={styles.backdrop} />
+
+      <header className={styles.header}>
+        <button
+          type="button"
+          className={styles.back}
+          data-sound="back"
+          onClick={onClose}
+          aria-label="ย้อนกลับ"
+        >
+          <ChevronLeft size={40} strokeWidth={3} />
+        </button>
+        <h1 className={styles.title}>สลับนักเตะ</h1>
+        <div className={styles.icons}>
+          <span className={styles.action}>
+            <IconButton label="กิจกรรม" size={46}>
+              <Volleyball size={40} strokeWidth={2} />
+            </IconButton>
+            <NotificationBadge badge={{ variant: 'dot' }} />
+          </span>
+          <IconButton label="ร้านค้า" size={46} onClick={onShop}>
+            <ShoppingCart size={40} strokeWidth={2} />
+          </IconButton>
+          <IconButton label="หน้าหลัก" size={46} onClick={onHome}>
+            <Home size={40} strokeWidth={2} />
+          </IconButton>
         </div>
+      </header>
+
+      {/* ---- left: the card in the slot ---- */}
+      <span className={styles.modeLabel}>
+        <RefreshCw size={24} strokeWidth={2.4} />
+        {position ? 'เปลี่ยนแทนตัวจริง' : 'เปลี่ยนแทนตัวสำรอง'}
+      </span>
+      <span className={styles.compareLabel}>
+        <GitCompareArrows size={24} strokeWidth={2.4} />
+        เปรียบเทียบนักเตะ
+      </span>
+
+      <div className={styles.radar}>
+        <StatRadar values={currentStats?.face ?? null} compare={comparedStats?.face ?? null} />
+      </div>
+
+      {/* After the radar: the card covers the edge of its left labels, as in the
+          reference. */}
+      <div className={styles.mainCard}>
+        {current ? (
+          <SquadCard player={current} scale={1.5} interactive={false} />
+        ) : (
+          <span className={styles.emptyCard}>ว่าง</span>
+        )}
+      </div>
+
+      <div className={styles.compareSlot}>
+        <svg className={styles.shield} viewBox="0 0 148 205" aria-hidden="true">
+          <path d="M8 1 H140 L147 8 V150 L74 204 L1 150 V8 Z" />
+        </svg>
+        {compared ? (
+          <button
+            type="button"
+            className={styles.compareCard}
+            onClick={() => setCompareId(null)}
+            aria-label="ยกเลิกการเปรียบเทียบ"
+          >
+            <SquadCard player={compared} scale={1.2} interactive={false} />
+          </button>
+        ) : (
+          <span className={styles.compareEmpty}>
+            <User className={styles.silhouette} size={96} strokeWidth={0} />
+            <span>
+              เปรียบเทียบ
+              <br />
+              นักเตะ
+            </span>
+          </span>
+        )}
+      </div>
+
+      <div className={styles.table}>
+        <PlayerStatTable stats={currentStats} compare={comparedStats} />
+      </div>
+
+      {/* ---- right: the list ---- */}
+      <section className={styles.list}>
+        <h2 className={styles.listTitle}>รายชื่อนักเตะ</h2>
 
         <div className={styles.grid}>
-          {eligible.map(({ player, rating, base, penalty }) => {
+          {listed.map((player) => {
             // Another card with this name is already in the eleven or on the bench.
-            const blocked = isDuplicate(player.id) && player.id !== currentId;
+            const blocked = isDuplicate(player.id);
+            const penalty = position ? positionPenalty(position, player.position) : 0;
+            const chosen = player.id === compareId;
 
             return (
-            <button
-              key={player.id}
-              type="button"
-              disabled={blocked}
-              className={`${styles.cell} ${player.id === currentId ? styles.cellOn : ''} ${
-                blocked ? styles.cellBlocked : ''
-              }`}
-              onClick={() => onPick(player.id)}
-            >
-              <img className={styles.art} src={player.portrait} alt="" loading="lazy" />
-
-              <span className={styles.name}>{player.name}</span>
-
-              <span className={styles.line}>
-                <span className={styles.position}>{player.position}</span>
-                {penalty === 0 ? (
-                  <span className={styles.exact}>{base} · ตรงตำแหน่ง</span>
+              <button
+                key={player.id}
+                type="button"
+                disabled={blocked}
+                className={`${styles.cell} ${chosen ? styles.cellOn : ''} ${
+                  blocked ? styles.cellBlocked : ''
+                }`}
+                onClick={() => setCompareId(chosen ? null : player.id)}
+              >
+                <SquadCard player={player} scale={1.55} interactive={false} />
+                {penalty > 0 && <span className={styles.penalty}>-{penalty}</span>}
+                {blocked ? (
+                  <span className={styles.tag}>ชื่อซ้ำในทีม</span>
                 ) : (
-                  <span className={styles.off}>
-                    {base} <span className={styles.arrow}>→</span> {rating}
-                    <span className={styles.penalty}>-{penalty}</span>
-                  </span>
+                  inSquad(player.id) && <span className={styles.tag}>อยู่ในทีม</span>
                 )}
-              </span>
-
-              {blocked && <span className={styles.used}>ชื่อนี้อยู่ในทีมแล้ว</span>}
-              {!blocked && inSquad(player.id) && player.id !== currentId && (
-                <span className={styles.used}>อยู่ในทีมแล้ว</span>
-              )}
-            </button>
+              </button>
             );
           })}
 
-          {eligible.length === 0 && (
+          {listed.length === 0 && (
             <p className={styles.empty}>
-              {position === 'GK'
-                ? 'ยังไม่มีผู้รักษาประตูในสโมสร'
-                : 'ยังไม่มีนักเตะที่ลงตำแหน่งนี้ได้'}
+              {eligible.length > 0
+                ? 'ไม่มีการ์ดตรงกับตัวกรอง'
+                : position === 'GK'
+                  ? 'ยังไม่มีผู้รักษาประตูในสโมสร'
+                  : 'ยังไม่มีนักเตะที่ลงตำแหน่งนี้ได้'}
             </p>
           )}
         </div>
 
-        <div className={styles.footer}>
-          <p className={styles.legend}>
-            {position ? (
-              <>
-                ลงผิดตำแหน่งได้ แต่ OVR จะลดตามระยะห่างของตำแหน่ง — แนวเดียวกัน -3 ·
-                ห่างหนึ่งแนว -8 · กองหลังไปยืนกองหน้า -15 ·
-                ผู้รักษาประตูสลับกับตำแหน่งอื่นไม่ได้เลย
-              </>
-            ) : (
-              <>ตัวสำรองไม่มีตำแหน่งประจำ จึงไม่มีการหัก OVR</>
+        <div className={styles.bar}>
+          <SwapListControls
+            sort={sort}
+            onSort={setSort}
+            filter={filter}
+            onFilter={setFilter}
+            clubs={clubs}
+            nations={nations}
+          />
+          <span className={styles.divider} />
+          <div className={styles.buttons}>
+            {currentId && (
+              <button type="button" className={styles.clear} data-sound="back" onClick={onClear}>
+                เอาออก
+              </button>
             )}
-            <br />
-            นักเตะชื่อเดียวกันลงได้คนเดียวทั้งตัวจริงและตัวสำรอง
-          </p>
-          {currentId && (
-            <button type="button" className={styles.clear} data-sound="back" onClick={onClear}>
-              เอาออกจากตำแหน่งนี้
+            <button
+              type="button"
+              className={styles.confirm}
+              disabled={!compared}
+              onClick={() => compared && onPick(compared.id)}
+            >
+              {current ? 'สลับตัว' : 'ลงตำแหน่ง'}
             </button>
-          )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

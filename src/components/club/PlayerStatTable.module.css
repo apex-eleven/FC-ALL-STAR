@@ -1,0 +1,111 @@
+/* Reference: table 212..930 × 440..911, ten rows of ~47px, labels centred on x 571.
+   Values end at x 377 in the reference's condensed Thai face; the columns here are
+   25px wider so Noto Sans Thai fits, and stay symmetric so the labels keep centre.
+   The compare column mirrors the value column. */
+.table {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 190px 1fr 190px;
+  align-items: center;
+  height: 47px;
+  padding: 0;
+  background: rgba(78, 82, 90, 0.62);
+}
+
+.row:nth-child(even) {
+  background: rgba(58, 62, 70, 0.62);
+}
+
+.value,
+.compare {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 29px;
+  font-weight: 600;
+  line-height: 1;
+  color: #ffffff;
+  white-space: nowrap;
+  text-shadow: var(--shadow-text);
+}
+
+.value {
+  justify-content: flex-end;
+}
+
+.textRow .value,
+.textRow .compare {
+  font-family: var(--font-ui);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.compare {
+  justify-content: flex-start;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: 24px;
+  font-weight: 500;
+  color: #a4a9b0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.better {
+  color: #48e070;
+}
+
+.worse {
+  color: #ff5b5b;
+}
+
+.stars {
+  display: flex;
+  gap: 3px;
+}
+
+.starOn {
+  fill: #f7c21c;
+}
+
+.starOff {
+  fill: #5e6168;
+}
+
+.feet {
+  display: flex;
+  align-items: center;
+}
+
+.foot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 32px;
+  border-radius: 12px;
+  background: #9fa3aa;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1d22;
+  text-shadow: none;
+}
+
+.foot + .foot {
+  margin-left: -4px;
+}
+
+.footStrong {
+  position: relative;
+  background: #2f8cf0;
+  color: #ffffff;
+}

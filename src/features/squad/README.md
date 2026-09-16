@@ -125,3 +125,15 @@ remove target sitting behind all the others.
 Other formations (`FORMATIONS` is a map, so adding one is data), the three crest slots
 under the team value, chemistry, position ratings for out-of-position players, and
 naming or saving multiple squads.
+
+## Swap-screen stats (`stats.ts`)
+
+The swap screen shows a six-stat radar and detail rows (WFA, stamina, skill moves,
+height, weight, work rates, skill trait, acceleration, sprint speed). The catalogue
+does not store any of these, so they are **derived**: a position profile scaled by the
+upgraded OVR, plus a small variation seeded from the catalogue id. The same card always
+shows the same numbers, and a rank-up raises them with its OVR. They are display only —
+nothing in match or squad rating reads them.
+
+`swapList.ts` holds the list's sort orders (best fit for the slot, OVR, tier, newest)
+and filters (tier, club, nation, OVR range).

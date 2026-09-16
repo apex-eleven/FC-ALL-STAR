@@ -1,0 +1,78 @@
+/* Reference: dark disc r≈90 centred at 570,251 with six spokes; labels grey ~21px,
+   numbers white ~29px. The box is positioned by the swap screen. */
+.radar {
+  position: absolute;
+  pointer-events: none;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.base {
+  fill: rgba(18, 22, 28, 0.78);
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.spoke {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
+}
+
+.shape {
+  fill: #27b24a;
+  fill-opacity: 0.92;
+  stroke: #48e070;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+/* The compared card: an outline, so the green shape under it stays readable. */
+.compare {
+  fill: rgba(255, 150, 40, 0.18);
+  stroke: #ffa53a;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.label,
+.value {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  text-shadow: var(--shadow-text);
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: 21px;
+  font-weight: 500;
+  color: #a4a9b0;
+}
+
+.value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 29px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.value small {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.up {
+  color: #48e070;
+}
+
+.down {
+  color: #ff5b5b;
+}

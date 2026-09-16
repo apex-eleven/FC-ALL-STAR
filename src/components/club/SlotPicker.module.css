@@ -1,231 +1,335 @@
+/*
+  สลับนักเตะ, measured off the reference (2000x920 capture, ×1.024 to the stage):
+  back button centre 195,46 · title 268 · icons centred 1690 / 1777 / 1857
+  mode label 205,129 · compare label 735,129
+  slot card 218,182 (≈176x181) · radar centre 570,251 · compare frame 763,174 148x205
+  detail table 212..930 × 440..911
+  list panel 955..1836 × 118..914 · grid 4 × 218 from y 174 · bottom bar y 845, 61 high
+*/
 .screen {
   position: absolute;
   inset: 0;
   z-index: var(--z-modal);
-  display: grid;
-  place-items: center;
 }
 
+/* The club's stadium, blurred and darkened — the reference is the same photo. */
 .backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(4, 8, 6, 0.78);
+  background: rgba(6, 9, 13, 0.8);
+  backdrop-filter: blur(8px);
 }
 
-.panel {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 1180px;
-  max-height: 760px;
-  padding: 20px 24px 16px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #17212b 0%, #0c1218 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
-}
-
-.head {
+.header {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
+  width: 100%;
+  height: 92px;
+  padding: 0 170px 0 161px;
 }
 
-.slotTag {
-  padding: 5px 14px;
-  border-radius: var(--radius-pill);
-  background: var(--gradient-cta);
-  font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 900;
-  color: #ffffff;
+.back {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(60, 62, 72, 0.75);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  color: var(--color-text);
+  flex: none;
+  transition: transform var(--transition-fast);
+}
+
+.back:hover {
+  transform: scale(1.06);
 }
 
 .title {
-  margin: 0;
+  margin: 0 0 0 39px;
   font-family: var(--font-ui);
-  font-size: var(--text-lg);
+  font-size: 42px;
   font-weight: 800;
+  line-height: 1;
   color: var(--color-text);
+  text-shadow: var(--shadow-text-strong);
 }
 
-.count {
-  font-family: var(--font-ui);
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--color-dim);
-}
-
-.close {
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 41px;
   margin-left: auto;
+}
+
+.action {
+  position: relative;
+}
+
+.modeLabel,
+.compareLabel {
+  position: absolute;
+  top: 129px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateY(-50%);
+  font-family: var(--font-ui);
+  font-size: 23px;
+  font-weight: 500;
+  color: #a4a9b0;
+  white-space: nowrap;
+  text-shadow: var(--shadow-text);
+}
+
+.modeLabel {
+  left: 199px;
+}
+
+.compareLabel {
+  left: 729px;
+}
+
+.mainCard {
+  position: absolute;
+  left: 218px;
+  top: 180px;
+  width: 174px;
+  height: 186px;
+}
+
+.emptyCard {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--color-text);
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  border: 2px dashed rgba(255, 255, 255, 0.25);
+  font-family: var(--font-ui);
+  font-size: 26px;
+  color: #a4a9b0;
 }
 
-.close:hover {
-  background: rgba(255, 255, 255, 0.24);
+/* The radar draws in a 420x320 box centred on 570,251. */
+.radar {
+  position: absolute;
+  left: 360px;
+  top: 91px;
+}
+
+.compareSlot {
+  position: absolute;
+  left: 763px;
+  top: 174px;
+  width: 148px;
+  height: 205px;
+}
+
+.shield {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.shield path {
+  fill: rgba(40, 44, 52, 0.88);
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 2;
+}
+
+.compareEmpty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 14px;
+  font-family: var(--font-ui);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #8d9299;
+  text-align: center;
+}
+
+.silhouette {
+  fill: rgba(255, 255, 255, 0.09);
+  margin-bottom: -18px;
+}
+
+.compareCard {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+}
+
+.table {
+  position: absolute;
+  left: 212px;
+  top: 440px;
+  width: 718px;
+}
+
+.table > div {
+  width: 100%;
+}
+
+/* ---- list ---- */
+.list {
+  position: absolute;
+  left: 955px;
+  top: 118px;
+  width: 881px;
+  height: 796px;
+  border-radius: 12px;
+  background: rgba(22, 26, 32, 0.8);
+  border: 2px solid rgba(70, 150, 150, 0.55);
+}
+
+.listTitle {
+  position: absolute;
+  left: 11px;
+  top: 6px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .grid {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  position: absolute;
+  left: 2px;
+  top: 54px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-  margin: 16px 0 12px;
-  padding-right: 8px;
+  grid-template-columns: repeat(4, 218px);
+  grid-auto-rows: 212px;
+  align-content: start;
+  width: 875px;
+  height: 638px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .cell {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 8px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
-  transition: background var(--transition-fast), transform var(--transition-fast);
+  display: grid;
+  place-items: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background var(--transition-fast);
+}
+
+.cell:nth-child(4n) {
+  border-right: none;
 }
 
 .cell:hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.cellOn {
-  border-color: #2be08c;
-  background: rgba(43, 224, 140, 0.14);
+.cellOn,
+.cellOn:hover {
+  background: rgba(55, 211, 189, 0.14);
+  box-shadow: inset 0 0 0 3px #37d3bd;
 }
 
-.art {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
-  pointer-events: none;
-}
-
-.name {
-  max-width: 100%;
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  font-weight: 800;
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
-.position {
-  padding: 1px 7px;
-  border-radius: var(--radius-xs);
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--color-muted);
-}
-
-.exact {
-  color: #7ef0b4;
-}
-
-.off {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--color-dim);
-}
-
-.arrow {
-  opacity: 0.7;
-}
-
-/* The number the card is actually worth here, and what it cost to put him there. */
-.penalty {
-  padding: 1px 6px;
-  border-radius: var(--radius-xs);
-  background: rgba(229, 52, 63, 0.28);
-  color: #ffc0c5;
-}
-
-.used {
-  position: absolute;
-  right: 6px;
-  top: 6px;
-  padding: 2px 7px;
-  border-radius: var(--radius-pill);
-  background: rgba(8, 12, 20, 0.85);
-  font-family: var(--font-ui);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  color: var(--color-dim);
-}
-
-.empty {
-  grid-column: 1 / -1;
-  padding: 50px 0;
-  text-align: center;
-  font-family: var(--font-ui);
-  font-size: var(--text-base);
-  color: var(--color-dim);
-}
-
-.footer {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.legend {
-  flex: 1;
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: var(--text-2xs);
-  font-weight: 400;
-  line-height: 1.6;
-  color: var(--color-dim);
-}
-
-.clear {
-  padding: 9px 18px;
-  border-radius: var(--radius-sm);
-  background: rgba(229, 52, 63, 0.3);
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.clear:hover {
-  background: rgba(229, 52, 63, 0.5);
-}
-
-/* Another card with the same name is already in the squad. Shown rather than hidden,
-   so it is obvious why a card that clearly fits is not available. */
 .cellBlocked {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.cellBlocked:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: none;
+.penalty {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: #d9302f;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.tag {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(0, 0, 0, 0.72);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffd66b;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: 60px 0 0;
+  font-family: var(--font-ui);
+  font-size: 24px;
+  color: #a4a9b0;
+  text-align: center;
+}
+
+.bar {
+  position: absolute;
+  left: 11px;
+  right: 14px;
+  top: 725px;
+  display: flex;
+  align-items: center;
+  height: 61px;
+}
+
+.divider {
+  width: 2px;
+  height: 61px;
+  margin-left: 14px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.clear,
+.confirm {
+  height: 61px;
+  border-radius: 31px;
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.clear {
+  padding: 0 26px;
+  background: rgba(38, 41, 48, 0.95);
+  color: #d6d9de;
+}
+
+.confirm {
+  min-width: 190px;
+  padding: 0 30px;
+  background: linear-gradient(180deg, #f2ff5c 0%, #d8f82a 55%, #bfe818 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
+  color: #121212;
+}
+
+.confirm:disabled {
+  background: rgba(70, 74, 82, 0.9);
+  box-shadow: none;
+  color: #8d9299;
+  cursor: not-allowed;
 }
