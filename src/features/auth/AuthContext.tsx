@@ -16,6 +16,7 @@ import { emptyClub, normalizeClub } from '@/features/club/club';
 import { withoutLegacy } from '@/features/club/legacy';
 import { emptySquad, indexOwned, normalizeSquad } from '@/features/squad/squad';
 import { normalizeProgress } from '@/features/transfers/transferConfigStore';
+import { normalizeProgress as normalizeShopProgress } from '@/features/shop/shopConfigStore';
 import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/leveling';
 import {
   ADMIN_SIGNUP_CODE,
@@ -107,6 +108,7 @@ function toPublic(stored: StoredAccount): Account {
             new Set(club.players.map((card) => card.id)),
           ),
         }),
+    ...(account.shop === undefined ? {} : { shop: normalizeShopProgress(account.shop) }),
   };
 }
 

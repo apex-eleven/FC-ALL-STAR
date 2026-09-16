@@ -1,0 +1,106 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #05080c;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-background);
+  background:
+    radial-gradient(ellipse at 60% 20%, rgba(90, 110, 150, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0d14 0%, #0b1a14 60%, #0d2a18 100%);
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-background);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photoScrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-background);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.2) 55%, rgba(0, 0, 0, 0.05) 100%);
+}
+
+.closed {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+/* Reference: first card at 371,190, cards 12px apart, the row scrolls sideways. */
+.row {
+  position: absolute;
+  left: 352px;
+  right: 0;
+  top: 152px;
+  bottom: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 38px 40px 0 19px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.row::-webkit-scrollbar {
+  display: none;
+}
+
+.empty {
+  margin: 120px 0 0 60px;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  color: var(--color-muted);
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 420px;
+  z-index: var(--z-modal);
+  max-width: 1200px;
+  padding: 18px 40px;
+  border-radius: var(--radius-pill);
+  background: rgba(8, 12, 18, 0.94);
+  border: 1px solid rgba(58, 224, 112, 0.45);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  transform: translateX(-50%);
+  animation: toast 2400ms ease forwards;
+  pointer-events: none;
+}
+
+@keyframes toast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  10%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+  }
+}

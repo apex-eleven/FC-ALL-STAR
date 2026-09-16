@@ -37,6 +37,7 @@ export default function BottomNavigation() {
     league: () => navigate('league'),
     ...(rankup.enabled ? { rankup: () => navigate('rankup') } : {}),
     ...(transfer.enabled ? { contracts: () => navigate('transfer') } : {}),
+    store: () => navigate('shop'),
   };
 
   return (

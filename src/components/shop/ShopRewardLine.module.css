@@ -1,0 +1,59 @@
+.line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+}
+
+.group {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.plus {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: var(--shadow-text);
+}
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.amount {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: var(--shadow-text-strong);
+}
+
+.bonus .amount,
+.bonusWord {
+  color: #3ff08a;
+}
+
+.bonusWord {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: var(--shadow-text-strong);
+}

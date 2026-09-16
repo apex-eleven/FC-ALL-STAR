@@ -23,6 +23,7 @@ import { normalizeWallet, startingWallet } from '@/features/currencies/wallet';
 import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/leveling';
 import { emptySquad, indexOwned, normalizeSquad } from '@/features/squad/squad';
 import { normalizeProgress } from '@/features/transfers/transferConfigStore';
+import { normalizeProgress as normalizeShopProgress } from '@/features/shop/shopConfigStore';
 import {
   ADMIN_SIGNUP_CODE,
   checkPassword,
@@ -86,6 +87,7 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
       data.transfer === undefined
         ? undefined
         : normalizeProgress(data.transfer, new Set(club.players.map((card) => card.id))),
+    shop: data.shop === undefined ? undefined : normalizeShopProgress(data.shop),
   };
 }
 

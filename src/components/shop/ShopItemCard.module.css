@@ -1,0 +1,283 @@
+/*
+  Reference sizes on the 2048x942 stage:
+  regular 298x478 — title centred 32 down, limit 80 down, VALUE badge 96px at 90 down,
+  price band 38 high ending 31 above the bottom, lime button 50 high ending 8 above.
+  tall 368x705 — thumbs-up strip 58 high at 150, VALUE badge 136px at 165,
+  price band 40 high ending 40 above the bottom, countdown strip 38 high at the bottom.
+*/
+.card {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  text-align: center;
+  color: #ffffff;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  filter: brightness(1.06);
+}
+
+.regular {
+  --pad: 31px;
+  --band-h: 38px;
+  --band-size: 30px;
+  --badge: 96px;
+  --badge-top: 90px;
+  --badge-right: 2px;
+  width: 298px;
+  height: 478px;
+}
+
+.tall {
+  --pad: 40px;
+  --band-h: 40px;
+  --band-size: 36px;
+  --badge: 136px;
+  --badge-top: 165px;
+  --badge-right: 12px;
+  width: 368px;
+  height: 705px;
+}
+
+.soldOut {
+  filter: grayscale(0.7) brightness(0.75);
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Drawn from the first reward when no art is uploaded. */
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, #2a3a5c 0%, #121a2e 100%);
+}
+
+.card[data-lead='fcpoint'] .fallback {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(60, 220, 140, 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, #103026 0%, #0a1612 100%);
+}
+
+.card[data-lead='gem'] .fallback {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 70, 90, 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, #3a1420 0%, #160a10 100%);
+}
+
+.card[data-lead='ticket'] .fallback,
+.tall .fallback {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9) 0%, rgba(210, 214, 222, 0.9) 60%),
+    linear-gradient(160deg, #e8eaee 0%, #b8bec8 100%);
+}
+
+.card[data-lead='exchange'] .fallback {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(80, 160, 255, 0.4) 0%, transparent 55%),
+    linear-gradient(160deg, #10284a 0%, #0a1426 100%);
+}
+
+.fallbackIcon {
+  width: 46%;
+  max-width: 180px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+}
+
+.head {
+  position: absolute;
+  top: 14px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.title {
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: var(--shadow-text-strong);
+}
+
+.subtitle,
+.limit {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-shadow: var(--shadow-text-strong);
+}
+
+.quantity {
+  position: absolute;
+  top: 150px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  height: 58px;
+  padding-left: 14px;
+  background: rgba(70, 72, 78, 0.62);
+}
+
+.thumb {
+  flex: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.quantityNumber {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: var(--shadow-text-strong);
+}
+
+/* Gold starburst. The edge is a clip-path, so the drop shadow sits on the wrapper. */
+.value {
+  position: absolute;
+  top: var(--badge-top);
+  right: var(--badge-right);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: var(--badge);
+  height: var(--badge);
+  background: radial-gradient(circle at 40% 35%, #fff4b8 0%, #f6d768 45%, #d9a441 100%);
+  color: #111111;
+}
+
+.valueNumber {
+  font-family: var(--font-display);
+  font-size: calc(var(--badge) * 0.3);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.95;
+}
+
+.valueNumber small {
+  font-size: 0.55em;
+}
+
+.valueWord {
+  font-family: var(--font-display);
+  font-size: calc(var(--badge) * 0.15);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+}
+
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--pad);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.bottomButton {
+  --pad: 8px;
+}
+
+.bottomTimed {
+  --pad: 40px;
+}
+
+.rewards {
+  width: 100%;
+}
+
+.priceBand {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--band-h);
+  background: rgba(46, 48, 60, 0.68);
+  font-family: var(--font-display);
+  font-size: var(--band-size);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: var(--shadow-text-strong);
+}
+
+.priceButton {
+  display: grid;
+  place-items: center;
+  width: calc(100% - 16px);
+  height: 50px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #f2ff5c 0%, #d8f82a 55%, #bfe818 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: #121212;
+}
+
+.priceParts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pricePart {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.priceIcon {
+  width: 1.05em;
+  height: 1.05em;
+  object-fit: contain;
+}
+
+.slash {
+  margin-right: 10px;
+}
+
+.countdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  background: rgba(18, 18, 22, 0.9);
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.countdownTime {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: #78e46a;
+}

@@ -1,0 +1,258 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 4, 10, 0.74);
+  border: none;
+  cursor: default;
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 980px;
+  max-height: 820px;
+  padding: 28px 36px 34px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, #171b26 0%, #0c0f16 100%);
+  border: 2px solid rgba(58, 224, 112, 0.35);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+  animation: rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 36px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-muted);
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.body {
+  display: flex;
+  gap: 32px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.art {
+  flex: none;
+  width: 260px;
+  max-height: 500px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+.details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  font-family: var(--font-ui);
+  color: #ffffff;
+}
+
+.label {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.rewards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reward {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 26px;
+}
+
+.reward img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.reward strong {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 30px;
+}
+
+.bonus {
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  color: #3ff08a;
+}
+
+.muted {
+  font-size: 20px;
+  color: var(--color-muted);
+}
+
+.payRow {
+  display: flex;
+  gap: 14px;
+}
+
+.pay {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 68px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #f2ff5c 0%, #d8f82a 55%, #bfe818 100%);
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: #121212;
+  transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+.pay img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.pay:not(:disabled):hover {
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+}
+
+.pay:disabled {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.45);
+  cursor: not-allowed;
+}
+
+.short {
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff6b7d;
+}
+
+.baht {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bahtPrice {
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 900;
+}
+
+.note {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: pre-line;
+}
+
+.order {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 20px;
+}
+
+.copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.12);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.contact {
+  display: grid;
+  place-items: center;
+  height: 64px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #34d27a 0%, #16a557 100%);
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.contact:hover {
+  filter: brightness(1.08);
+}
+
+.soldOut {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffb14a;
+}

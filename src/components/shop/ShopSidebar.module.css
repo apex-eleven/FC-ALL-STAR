@@ -1,0 +1,86 @@
+/* Reference: rail 0,152 352 wide · rows 82 high from y 190 · labels centred at x 235. */
+.rail {
+  position: absolute;
+  left: 0;
+  top: 152px;
+  bottom: 0;
+  z-index: var(--z-panel);
+  display: flex;
+  flex-direction: column;
+  width: 352px;
+  background: rgba(2, 4, 8, 0.84);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  padding-top: 38px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 82px;
+  padding: 0 14px 0 116px;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  transition: color var(--transition-fast);
+}
+
+.item:hover {
+  color: #ffffff;
+}
+
+.itemOn,
+.itemOn:hover {
+  background: linear-gradient(90deg, #05262c 0%, #0a4a55 60%, #0d5f6c 100%);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.itemOn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0c4a4a 0%, #2bd08a 45%, #e8f23c 75%, #0c4a4a 100%);
+}
+
+/* Centred on x 235 like the reference; a long name spills evenly both ways
+   (ข้อเสนอ FP ประจำวัน runs 125–340) instead of being cut. */
+.name {
+  flex: none;
+  white-space: nowrap;
+}
+
+.dot {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e3313d;
+}
+
+.footer {
+  margin: auto 22px 36px 126px;
+  font-family: var(--font-ui);
+  font-size: 20px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+}

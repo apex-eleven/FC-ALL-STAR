@@ -10,6 +10,7 @@ import { LeagueProvider } from '@/features/league/LeagueContext';
 import { AnnouncementProvider } from '@/features/announcement/AnnouncementContext';
 import { RankUpProvider } from '@/features/rankup/RankUpContext';
 import { TransferProvider } from '@/features/transfers/TransferContext';
+import { ShopProvider } from '@/features/shop/ShopContext';
 import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
 import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
@@ -41,12 +42,14 @@ function render() {
                     <WalkoutProvider>
                       <RankUpProvider>
                         <TransferProvider>
-                          <NavigationProvider>
-                            <AnnouncementProvider>
-                              <CloudConfigSync />
-                              <App />
-                            </AnnouncementProvider>
-                          </NavigationProvider>
+                          <ShopProvider>
+                            <NavigationProvider>
+                              <AnnouncementProvider>
+                                <CloudConfigSync />
+                                <App />
+                              </AnnouncementProvider>
+                            </NavigationProvider>
+                          </ShopProvider>
                         </TransferProvider>
                       </RankUpProvider>
                     </WalkoutProvider>

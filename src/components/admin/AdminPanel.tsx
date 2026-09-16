@@ -24,6 +24,7 @@ import AdminPlayers from './AdminPlayers';
 import AdminRankUp from './AdminRankUp';
 import AdminStore from './AdminStore';
 import AdminTransfer from './AdminTransfer';
+import AdminShop from './AdminShop';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
 
@@ -46,6 +47,7 @@ type Tab =
   | 'league'
   | 'rankup'
   | 'transfer'
+  | 'shop'
   | 'announcement'
   | 'walkout'
   | 'backup';
@@ -62,6 +64,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'league', label: 'ลีก' },
   { id: 'rankup', label: 'ตีบวกการ์ด' },
   { id: 'transfer', label: 'เซ็นสัญญา' },
+  { id: 'shop', label: 'ร้านค้าไอเท็ม' },
   { id: 'announcement', label: 'ประกาศ' },
   { id: 'walkout', label: 'Walkout' },
   { id: 'backup', label: 'สำรองข้อมูล' },
@@ -236,6 +239,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'league' && <AdminLeague />}
         {tab === 'rankup' && <AdminRankUp />}
         {tab === 'transfer' && <AdminTransfer />}
+        {tab === 'shop' && <AdminShop />}
         {tab === 'announcement' && <AdminAnnouncement />}
         {tab === 'walkout' && <AdminWalkout />}
         {tab === 'backup' && <AdminBackup />}
