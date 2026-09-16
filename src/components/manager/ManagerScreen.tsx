@@ -51,7 +51,7 @@ function networkRtt(): number | null {
 export default function ManagerScreen() {
   const account = useAccount();
   const { back, navigate } = useNavigation();
-  const { config, state, rating, refreshOpponents, play } = useManager();
+  const { config, state, rating, leaderboardRank, refreshOpponents, play } = useManager();
   const [now, setNow] = useState(() => new Date());
   const [slide, setSlide] = useState(0);
   const [dialog, setDialog] = useState<ManagerDialogMode | null>(null);
@@ -87,7 +87,6 @@ export default function ManagerScreen() {
   const tier = state ? config.tiers[state.tier] : undefined;
   const milestone = state ? nextMilestone(state, config) : null;
   const weekWins = state?.weekWins ?? 0;
-  const starters = Object.values(account.squad.starters).filter(Boolean).length;
   const rtt = useMemo(() => networkRtt(), []);
 
   // The bar fills toward the next milestone; once all are paid it stays full.
@@ -215,13 +214,14 @@ export default function ManagerScreen() {
         </button>
       )}
 
+      {/* Player ID and leaderboard place. */}
       <button type="button" className={styles.clubCard} onClick={() => navigate('club')}>
         <span className={styles.clubIcon}>
           <img src={avatarSrc(account.avatarId)} alt="" draggable={false} />
         </span>
         <span className={styles.clubName}>{account.username}</span>
-        <span className={styles.clubCount} title="นักเตะตัวจริง">
-          <b>{starters}</b>
+        <span className={styles.clubCount} title="อันดับ Leaderboard">
+          <b>{leaderboardRank ?? '-'}</b>
           <BarChart3 size={30} strokeWidth={3} />
         </span>
       </button>

@@ -34,6 +34,12 @@ interface ManagerValue {
   state: ManagerState | null;
   /** Squad OVR of the eleven on the pitch — what a match is played at. */
   rating: number;
+  /**
+   * This account's place on the OVR leaderboard, counted the way the leaderboard
+   * screen numbers its rows. null when it is not on the fetched table (no cloud, not
+   * published yet, or below the rows fetched).
+   */
+  leaderboardRank: number | null;
   /** Re-reads the published elevens opponents are drawn from. */
   refreshOpponents(): void;
   play(ranked: boolean): ManagerPlayResult;
@@ -80,6 +86,12 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
     return squadRating(account.squad, owned);
   }, [account, byId]);
 
+  const leaderboardRank = useMemo(() => {
+    if (!account) return null;
+    const index = entries.findIndex((entry) => entry.uid === account.id);
+    return index >= 0 ? index + 1 : null;
+  }, [account, entries]);
+
   const state = useMemo(
     () => (account ? currentState(account.manager, config, new Date(clock)) : null),
     [account, config, clock],
@@ -110,8 +122,8 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<ManagerValue>(
-    () => ({ config, replace, reset, state, rating, refreshOpponents, play }),
-    [config, replace, reset, state, rating, refreshOpponents, play],
+    () => ({ config, replace, reset, state, rating, leaderboardRank, refreshOpponents, play }),
+    [config, replace, reset, state, rating, leaderboardRank, refreshOpponents, play],
   );
 
   return <ManagerContext.Provider value={value}>{children}</ManagerContext.Provider>;
