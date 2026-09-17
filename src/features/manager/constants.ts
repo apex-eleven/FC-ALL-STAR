@@ -3,7 +3,8 @@ import type { ManagerConfig, ManagerMilestone, ManagerTier } from './types';
 export const MANAGER_CONFIG_KEY = 'football-home-ui:manager:v1';
 
 export const MAX_TIERS = 16;
-export const MAX_TIER_STARS = 5;
+/** No real limit on stars per tier; this only bounds hand-edited storage. */
+export const MAX_TIER_STARS = 9999;
 export const MAX_MILESTONES = 10;
 export const MAX_MILESTONE_REWARDS = 4;
 export const MAX_BANNERS = 4;

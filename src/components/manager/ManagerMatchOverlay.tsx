@@ -1,10 +1,11 @@
-import { ArrowDown, ArrowUp, Star } from 'lucide-react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
 import { formatCurrency } from '@/features/currencies/constants';
 import type { ManagerPlayResult } from '@/features/manager/ManagerContext';
 import type { ManagerTier } from '@/features/manager/types';
 import { avatarSrc } from './avatarSrc';
+import TierStars from './TierStars';
 import styles from './ManagerMatchOverlay.module.css';
 
 export interface ManagerMatchOverlayProps {
@@ -19,16 +20,6 @@ export interface ManagerMatchOverlayProps {
 
 const OUTCOME_LABEL = { win: 'ชนะ', draw: 'เสมอ', loss: 'แพ้' } as const;
 
-function stars(count: number, filled: number) {
-  return Array.from({ length: count }, (_, index) => (
-    <Star
-      key={index}
-      size={30}
-      strokeWidth={0}
-      className={index < filled ? styles.starOn : styles.starOff}
-    />
-  ));
-}
 
 /** Full time: the score, the ladder change, and any milestone the win completed. */
 export default function ManagerMatchOverlay({
@@ -102,12 +93,12 @@ export default function ManagerMatchOverlay({
           <div className={styles.ladder}>
             <span className={styles.rung}>
               <b>{before.name}</b>
-              <span className={styles.starRow}>{stars(before.stars, match.starsBefore)}</span>
+              <TierStars total={before.stars} filled={match.starsBefore} size={30} />
             </span>
             <span className={styles.arrow}>→</span>
             <span className={styles.rung}>
               <b>{after.name}</b>
-              <span className={styles.starRow}>{stars(after.stars, match.starsAfter)}</span>
+              <TierStars total={after.stars} filled={match.starsAfter} size={30} />
             </span>
             {moved > 0 && (
               <span className={`${styles.change} ${styles.up}`}>

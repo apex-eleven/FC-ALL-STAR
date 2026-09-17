@@ -386,18 +386,22 @@ export default function AdminManager() {
                     onChange={(event) => patchTier(tier.id, { name: event.target.value })}
                   />
                   <div className={styles.line}>
-                    <select
-                      className={styles.input}
-                      value={tier.stars}
-                      onChange={(event) => patchTier(tier.id, { stars: Number(event.target.value) })}
-                      title="จำนวนดาวของแรงค์นี้"
-                    >
-                      {Array.from({ length: MAX_TIER_STARS }, (_, star) => (
-                        <option key={star} value={star + 1}>
-                          {star + 1} ดาว
-                        </option>
-                      ))}
-                    </select>
+                    <label className={styles.inline} title="จำนวนดาวของแรงค์นี้ (ใส่ได้ไม่จำกัด)">
+                      <input
+                        className={styles.num}
+                        inputMode="numeric"
+                        defaultValue={tier.stars}
+                        key={`${tier.id}-${tier.stars}`}
+                        // Committed on blur, so a number typed digit by digit is not
+                        // clamped part-way through.
+                        onBlur={(event) =>
+                          patchTier(tier.id, {
+                            stars: Math.min(MAX_TIER_STARS, Math.max(1, whole(event.target.value))),
+                          })
+                        }
+                      />
+                      ดาว
+                    </label>
                     <button
                       type="button"
                       className={`${styles.toggle} ${tier.floor ? styles.toggleOn : ''}`}
@@ -661,17 +665,15 @@ export default function AdminManager() {
                   </option>
                 ))}
               </select>
-              <select
-                className={styles.input}
-                value={targetStars}
-                onChange={(event) => setTargetStars(Number(event.target.value))}
-              >
-                {Array.from({ length: (config.tiers[targetTier]?.stars ?? 0) + 1 }, (_, star) => (
-                  <option key={star} value={star}>
-                    {star} ดาว
-                  </option>
-                ))}
-              </select>
+              <label className={styles.inline}>
+                <input
+                  className={styles.num}
+                  inputMode="numeric"
+                  value={targetStars}
+                  onChange={(event) => setTargetStars(whole(event.target.value))}
+                />
+                / {config.tiers[targetTier]?.stars ?? 0} ดาว
+              </label>
               <button type="button" className={styles.primary} disabled={!target || busy} onClick={() => void setRank()}>
                 ตั้งแรงค์
               </button>

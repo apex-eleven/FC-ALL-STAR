@@ -167,19 +167,6 @@
   font-size: 24px;
 }
 
-.starRow {
-  display: flex;
-  gap: 2px;
-}
-
-.starOn {
-  fill: #f6c21d;
-}
-
-.starOff {
-  fill: rgba(170, 170, 185, 0.5);
-}
-
 .arrow {
   font-size: 32px;
   color: #8f80b8;

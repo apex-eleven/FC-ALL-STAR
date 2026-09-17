@@ -1,10 +1,11 @@
-import { Check, Shield, Star, X } from 'lucide-react';
+import { Check, Shield, X } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { formatCurrency } from '@/features/currencies/constants';
 import { seasonEnd } from '@/features/manager/manager';
 import { useManager } from '@/features/manager/ManagerContext';
 import { avatarSrc } from './avatarSrc';
 import ManagerTrophy from './ManagerTrophy';
+import TierStars from './TierStars';
 import styles from './ManagerDialog.module.css';
 
 export type ManagerDialogMode = 'rules' | 'rewards' | 'history';
@@ -78,9 +79,7 @@ export default function ManagerDialog({ mode, onClose }: ManagerDialogProps) {
                     </span>
                     <span className={styles.tierName}>{tier.name}</span>
                     <span className={styles.tierStars}>
-                      {Array.from({ length: tier.stars }, (_, star) => (
-                        <Star key={star} size={18} strokeWidth={0} fill="currentColor" />
-                      ))}
+                      <TierStars total={tier.stars} filled={tier.stars} size={18} countOnly />
                     </span>
                     {tier.floor && (
                       <span className={styles.floor} title="แพ้แล้วไม่ตกแรงค์">

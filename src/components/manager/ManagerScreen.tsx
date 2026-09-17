@@ -9,7 +9,6 @@ import {
   Plus,
   Shirt,
   ShoppingCart,
-  Star,
   Triangle,
   Volleyball,
   Wifi,
@@ -33,6 +32,7 @@ import ManagerDialog, { type ManagerDialogMode } from './ManagerDialog';
 import ManagerLiveMatch from './ManagerLiveMatch';
 import ManagerMatchOverlay from './ManagerMatchOverlay';
 import ManagerTrophy from './ManagerTrophy';
+import TierStars from './TierStars';
 import styles from './ManagerScreen.module.css';
 
 const PLAY_ERROR: Record<string, string> = {
@@ -287,14 +287,7 @@ export default function ManagerScreen() {
         <>
           <h2 className={styles.tierName}>{tier.name}</h2>
           <div className={styles.stars}>
-            {Array.from({ length: tier.stars }, (_, index) => (
-              <Star
-                key={index}
-                size={62}
-                strokeWidth={0}
-                className={index < state.stars ? styles.starOn : styles.starOff}
-              />
-            ))}
+            <TierStars total={tier.stars} filled={state.stars} size={62} />
           </div>
           <button type="button" className={styles.trophy} onClick={() => setDialog('rules')} aria-label="แรงค์ทั้งหมด">
             <ManagerTrophy image={tier.image} name={tier.name} />

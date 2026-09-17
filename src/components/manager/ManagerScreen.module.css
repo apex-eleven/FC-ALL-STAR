@@ -470,15 +470,6 @@
   transform: translate(-50%, -50%);
 }
 
-.starOn {
-  fill: #f6c21d;
-  filter: drop-shadow(0 0 6px rgba(255, 210, 60, 0.6));
-}
-
-.starOff {
-  fill: rgba(170, 170, 185, 0.75);
-}
-
 .trophy {
   position: absolute;
   left: 1382px;
