@@ -6,6 +6,7 @@ import { appendEntry, credit, debit } from '@/features/currencies/wallet';
 import type { Wallet, WalletEntry, WalletReason } from '@/features/currencies/types';
 import { cardToPlayer } from '@/features/draft/pool';
 import { seasonIdAt } from '@/features/league/season';
+import { withItems } from '@/features/items/inventory';
 import type { PlayerCard } from '@/features/players/types';
 import { SHOP_EVENT_ID } from './constants';
 import type {
@@ -143,7 +144,7 @@ function credited(
   let nextWallet = wallet;
   let nextLedger = ledger;
   for (const reward of payout) {
-    if (isCardReward(reward)) continue;
+    if (reward.kind === 'card' || reward.kind === 'item') continue;
     const result = credit(nextWallet, reward.kind, reward.amount, { reason, by });
     if (!result.ok || !result.entry) return { ok: false, wallet, ledger };
     nextWallet = result.wallet;
@@ -283,8 +284,15 @@ export function buyWith(
       ledger: given.ledger,
       club: cards.club,
       shop: recorded(progress, item, now, config),
+      ...itemsFor(account, payout),
     },
   };
+}
+
+/** The inventory after a payout's item lines, as a spreadable field. */
+function itemsFor(account: Account, payout: readonly ShopReward[]): Pick<Account, 'inventory'> {
+  const inventory = withItems(account.inventory, payout);
+  return inventory ? { inventory } : {};
 }
 
 /**
@@ -333,6 +341,7 @@ export function grantPurchase(
       ledger: given.ledger,
       club: cards.club,
       shop: recorded(progress, item, now, config),
+      ...itemsFor(account, payout),
     },
   };
 }
@@ -360,7 +369,13 @@ export function deliverRewards(
   return {
     ok: true,
     cards: cards.cards,
-    account: { ...account, wallet: given.wallet, ledger: given.ledger, club: cards.club },
+    account: {
+      ...account,
+      wallet: given.wallet,
+      ledger: given.ledger,
+      club: cards.club,
+      ...itemsFor(account, payout),
+    },
   };
 }
 

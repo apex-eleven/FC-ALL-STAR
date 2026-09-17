@@ -60,6 +60,21 @@ import currencyExchange from './images/brand/currency-exchange.png';
 import currencyGem from './images/brand/currency-gem.png';
 import currencyFcPoint from './images/brand/currency-fcpoint.png';
 import currencyTicket from './images/brand/currency-ticket.png';
+import currencySpecial from './images/brand/currency-special.png';
+import navBag from './images/brand/nav-bag.png';
+import itemAvatar from './images/items/avatar.png';
+import itemShield from './images/items/shield.png';
+import itemPack from './images/items/pack.png';
+import itemRename from './images/items/rename.png';
+import itemPlus5 from './images/items/plus-5.png';
+import itemPlus6 from './images/items/plus-6.png';
+import itemPlus7 from './images/items/plus-7.png';
+import itemPlus8 from './images/items/plus-8.png';
+import itemBoxFcpoint from './images/items/box-fcpoint.png';
+import itemBoxTicket from './images/items/box-ticket.png';
+import itemBoxExchange from './images/items/box-exchange.png';
+import itemPick from './images/items/pick.png';
+import itemPremium from './images/items/premium.png';
 
 import navActivities from './images/brand/nav-activities.png';
 import navHighlight from './images/brand/nav-highlight.png';
@@ -119,10 +134,28 @@ export const ASSETS = {
     currencyGem,
     currencyFcPoint,
     currencyTicket,
+    currencySpecial,
+    navBag,
     navActivities,
     navHighlight,
     navStarPass,
     navOvertime,
+  },
+  /** Default art for bag items; an admin upload replaces it per item. */
+  items: {
+    avatar: itemAvatar,
+    shield: itemShield,
+    pack: itemPack,
+    rename: itemRename,
+    plus5: itemPlus5,
+    plus6: itemPlus6,
+    plus7: itemPlus7,
+    plus8: itemPlus8,
+    boxFcpoint: itemBoxFcpoint,
+    boxTicket: itemBoxTicket,
+    boxExchange: itemBoxExchange,
+    pick: itemPick,
+    premium: itemPremium,
   },
   rankup: {
     tabRankUp: rankupTabRankUp,

@@ -30,8 +30,9 @@ export function resolveAvatars(
   });
 }
 
-export function isUnlocked(avatar: Avatar, level: number): boolean {
-  return level >= avatar.requiredLevel;
+/** Open by level, or by an avatar item the account has used (`extra`). */
+export function isUnlocked(avatar: Avatar, level: number, extra: readonly string[] = []): boolean {
+  return level >= avatar.requiredLevel || extra.includes(avatar.id);
 }
 
 export function findAvatar(avatars: readonly Avatar[], id: string): Avatar | undefined {
@@ -57,12 +58,13 @@ export function resolveDisplayAvatar(
   avatars: readonly Avatar[],
   selectedId: string,
   level: number,
+  extra: readonly string[] = [],
 ): Avatar | undefined {
   const selected = findAvatar(avatars, selectedId);
-  if (selected && isUnlocked(selected, level)) return selected;
+  if (selected && isUnlocked(selected, level, extra)) return selected;
   return findAvatar(avatars, DEFAULT_AVATAR_ID) ?? avatars[0];
 }
 
-export function unlockedCount(avatars: readonly Avatar[], level: number): number {
-  return avatars.filter((avatar) => isUnlocked(avatar, level)).length;
+export function unlockedCount(avatars: readonly Avatar[], level: number, extra: readonly string[] = []): number {
+  return avatars.filter((avatar) => isUnlocked(avatar, level, extra)).length;
 }

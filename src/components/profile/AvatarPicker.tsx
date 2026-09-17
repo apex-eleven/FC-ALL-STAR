@@ -15,7 +15,8 @@ export default function AvatarPicker({ onClose }: AvatarPickerProps) {
   const { setAvatar } = useAuth();
   const { avatars } = useAvatars();
 
-  const unlocked = unlockedCount(avatars, account.level);
+  const extra = account.inventory?.avatars ?? [];
+  const unlocked = unlockedCount(avatars, account.level, extra);
 
   return (
     <div className={styles.screen} role="dialog" aria-modal="true" aria-label="เลือกรูปโปรไฟล์">
@@ -32,7 +33,7 @@ export default function AvatarPicker({ onClose }: AvatarPickerProps) {
 
         <div className={styles.grid}>
           {avatars.map((avatar) => {
-            const open = isUnlocked(avatar, account.level);
+            const open = isUnlocked(avatar, account.level, extra);
             const selected = avatar.id === account.avatarId;
 
             return (

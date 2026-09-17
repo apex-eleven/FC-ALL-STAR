@@ -12,6 +12,7 @@ export default function LeftNavigation() {
   /** Tiles with a screen behind them. The rest stay inert. */
   const select = (id: string) => {
     if (id === 'rail-starpass' && starpass.enabled) navigate('starpass');
+    if (id === 'rail-bag') navigate('bag');
   };
 
   return (

@@ -224,6 +224,8 @@ export interface ManagerPlayInput {
    * two ratings — the quick simulation.
    */
   result?: { score: [number, number]; forfeit?: boolean };
+  /** A star shield is switched on and held: a ranked loss keeps its stars. */
+  shield?: boolean;
 }
 
 export function outcomeOf(score: readonly [number, number]): ManagerMatch['outcome'] {
@@ -278,7 +280,10 @@ export function playManagerMatch(account: Account, input: ManagerPlayInput): Man
   const outcome = input.result ? outcomeOf(input.result.score) : playMatch(seed, rating, opponent.rating);
   const score = input.result ? input.result.score : scoreFor(seed, outcome);
 
-  const after = ranked ? climb(state, outcome, config.tiers) : { tier: state.tier, stars: state.stars };
+  // A shield covers a ranked loss played to the end. Leaving early is not covered.
+  const shielded = ranked && outcome === 'loss' && Boolean(input.shield) && !input.result?.forfeit;
+  const after =
+    ranked && !shielded ? climb(state, outcome, config.tiers) : { tier: state.tier, stars: state.stars };
   const weekWins = ranked && outcome === 'win' ? state.weekWins + 1 : state.weekWins;
 
   // Every milestone the new total reaches and that has not been paid this week.
@@ -311,6 +316,7 @@ export function playManagerMatch(account: Account, input: ManagerPlayInput): Man
     tierAfter: after.tier,
     starsAfter: after.stars,
     ...(input.result?.forfeit ? { forfeit: true } : {}),
+    ...(shielded ? { shielded: true } : {}),
   };
 
   return {

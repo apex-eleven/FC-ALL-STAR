@@ -27,6 +27,7 @@ import { normalizeProgress as normalizeShopProgress } from '@/features/shop/shop
 import { normalizeState as normalizeManagerState } from '@/features/manager/managerConfigStore';
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
+import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
 import {
   ADMIN_SIGNUP_CODE,
   checkPassword,
@@ -94,6 +95,8 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
     manager: data.manager === undefined ? undefined : normalizeManagerState(data.manager),
     missions: data.missions === undefined ? undefined : normalizeMissionProgress(data.missions),
     starpass: data.starpass === undefined ? undefined : normalizeStarPass(data.starpass),
+    inventory: data.inventory === undefined ? undefined : normalizeInventory(data.inventory),
+    displayName: normalizeDisplayName(data.displayName),
   };
 }
 

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { currencyList } from '@/data/mock/currencies';
 import type { CurrencyKind } from '@/features/currencies/types';
+import { useItems } from '@/features/items/ItemsContext';
+import { MAX_ITEM_COUNT } from '@/features/items/constants';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { MAX_PLUS } from '@/features/rankup/constants';
 import { MAX_CARD_COPIES, MAX_REWARDS } from '@/features/shop/constants';
@@ -29,6 +31,7 @@ function whole(raw: string): number {
  */
 export default function AdminRewardList({ rewards, onChange }: AdminRewardListProps) {
   const { players } = usePlayers();
+  const { config: itemsConfig } = useItems();
   const view = useRewardView();
   const [query, setQuery] = useState<Record<number, string>>({});
 
@@ -47,7 +50,12 @@ export default function AdminRewardList({ rewards, onChange }: AdminRewardListPr
       const first = cardsByRating[0];
       return first ? { kind: 'card', cardId: first.id, amount: 1, plus: 0 } : reward;
     }
-    const amount = reward.kind === 'card' ? 100 : reward.amount;
+    if (kind === 'item') {
+      if (reward.kind === 'item') return reward;
+      const first = itemsConfig.items[0];
+      return first ? { kind: 'item', itemId: first.id, amount: 1 } : reward;
+    }
+    const amount = reward.kind === 'card' || reward.kind === 'item' ? 100 : reward.amount;
     return { kind: kind as CurrencyKind, amount };
   }
 
@@ -121,6 +129,9 @@ export default function AdminRewardList({ rewards, onChange }: AdminRewardListPr
               <option value="card" disabled={cardsByRating.length === 0}>
                 การ์ดนักเตะ{cardsByRating.length === 0 ? ' (คลังการ์ดว่าง)' : ''}
               </option>
+              <option value="item" disabled={itemsConfig.items.length === 0}>
+                ไอเท็ม{itemsConfig.items.length === 0 ? ' (ยังไม่มีไอเท็ม)' : ''}
+              </option>
             </select>
             <input
               className={styles.input}
@@ -133,7 +144,9 @@ export default function AdminRewardList({ rewards, onChange }: AdminRewardListPr
                   index,
                   reward.kind === 'card'
                     ? { ...reward, amount: Math.min(MAX_CARD_COPIES, amount) }
-                    : { ...reward, amount },
+                    : reward.kind === 'item'
+                      ? { ...reward, amount: Math.min(MAX_ITEM_COUNT, amount) }
+                      : { ...reward, amount },
                 );
               }}
             />
@@ -147,6 +160,23 @@ export default function AdminRewardList({ rewards, onChange }: AdminRewardListPr
             </button>
           </div>
           {reward.kind === 'card' && cardPicker(index, reward)}
+          {reward.kind === 'item' && (
+            <select
+              className={`${styles.input} ${styles.itemPick}`}
+              value={reward.itemId}
+              onChange={(event) => replaceAt(index, { ...reward, itemId: event.target.value })}
+            >
+              {!itemsConfig.items.some((item) => item.id === reward.itemId) && (
+                <option value={reward.itemId}>(ไอเท็มนี้ถูกลบแล้ว — เลือกใหม่)</option>
+              )}
+              {itemsConfig.items.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                  {item.enabled ? '' : ' (ปิดอยู่)'}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       ))}
       <button

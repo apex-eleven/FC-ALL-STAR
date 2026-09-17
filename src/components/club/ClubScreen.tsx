@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, Home } from 'lucide-react';
 import { ASSETS } from '@/assets/assetMap';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { syncOwned } from '@/features/club/sync';
@@ -193,7 +194,7 @@ export default function ClubScreen() {
 
     const snapshot = {
       uid: account.id,
-      username: account.username,
+      username: displayNameOf(account),
       avatarId: account.avatarId,
       rating,
       formation: squad.formation,
@@ -205,7 +206,7 @@ export default function ClubScreen() {
 
     const entry: LeaderboardEntry = { ...snapshot, updatedAt: new Date().toISOString() };
     void publishLeaderboardEntry(entry);
-  }, [account.id, account.username, account.avatarId, formation, squad, owned, rating]);
+  }, [account.id, account.username, account.displayName, account.avatarId, formation, squad, owned, rating]);
 
   const pointerFor = useCallback(
     (cardId: string) => (event: PointerEvent) => start(cardId, event),

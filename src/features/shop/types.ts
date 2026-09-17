@@ -30,7 +30,14 @@ export interface ShopCardReward {
   plus: number;
 }
 
-export type ShopReward = ShopCurrencyReward | ShopCardReward;
+/** Copies of a bag item (see features/items), by item id. */
+export interface ShopItemReward {
+  kind: 'item';
+  itemId: string;
+  amount: number;
+}
+
+export type ShopReward = ShopCurrencyReward | ShopCardReward | ShopItemReward;
 export type ShopRewardKind = ShopReward['kind'];
 
 /**

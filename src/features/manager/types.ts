@@ -91,6 +91,8 @@ export interface ManagerMatch {
   starsAfter: number;
   /** Left before the final whistle — recorded as a 0-3 loss. */
   forfeit?: boolean;
+  /** Lost with a star shield on: the stars were kept and one shield was spent. */
+  shielded?: boolean;
 }
 
 /**

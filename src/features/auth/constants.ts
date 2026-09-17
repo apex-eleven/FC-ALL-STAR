@@ -51,6 +51,11 @@ export function checkPassword(raw: string): AuthError | null {
   return null;
 }
 
+/** The name to show for an account: its rename-item name, else the login ID. */
+export function displayNameOf(account: { username: string; displayName?: string }): string {
+  return account.displayName || account.username;
+}
+
 export function normalizeUsername(raw: string): string {
   return raw.trim().toLowerCase();
 }

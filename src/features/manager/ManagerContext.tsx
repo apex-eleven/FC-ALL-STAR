@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 import { syncOwned } from '@/features/club/sync';
 import { fetchLeaderboard } from '@/features/cloud/cloudLeaderboard';
@@ -22,6 +23,9 @@ import type { LeaderboardEntry } from '@/features/leaderboard/types';
 import { useMissions } from '@/features/missions/MissionContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { useStarPass } from '@/features/starpass/StarPassContext';
+import { useItems } from '@/features/items/ItemsContext';
+import { adjust } from '@/features/items/inventory';
+import { heldShield } from '@/features/items/items';
 import { indexOwned, squadRating } from '@/features/squad/squad';
 import { FORFEIT_SCORE, defaultManager, managerId } from './constants';
 import { resolveLadder, type LadderView } from './ladder';
@@ -97,6 +101,7 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
   const { byId, players } = usePlayers();
   const { note } = useMissions();
   const { awardMatch } = useStarPass();
+  const { config: itemsConfig } = useItems();
   const [config, setConfig] = useState<ManagerConfig>(loadConfig);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [ladderRows, setLadderRows] = useState<ManagerLadderRow[] | null>(null);
@@ -159,7 +164,7 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
   // ladder. Accounts that never touched manager mode stay off it.
   const published = useRef('');
   const hasManager = Boolean(account?.manager);
-  const username = account?.username ?? '';
+  const username = account ? displayNameOf(account) : '';
   const avatarId = account?.avatarId ?? '';
   const tierId = state ? (config.tiers[state.tier]?.id ?? '') : '';
   const lastPlayed = state?.history.find((match) => match.ranked)?.at ?? '';
@@ -190,16 +195,19 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
   const settle = useCallback(
     (live: LiveMatch, score: [number, number], forfeit: boolean): ManagerPlayResult => {
       if (!account) return { ok: false, error: 'closed', match: null, paid: [] };
-      const input = {
+      const now = new Date();
+      // The shield is looked up on whichever save the rules run against.
+      const inputFor = (target: typeof account) => ({
         ranked: live.ranked,
         opponent: live.opponent,
         rating: live.rating,
         config,
-        now: new Date(),
+        now,
         matchId: live.id,
         result: { score, forfeit },
-      };
-      const preview = playManagerMatch(account, input);
+        shield: Boolean(target.inventory?.shieldArmed && heldShield(target, itemsConfig)),
+      });
+      const preview = playManagerMatch(account, inputFor(account));
       activeId.current = null;
       if (!preview.ok) return { ok: false, error: preview.error, match: null, paid: [] };
 
@@ -207,18 +215,23 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
         // A ranked match settles once: if its kick-off record is gone (settled or
         // forfeited from another tab), there is nothing left to apply.
         if (live.ranked && current.manager?.pending?.id !== live.id) return current;
-        const outcome = playManagerMatch(current, input);
+        const outcome = playManagerMatch(current, inputFor(current));
         if (!outcome.ok || !outcome.match) return current;
         // A forfeit is a result, not a match played — it counts toward no mission.
         if (forfeit) return outcome.account;
-        const played = note(outcome.account, 'manager-play', 1);
+        // A shield that saved the stars is used up.
+        const shield = outcome.match.shielded ? heldShield(current, itemsConfig) : null;
+        const settled = shield
+          ? { ...outcome.account, inventory: adjust(outcome.account.inventory, shield.id, -1) }
+          : outcome.account;
+        const played = note(settled, 'manager-play', 1);
         const won = note(played, 'manager-win', outcome.match.outcome === 'win' ? 1 : 0);
         const scored = note(won, 'manager-goal', outcome.match.score[0]);
         return awardMatch(scored, outcome.match.outcome);
       });
       return { ok: true, error: null, match: preview.match, paid: preview.paid };
     },
-    [account, config, updateAccount, note, awardMatch],
+    [account, config, updateAccount, note, awardMatch, itemsConfig],
   );
 
   const prepare = useCallback(
@@ -246,7 +259,7 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
                 ...home.bench.map((player) => player.name),
               ]),
           homeBench: home.bench,
-          homeName: account.username,
+          homeName: displayNameOf(account),
           awayName: opponent.name,
           seed: `${account.id}:${id}`,
           duration: config.matchSeconds,

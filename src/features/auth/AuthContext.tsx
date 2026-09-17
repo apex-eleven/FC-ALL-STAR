@@ -20,6 +20,7 @@ import { normalizeProgress as normalizeShopProgress } from '@/features/shop/shop
 import { normalizeState as normalizeManagerState } from '@/features/manager/managerConfigStore';
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
+import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
 import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/leveling';
 import {
   ADMIN_SIGNUP_CODE,
@@ -119,6 +120,10 @@ function toPublic(stored: StoredAccount): Account {
       ? {}
       : { missions: normalizeMissionProgress(account.missions) }),
     ...(account.starpass === undefined ? {} : { starpass: normalizeStarPass(account.starpass) }),
+    ...(account.inventory === undefined ? {} : { inventory: normalizeInventory(account.inventory) }),
+    ...(normalizeDisplayName(account.displayName) === undefined
+      ? {}
+      : { displayName: normalizeDisplayName(account.displayName) }),
   };
 }
 

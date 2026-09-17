@@ -1,4 +1,5 @@
 import { CURRENCY_ORDER } from '@/features/currencies/constants';
+import { MAX_ITEM_COUNT } from '@/features/items/constants';
 import { clampPlus } from '@/features/rankup/plus';
 import type { CurrencyKind } from '@/features/currencies/types';
 import {
@@ -82,6 +83,11 @@ function oneReward(entry: Source): ShopReward | null {
     return cardId !== '' && amount > 0
       ? { kind: 'card', cardId, amount, plus: clampPlus(entry.plus) }
       : null;
+  }
+  if (entry.kind === 'item') {
+    const itemId = typeof entry.itemId === 'string' ? entry.itemId.trim().slice(0, CARD_ID_MAX) : '';
+    const amount = clampInt(entry.amount, 0, MAX_ITEM_COUNT, 0);
+    return itemId !== '' && amount > 0 ? { kind: 'item', itemId, amount } : null;
   }
   if (!CURRENCY_ORDER.includes(entry.kind as CurrencyKind)) return null;
   const amount = clampInt(entry.amount, 0, MAX_PRICE, 0);

@@ -4,6 +4,7 @@ import { avatarCatalogue } from '@/data/mock/avatars';
 import { currencies } from '@/data/mock/currencies';
 import BrandGlyph from '@/components/ui/BrandGlyph';
 import { useAccount } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { formatCurrency } from '@/features/currencies/constants';
 import { useLeague } from '@/features/league/LeagueContext';
 import { PLAYER_TEAM_ID } from '@/features/league/constants';
@@ -109,7 +110,7 @@ export default function LeagueScreen() {
   const rows = useMemo<Row[]>(() => {
     const me: Row = {
       id: 'you',
-      name: account.username,
+      name: displayNameOf(account),
       rating,
       stars: state.stars,
       avatarId: account.avatarId,
@@ -155,6 +156,7 @@ export default function LeagueScreen() {
     otherEntries,
     config.teamCount,
     account.username,
+    account.displayName,
     account.avatarId,
     rating,
   ]);

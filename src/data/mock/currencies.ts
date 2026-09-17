@@ -35,6 +35,13 @@ export const currencies: CurrencyCatalogue = {
     iconSize: 46,
     purchasable: true,
   },
+  special: {
+    kind: 'special',
+    label: 'Special Point',
+    icon: ASSETS.brand.currencySpecial,
+    iconSize: 44,
+    purchasable: false,
+  },
 };
 
 export const currencyList: CurrencyDefinition[] = CURRENCY_ORDER.map((kind) => currencies[kind]);

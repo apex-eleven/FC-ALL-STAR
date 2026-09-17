@@ -1,6 +1,7 @@
 import { Newspaper } from 'lucide-react';
 import { newsButtonLabel } from '@/data/mock/home';
 import { useAccount, useIsAdmin } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { useAvatars } from '@/features/avatars/AvatarContext';
 import { resolveDisplayAvatar } from '@/features/avatars/unlocks';
 import { requiredXPForLevel } from '@/features/profile/leveling';
@@ -29,7 +30,7 @@ export default function TopBar({
 
   // Falls back to the default if an admin has since raised the requirement above
   // this player's level. The stored choice is kept, so lowering it restores them.
-  const avatar = resolveDisplayAvatar(avatars, account.avatarId, account.level);
+  const avatar = resolveDisplayAvatar(avatars, account.avatarId, account.level, account.inventory?.avatars);
 
   return (
     <header className={styles.bar}>
@@ -39,7 +40,7 @@ export default function TopBar({
         <PlayerProfile
           player={{
             id: account.id,
-            name: account.username,
+            name: displayNameOf(account),
             level: account.level,
             currentXP: account.currentXP,
             requiredXP: requiredXPForLevel(account.level),

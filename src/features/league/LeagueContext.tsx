@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { appendEntry, credit } from '@/features/currencies/wallet';
 import { indexOwned, squadRating } from '@/features/squad/squad';
 import { syncOwned } from '@/features/club/sync';
@@ -165,7 +166,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     if (isCloudEnabled() && result.state.seasonId) {
       void publishEntry(result.state.seasonId, {
         uid: account.id,
-        username: account.username,
+        username: displayNameOf(account),
         avatarId: account.avatarId,
         rating,
         stars: result.state.stars,

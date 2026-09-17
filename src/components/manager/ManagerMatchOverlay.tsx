@@ -1,6 +1,7 @@
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, ShieldCheck } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { formatCurrency } from '@/features/currencies/constants';
 import type { ManagerPlayResult } from '@/features/manager/ManagerContext';
 import type { ManagerTier } from '@/features/manager/types';
@@ -49,7 +50,7 @@ export default function ManagerMatchOverlay({
         <div className={styles.teams}>
           <div className={styles.team}>
             <img className={styles.avatar} src={avatarSrc(account.avatarId)} alt="" />
-            <span className={styles.name}>{account.username}</span>
+            <span className={styles.name}>{displayNameOf(account)}</span>
             <span className={styles.ovr}>OVR {match.rating}</span>
           </div>
 
@@ -108,6 +109,11 @@ export default function ManagerMatchOverlay({
             {moved < 0 && (
               <span className={`${styles.change} ${styles.down}`}>
                 <ArrowDown size={22} strokeWidth={3} /> ตกแรงค์
+              </span>
+            )}
+            {match.shielded && (
+              <span className={`${styles.change} ${styles.shielded}`}>
+                <ShieldCheck size={22} strokeWidth={2.6} /> โล่กันดาวทำงาน ดาวไม่ลด
               </span>
             )}
           </div>

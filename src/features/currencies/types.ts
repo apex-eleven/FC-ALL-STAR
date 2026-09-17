@@ -1,6 +1,7 @@
 import type { Entity } from '@/types/common';
 
-export type CurrencyKind = 'exchange' | 'gem' | 'fcpoint' | 'ticket';
+/** `special` is Special Point: saved up now, spent on special players later. */
+export type CurrencyKind = 'exchange' | 'gem' | 'fcpoint' | 'ticket' | 'special';
 
 /**
  * Static description of a currency: what it looks like and how it behaves.
@@ -43,7 +44,9 @@ export type WalletReason =
   /** A claimed daily or weekly mission, or a mission chest. */
   | 'mission'
   /** A claimed Star Pass level. */
-  | 'starpass';
+  | 'starpass'
+  /** Opened from an item in the bag (a random box). */
+  | 'item';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

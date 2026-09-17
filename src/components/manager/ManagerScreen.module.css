@@ -657,3 +657,64 @@
   color: #ffffff;
   white-space: nowrap;
 }
+
+/* ---- star shield switch (left column, under the round buttons) ----- */
+
+.shield {
+  position: absolute;
+  top: 730px;
+  left: 162px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 14px 0 16px;
+  border-radius: 28px;
+  background: rgba(20, 20, 26, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.shield:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shieldOn {
+  border-color: #6fb6ff;
+  background: rgba(20, 50, 100, 0.92);
+  color: #ffffff;
+}
+
+.shieldSwitch {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background var(--transition-fast);
+}
+
+.shieldOn .shieldSwitch {
+  background: #3d9bff;
+}
+
+.shieldKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform var(--transition-fast);
+}
+
+.shieldOn .shieldKnob {
+  transform: translateX(24px);
+}

@@ -21,9 +21,9 @@ export const railItems: RailItem[] = [
     artworkFile: 'currencylarge_BATTLEPASS_CREDIT.png',
   },
   {
-    id: 'rail-overtime',
-    label: 'ต่อเวลาพิเศษ',
-    artwork: ASSETS.brand.navOvertime,
+    id: 'rail-bag',
+    label: 'กระเป๋า',
+    artwork: ASSETS.brand.navBag,
   },
 ];
 

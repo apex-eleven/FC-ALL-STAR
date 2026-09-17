@@ -9,6 +9,7 @@ import type { ShopProgress } from '@/features/shop/types';
 import type { ManagerState } from '@/features/manager/types';
 import type { MissionProgress } from '@/features/missions/types';
 import type { StarPassProgress } from '@/features/starpass/types';
+import type { Inventory } from '@/features/items/types';
 
 export type Role = 'player' | 'admin';
 
@@ -61,6 +62,13 @@ export interface Account extends Entity {
   missions?: MissionProgress;
   /** This season's Star Pass: XP, claims, premium. Absent until the first XP. */
   starpass?: StarPassProgress;
+  /** Bag items, item-unlocked avatars, and the star shield switch. Absent until an item arrives. */
+  inventory?: Inventory;
+  /**
+   * The name shown in game, set with a rename item. The login ID (`username`) never
+   * changes. Absent = show the username.
+   */
+  displayName?: string;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

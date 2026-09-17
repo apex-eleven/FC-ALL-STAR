@@ -198,6 +198,7 @@ function match(value: unknown): ManagerMatch | null {
     tierAfter: int(source.tierAfter, 0, MAX_TIERS, 0),
     starsAfter: int(source.starsAfter, 0, MAX_TIER_STARS, 0),
     ...(source.forfeit === true ? { forfeit: true } : {}),
+    ...(source.shielded === true ? { shielded: true } : {}),
   };
 }
 

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { requiredXPForLevel } from '@/features/profile/leveling';
 import { useSound } from '@/features/sound/SoundContext';
 import { MUSIC_TRACKS, resolveTrack } from '@/features/sound/tracks';
@@ -36,7 +37,7 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
       <div className={styles.backdrop} onClick={onClose} />
       <div className={styles.menu} role="menu">
         <div className={styles.who}>
-          <span className={styles.name}>{account.username}</span>
+          <span className={styles.name}>{displayNameOf(account)}</span>
           <span className={styles.meta}>
             เลเวล {account.level} · {account.currentXP}/{requiredXPForLevel(account.level)} XP
           </span>

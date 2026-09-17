@@ -12,9 +12,12 @@ import {
   Triangle,
   Volleyball,
   Wifi,
+  ShieldCheck,
 } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
+import { useItems } from '@/features/items/ItemsContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { formatCurrency } from '@/features/currencies/constants';
 import { BACKGROUND_FILE, FIGURE_FILE } from '@/features/manager/constants';
 import { nextMilestone, seasonEnd, timeLeft } from '@/features/manager/manager';
@@ -59,6 +62,8 @@ export default function ManagerScreen() {
   const { back, navigate } = useNavigation();
   const { config, state, rating, leaderboardRank, ladder, refreshOpponents, prepare, finish, forfeit } =
     useManager();
+  const { shields, inventory, armShield } = useItems();
+  const shieldOn = shields > 0 && inventory.shieldArmed;
   const [now, setNow] = useState(() => new Date());
   const [slide, setSlide] = useState(0);
   const [dialog, setDialog] = useState<ManagerDialogMode | null>(null);
@@ -248,7 +253,7 @@ export default function ManagerScreen() {
         <span className={styles.clubIcon}>
           <img src={avatarSrc(account.avatarId)} alt="" draggable={false} />
         </span>
-        <span className={styles.clubName}>{account.username}</span>
+        <span className={styles.clubName}>{displayNameOf(account)}</span>
         <span className={styles.clubCount} title="อันดับ Leaderboard">
           <b>{leaderboardRank ?? '-'}</b>
           <BarChart3 size={30} strokeWidth={3} />
@@ -341,6 +346,22 @@ export default function ManagerScreen() {
           </span>
         </>
       )}
+
+      {/* Star shield: switched on here before a ranked match. */}
+      <button
+        type="button"
+        className={`${styles.shield} ${shieldOn ? styles.shieldOn : ''}`}
+        disabled={shields === 0 || live !== null}
+        aria-pressed={shieldOn}
+        title="เปิดไว้: แพ้แมตช์จัดอันดับดาวไม่ลด (ใช้โล่ 1 อัน)"
+        onClick={() => armShield(!inventory.shieldArmed)}
+      >
+        <ShieldCheck size={30} strokeWidth={2.4} />
+        <span>โล่กันดาวลด x{shields}</span>
+        <span className={styles.shieldSwitch}>
+          <span className={styles.shieldKnob} />
+        </span>
+      </button>
 
       <button
         type="button"

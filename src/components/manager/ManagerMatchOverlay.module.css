@@ -258,3 +258,7 @@
 .again:disabled {
   opacity: 0.4;
 }
+
+.shielded {
+  color: #6fb6ff;
+}

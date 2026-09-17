@@ -2,7 +2,9 @@ import { useCallback } from 'react';
 import { currencies } from '@/data/mock/currencies';
 import { formatCurrency } from '@/features/currencies/constants';
 import { cardToPlayer } from '@/features/draft/pool';
+import { useItems } from '@/features/items/ItemsContext';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { itemArt } from '@/components/items/itemArt';
 import { ratingWithPlus } from '@/features/rankup/plus';
 import type { ShopReward } from '@/features/shop/types';
 
@@ -24,6 +26,7 @@ export interface RewardView {
  */
 export default function useRewardView(): (reward: ShopReward) => RewardView {
   const { byId } = usePlayers();
+  const { byId: itemById } = useItems();
 
   return useCallback(
     (reward: ShopReward): RewardView => {
@@ -41,6 +44,17 @@ export default function useRewardView(): (reward: ShopReward) => RewardView {
           isCard: true,
         };
       }
+      if (reward.kind === 'item') {
+        const def = itemById(reward.itemId);
+        const label = def ? def.name : 'ไอเท็มที่ถูกลบแล้ว';
+        return {
+          icon: itemArt(def),
+          label,
+          count: formatCurrency(reward.amount),
+          text: `${label} x${formatCurrency(reward.amount)}`,
+          isCard: false,
+        };
+      }
       const currency = currencies[reward.kind];
       return {
         icon: currency.icon,
@@ -50,6 +64,6 @@ export default function useRewardView(): (reward: ShopReward) => RewardView {
         isCard: false,
       };
     },
-    [byId],
+    [byId, itemById],
   );
 }

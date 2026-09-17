@@ -28,6 +28,7 @@ import AdminShop from './AdminShop';
 import AdminManager from './AdminManager';
 import AdminMissions from './AdminMissions';
 import AdminStarPass from './AdminStarPass';
+import AdminItems from './AdminItems';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
 
@@ -54,6 +55,7 @@ type Tab =
   | 'manager'
   | 'missions'
   | 'starpass'
+  | 'items'
   | 'announcement'
   | 'walkout'
   | 'backup';
@@ -74,6 +76,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'manager', label: 'เมเนเจอร์โหมด' },
   { id: 'missions', label: 'ภารกิจ' },
   { id: 'starpass', label: 'Star Pass' },
+  { id: 'items', label: 'ไอเท็ม' },
   { id: 'announcement', label: 'ประกาศ' },
   { id: 'walkout', label: 'Walkout' },
   { id: 'backup', label: 'สำรองข้อมูล' },
@@ -252,6 +255,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'manager' && <AdminManager />}
         {tab === 'missions' && <AdminMissions />}
         {tab === 'starpass' && <AdminStarPass />}
+        {tab === 'items' && <AdminItems />}
         {tab === 'announcement' && <AdminAnnouncement />}
         {tab === 'walkout' && <AdminWalkout />}
         {tab === 'backup' && <AdminBackup />}
