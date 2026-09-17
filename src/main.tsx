@@ -8,6 +8,7 @@ import { PlayerProvider } from '@/features/players/PlayerContext';
 import { MissionProvider } from '@/features/missions/MissionContext';
 import { StarPassProvider } from '@/features/starpass/StarPassContext';
 import { ItemsProvider } from '@/features/items/ItemsContext';
+import { GachaProvider } from '@/features/gacha/GachaContext';
 import { DraftProvider } from '@/features/draft/DraftContext';
 import { LeagueProvider } from '@/features/league/LeagueContext';
 import { AnnouncementProvider } from '@/features/announcement/AnnouncementContext';
@@ -35,7 +36,8 @@ const root = createRoot(container);
 // catalogue resolves — the packs cannot be built without it. Star Pass and missions
 // sit right under it (card rewards resolve there too) and above everything that
 // counts toward them; missions give Star Pass XP, so the pass is outermost. Items
-// sit between: the premium ticket needs the pass, manager mode needs the shield.
+// sit between: the premium ticket needs the pass, manager mode needs the shield. The
+// gachapon sits with them: its prizes are paid through the same reward path.
 function render() {
   root.render(
     <StrictMode>
@@ -45,30 +47,32 @@ function render() {
             <NewsProvider>
               <PlayerProvider>
                 <StarPassProvider>
-                  <ItemsProvider>
-                    <MissionProvider>
-                      <DraftProvider>
-                        <LeagueProvider>
-                          <WalkoutProvider>
-                            <RankUpProvider>
-                              <TransferProvider>
-                                <ShopProvider>
-                                  <ManagerProvider>
-                                    <NavigationProvider>
-                                      <AnnouncementProvider>
-                                        <CloudConfigSync />
-                                        <App />
-                                      </AnnouncementProvider>
-                                    </NavigationProvider>
-                                  </ManagerProvider>
-                                </ShopProvider>
-                              </TransferProvider>
-                            </RankUpProvider>
-                          </WalkoutProvider>
-                        </LeagueProvider>
-                      </DraftProvider>
-                    </MissionProvider>
-                  </ItemsProvider>
+                  <GachaProvider>
+                    <ItemsProvider>
+                      <MissionProvider>
+                        <DraftProvider>
+                          <LeagueProvider>
+                            <WalkoutProvider>
+                              <RankUpProvider>
+                                <TransferProvider>
+                                  <ShopProvider>
+                                    <ManagerProvider>
+                                      <NavigationProvider>
+                                        <AnnouncementProvider>
+                                          <CloudConfigSync />
+                                          <App />
+                                        </AnnouncementProvider>
+                                      </NavigationProvider>
+                                    </ManagerProvider>
+                                  </ShopProvider>
+                                </TransferProvider>
+                              </RankUpProvider>
+                            </WalkoutProvider>
+                          </LeagueProvider>
+                        </DraftProvider>
+                      </MissionProvider>
+                    </ItemsProvider>
+                  </GachaProvider>
                 </StarPassProvider>
               </PlayerProvider>
             </NewsProvider>

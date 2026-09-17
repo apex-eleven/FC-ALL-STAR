@@ -28,6 +28,7 @@ import { normalizeState as normalizeManagerState } from '@/features/manager/mana
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
 import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
+import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigStore';
 import { isItemAvatarId } from '@/features/avatars/extraAvatars';
 import {
   ADMIN_SIGNUP_CODE,
@@ -97,6 +98,7 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
     missions: data.missions === undefined ? undefined : normalizeMissionProgress(data.missions),
     starpass: data.starpass === undefined ? undefined : normalizeStarPass(data.starpass),
     inventory: data.inventory === undefined ? undefined : normalizeInventory(data.inventory),
+    gacha: data.gacha === undefined ? undefined : normalizeGacha(data.gacha),
     displayName: normalizeDisplayName(data.displayName),
   };
 }

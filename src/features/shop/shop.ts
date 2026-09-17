@@ -138,7 +138,7 @@ function credited(
   wallet: Wallet,
   ledger: WalletEntry[],
   payout: readonly ShopReward[],
-  reason: Extract<WalletReason, 'shop' | 'admin-grant' | 'mission' | 'starpass'>,
+  reason: Extract<WalletReason, 'shop' | 'admin-grant' | 'mission' | 'starpass' | 'gacha'>,
   by?: string,
 ): { ok: boolean; wallet: Wallet; ledger: WalletEntry[] } {
   let nextWallet = wallet;
@@ -351,7 +351,7 @@ export type RewardDelivery =
   | { ok: false; error: Extract<ShopBuyError, 'at-cap' | 'club-full' | 'card-missing'> };
 
 /**
- * Hands over a reward list outside a purchase — mission, chest, and Star Pass payouts. Same
+ * Hands over a reward list outside a purchase — mission, chest, Star Pass, and gacha payouts. Same
  * all-or-nothing rules as buying: every card is checked before anything is credited.
  */
 export function deliverRewards(
@@ -359,7 +359,7 @@ export function deliverRewards(
   payout: readonly ShopReward[],
   lookup: CardLookup,
   stamp: ShopStamp,
-  reason: 'mission' | 'starpass',
+  reason: 'mission' | 'starpass' | 'gacha',
   eventId: string,
 ): RewardDelivery {
   const cards = delivered(account.club, payout, lookup, stamp, eventId);

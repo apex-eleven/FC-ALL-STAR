@@ -31,7 +31,7 @@ export function normalizeWallet(value: unknown): Wallet {
 }
 
 export function emptyWallet(): Wallet {
-  return { exchange: 0, gem: 0, fcpoint: 0, ticket: 0, special: 0 };
+  return { exchange: 0, gem: 0, fcpoint: 0, ticket: 0, special: 0, key: 0 };
 }
 
 export function startingWallet(): Wallet {

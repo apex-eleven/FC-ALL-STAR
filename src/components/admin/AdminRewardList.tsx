@@ -13,6 +13,10 @@ import styles from './AdminRewardList.module.css';
 export interface AdminRewardListProps {
   rewards: readonly ShopReward[];
   onChange(next: ShopReward[]): void;
+  /** Fewest lines the list may hold; at the floor the remove buttons are hidden. */
+  min?: number;
+  /** Most lines the list may hold. Defaults to the shop's own cap. */
+  max?: number;
 }
 
 /** The card dropdown lists at most this many matches; search narrows it. */
@@ -29,7 +33,12 @@ function whole(raw: string): number {
  * A reward list in the shop's shape — any currency, or catalogue cards at +0..+8 —
  * the same controls the shop tab uses, for tabs that pay rewards outside the shop.
  */
-export default function AdminRewardList({ rewards, onChange }: AdminRewardListProps) {
+export default function AdminRewardList({
+  rewards,
+  onChange,
+  min = 0,
+  max = MAX_REWARDS,
+}: AdminRewardListProps) {
   const { players } = usePlayers();
   const { config: itemsConfig } = useItems();
   const view = useRewardView();
@@ -150,14 +159,16 @@ export default function AdminRewardList({ rewards, onChange }: AdminRewardListPr
                 );
               }}
             />
-            <button
-              type="button"
-              className={styles.remove}
-              onClick={() => onChange(rewards.filter((_, i) => i !== index))}
-              aria-label="ลบรางวัล"
-            >
-              ✕
-            </button>
+            {rewards.length > min && (
+              <button
+                type="button"
+                className={styles.remove}
+                onClick={() => onChange(rewards.filter((_, i) => i !== index))}
+                aria-label="ลบรางวัล"
+              >
+                ✕
+              </button>
+            )}
           </div>
           {reward.kind === 'card' && cardPicker(index, reward)}
           {reward.kind === 'item' && (
@@ -179,14 +190,15 @@ export default function AdminRewardList({ rewards, onChange }: AdminRewardListPr
           )}
         </div>
       ))}
-      <button
-        type="button"
-        className={styles.add}
-        disabled={rewards.length >= MAX_REWARDS}
-        onClick={() => onChange([...rewards, { kind: 'exchange', amount: 100 }])}
-      >
-        + รางวัล
-      </button>
+      {rewards.length < max && (
+        <button
+          type="button"
+          className={styles.add}
+          onClick={() => onChange([...rewards, { kind: 'exchange', amount: 100 }])}
+        >
+          + รางวัล
+        </button>
+      )}
     </div>
   );
 }

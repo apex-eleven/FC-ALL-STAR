@@ -40,6 +40,7 @@ const ROUTE_LABEL: Record<string, string> = {
   missions: 'ภารกิจ',
   starpass: 'Star Pass',
   bag: 'กระเป๋า',
+  gacha: 'กาชาปอง',
 };
 
 const TONES: readonly AnnouncementTone[] = ['info', 'event', 'warning'];

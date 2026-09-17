@@ -5,7 +5,7 @@
  * or admin config needs something to check it against, and a second hand-written
  * list would drift the first time a screen is added.
  */
-export const ROUTE_IDS = ['home', 'draft', 'club', 'league', 'rankup', 'transfer', 'shop', 'manager', 'missions', 'starpass', 'bag'] as const;
+export const ROUTE_IDS = ['home', 'draft', 'club', 'league', 'rankup', 'transfer', 'shop', 'manager', 'missions', 'starpass', 'bag', 'gacha'] as const;
 
 export type RouteId = (typeof ROUTE_IDS)[number];
 

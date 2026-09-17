@@ -1,0 +1,547 @@
+/*
+ * Measured off the reference (882 px wide capture, x2.322 to the 2048x942 stage):
+ * close 84,98 72x72 · brand y42 · event y88 · title y144 · subtitle y204 ·
+ * counters 1742/1885, y70, 135x84 · case art centred on 1024,383 700x280 ·
+ * reel 506..766 with 232-wide cards on a 239 pitch · frame centred on x1024 ·
+ * spin row y824 · winners 1700..2008, 748..926.
+ */
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #05070f;
+  user-select: none;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-background);
+  background:
+    radial-gradient(ellipse 900px 460px at 50% 40%, rgba(56, 189, 248, 0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 400px at 12% 88%, rgba(168, 85, 247, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 620px 360px at 92% 12%, rgba(59, 130, 246, 0.16) 0%, transparent 72%),
+    linear-gradient(180deg, #0a1022 0%, #05070f 58%, #03040a 100%);
+}
+
+/* Starfield: three tiled dot layers, no asset needed. */
+.stars {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-decoration);
+  opacity: 0.7;
+  background-image:
+    radial-gradient(1.6px 1.6px at 18px 22px, rgba(255, 255, 255, 0.85) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 118px 74px, rgba(255, 255, 255, 0.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 64px 150px, rgba(148, 216, 255, 0.7) 0%, transparent 100%);
+  background-size:
+    180px 180px,
+    240px 240px,
+    320px 320px;
+}
+
+.close {
+  position: absolute;
+  top: 98px;
+  left: 84px;
+  z-index: var(--z-header);
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 18, 34, 0.82);
+  color: #ffffff;
+  transition: transform var(--transition-fast);
+}
+
+.close:hover {
+  transform: scale(1.06);
+  border-color: rgba(56, 189, 248, 0.7);
+}
+
+.head {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  right: 0;
+  z-index: var(--z-header);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.brand {
+  font-family: 'Saira', var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.event {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 20px;
+  border-radius: 17px;
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  background: rgba(8, 47, 73, 0.55);
+  font-family: var(--font-ui);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #7dd3fc;
+}
+
+.title {
+  margin: 4px 0 0;
+  font-family: 'Saira', var(--font-display);
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 3px;
+  color: #ffffff;
+  text-shadow:
+    0 0 26px rgba(56, 189, 248, 0.55),
+    0 3px 10px rgba(0, 0, 0, 0.6);
+}
+
+.subtitle {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.74);
+}
+
+.counters {
+  position: absolute;
+  top: 70px;
+  right: 40px;
+  z-index: var(--z-header);
+  display: flex;
+  gap: 8px;
+}
+
+.counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 135px;
+  height: 84px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 16, 32, 0.78);
+}
+
+.counterLabel {
+  font-family: 'Saira', var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.counterValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Saira', var(--font-display);
+  font-size: 30px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.counterValue img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.case {
+  position: absolute;
+  top: 243px;
+  left: 674px;
+  z-index: var(--z-panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 700px;
+  pointer-events: none;
+}
+
+.caseArt {
+  width: 320px;
+  height: 200px;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 26px rgba(56, 189, 248, 0.35));
+}
+
+.caseTag {
+  margin-top: 2px;
+  font-family: 'Saira', var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: rgba(125, 211, 252, 0.8);
+}
+
+.caseName {
+  font-family: 'Saira', var(--font-display);
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.closed {
+  position: absolute;
+  top: 590px;
+  left: 0;
+  right: 0;
+  z-index: var(--z-panel);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+/* ── Reel ─────────────────────────────────────────────────────────────── */
+
+.reel {
+  position: absolute;
+  top: 506px;
+  left: 0;
+  right: 0;
+  height: 260px;
+  z-index: var(--z-panel);
+  overflow: hidden;
+  border-top: 1px solid rgba(148, 197, 255, 0.18);
+  border-bottom: 1px solid rgba(148, 197, 255, 0.18);
+  background: linear-gradient(180deg, rgba(8, 14, 28, 0.35) 0%, rgba(8, 14, 28, 0.8) 50%, rgba(8, 14, 28, 0.35) 100%);
+}
+
+.strip {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  height: 240px;
+  /* The long, decelerating run the reference shows; duration is set in the component. */
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.07, 0.76, 0.08, 1);
+  will-change: transform;
+}
+
+.card {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  width: 232px;
+  height: 240px;
+  padding: 16px 12px 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(23, 33, 58, 0.95) 0%, rgba(12, 18, 34, 0.95) 100%);
+}
+
+.cardWon {
+  border-color: rgba(56, 189, 248, 0.85);
+  box-shadow:
+    0 0 0 2px rgba(56, 189, 248, 0.5),
+    0 0 40px rgba(56, 189, 248, 0.45);
+}
+
+.art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 132px;
+}
+
+.coinArt {
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
+}
+
+.cardArt {
+  width: 96px;
+  height: 128px;
+  object-fit: contain;
+}
+
+.cardName {
+  max-width: 100%;
+  font-family: var(--font-ui);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #ffffff;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardKind {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.66);
+}
+
+.band {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+}
+
+.frame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 908px;
+  width: 232px;
+  pointer-events: none;
+  border-left: 2px solid rgba(56, 189, 248, 0.9);
+  border-right: 2px solid rgba(56, 189, 248, 0.9);
+  box-shadow:
+    inset 0 0 44px rgba(56, 189, 248, 0.22),
+    0 0 26px rgba(56, 189, 248, 0.35);
+}
+
+.fadeLeft,
+.fadeRight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  pointer-events: none;
+}
+
+.fadeLeft {
+  left: 0;
+  background: linear-gradient(90deg, #05070f 0%, rgba(5, 7, 15, 0.55) 55%, transparent 100%);
+}
+
+.fadeRight {
+  right: 0;
+  background: linear-gradient(270deg, #05070f 0%, rgba(5, 7, 15, 0.55) 55%, transparent 100%);
+}
+
+/* ── Spin row ─────────────────────────────────────────────────────────── */
+
+.actions {
+  position: absolute;
+  top: 794px;
+  left: 0;
+  right: 0;
+  z-index: var(--z-panel);
+  display: flex;
+  justify-content: center;
+}
+
+.spin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 72px;
+  padding: 0 44px;
+  border-radius: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 800;
+  color: #04121f;
+  box-shadow:
+    0 10px 26px rgba(2, 132, 199, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition:
+    transform var(--transition-fast),
+    filter var(--transition-fast);
+}
+
+.spin img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.spin:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.spin:disabled {
+  filter: grayscale(0.7) brightness(0.7);
+  cursor: not-allowed;
+}
+
+.opening {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 72px;
+  padding: 0 44px;
+  border-radius: 36px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(10, 16, 32, 0.8);
+  font-family: 'Saira', var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #7dd3fc;
+}
+
+.spinner {
+  animation: gachaSpin 1s linear infinite;
+}
+
+@keyframes gachaSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Winners ──────────────────────────────────────────────────────────── */
+
+.feed {
+  position: absolute;
+  /* Under the reel, not across it: the reel band ends at 766. */
+  top: 778px;
+  right: 40px;
+  z-index: var(--z-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 300px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 13, 26, 0.82);
+}
+
+.feedTitle {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.feedEmpty {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.45);
+}
+
+.feedRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding-left: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.feedBand {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+}
+
+.feedAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.feedText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.feedText b {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedText small {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.62);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Toast ────────────────────────────────────────────────────────────── */
+
+.toast {
+  position: absolute;
+  /* Under the spin button: the only band the case art, reel and winners leave free. */
+  top: 874px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-modal);
+  display: inline-flex;
+  align-items: center;
+  height: 58px;
+  padding: 0 32px;
+  border-radius: 29px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: rgba(8, 13, 26, 0.94);
+  font-family: var(--font-ui);
+  font-size: 23px;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  animation: gachaToast var(--transition-fast) ease-out;
+}
+
+.toastBad {
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+@keyframes gachaToast {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

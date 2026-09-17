@@ -386,7 +386,7 @@ export default function BagScreen() {
             )}
           </>
         ) : (
-          <p className={styles.empty}>รับไอเท็มได้จากภารกิจ Star Pass และร้านค้า</p>
+          <p className={styles.empty}>รับไอเท็มได้จากภารกิจ Star Pass ร้านค้า และกาชาปอง</p>
         )}
       </aside>
 

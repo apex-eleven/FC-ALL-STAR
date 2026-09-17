@@ -10,6 +10,7 @@ import type { ManagerState } from '@/features/manager/types';
 import type { MissionProgress } from '@/features/missions/types';
 import type { StarPassProgress } from '@/features/starpass/types';
 import type { Inventory } from '@/features/items/types';
+import type { GachaState } from '@/features/gacha/types';
 
 export type Role = 'player' | 'admin';
 
@@ -69,6 +70,8 @@ export interface Account extends Entity {
    * changes. Absent = show the username.
    */
   displayName?: string;
+  /** Gachapon spins and the last few wins. Absent until the first spin. */
+  gacha?: GachaState;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

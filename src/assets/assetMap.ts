@@ -61,6 +61,8 @@ import currencyGem from './images/brand/currency-gem.png';
 import currencyFcPoint from './images/brand/currency-fcpoint.png';
 import currencyTicket from './images/brand/currency-ticket.png';
 import currencySpecial from './images/brand/currency-special.png';
+import currencyKey from './images/brand/currency-key.png';
+import gachaCase from './images/brand/gacha-case.png';
 import navBag from './images/brand/nav-bag.png';
 import itemAvatar from './images/items/avatar.png';
 import itemShield from './images/items/shield.png';
@@ -135,6 +137,8 @@ export const ASSETS = {
     currencyFcPoint,
     currencyTicket,
     currencySpecial,
+    currencyKey,
+    gachaCase,
     navBag,
     navActivities,
     navHighlight,

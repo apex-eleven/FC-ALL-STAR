@@ -1,7 +1,7 @@
 import type { CurrencyKind, Wallet } from './types';
 
 /** Every currency, in canonical order. */
-export const CURRENCY_ORDER: readonly CurrencyKind[] = ['exchange', 'gem', 'fcpoint', 'ticket', 'special'];
+export const CURRENCY_ORDER: readonly CurrencyKind[] = ['exchange', 'gem', 'fcpoint', 'ticket', 'special', 'key'];
 
 /**
  * Which currencies each screen shows. The reference puts draft tickets in the first
@@ -34,6 +34,7 @@ export const STARTING_WALLET: Wallet = {
   fcpoint: 1_000,
   ticket: 150,
   special: 0,
+  key: 0,
 };
 
 /** How many ledger entries an account keeps. Oldest are dropped. */

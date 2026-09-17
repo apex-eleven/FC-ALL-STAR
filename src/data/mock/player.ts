@@ -13,7 +13,7 @@ export const referenceAccount: Account = {
   createdAt: '2026-01-01T00:00:00.000Z',
   lastSignInAt: '2026-01-01T00:00:00.000Z',
   avatarId: 'rookie',
-  wallet: { exchange: 69_010, gem: 960, fcpoint: 121, ticket: 0, special: 0 },
+  wallet: { exchange: 69_010, gem: 960, fcpoint: 121, ticket: 0, special: 0, key: 0 },
   ledger: [],
   draftProgress: {},
   club: { players: [] },

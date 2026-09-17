@@ -35,6 +35,13 @@ export const currencies: CurrencyCatalogue = {
     iconSize: 46,
     purchasable: true,
   },
+  key: {
+    kind: 'key',
+    label: 'กุญแจ',
+    icon: ASSETS.brand.currencyKey,
+    iconSize: 44,
+    purchasable: false,
+  },
   special: {
     kind: 'special',
     label: 'Special Point',
