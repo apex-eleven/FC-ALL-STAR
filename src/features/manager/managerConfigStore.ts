@@ -4,6 +4,8 @@ import { MATCH_OUTCOMES } from './outcomes';
 import {
   HISTORY_LIMIT,
   MANAGER_CONFIG_KEY,
+  MATCH_SECONDS_MAX,
+  MATCH_SECONDS_MIN,
   MAX_BANNERS,
   MAX_MILESTONE_REWARDS,
   MAX_MILESTONES,
@@ -20,6 +22,7 @@ import type {
   ManagerMatch,
   ManagerMilestone,
   ManagerOpponent,
+  ManagerPending,
   ManagerRewardLine,
   ManagerState,
   ManagerTier,
@@ -141,6 +144,7 @@ export function normalizeConfig(value: unknown): ManagerConfig {
     figure: image(source.figure),
     headerCurrency: currency(source.headerCurrency, fallback.headerCurrency),
     botSpread: int(source.botSpread, 0, 40, fallback.botSpread),
+    matchSeconds: int(source.matchSeconds, MATCH_SECONDS_MIN, MATCH_SECONDS_MAX, fallback.matchSeconds),
   };
 }
 
@@ -193,6 +197,19 @@ function match(value: unknown): ManagerMatch | null {
     starsBefore: int(source.starsBefore, 0, MAX_TIER_STARS, 0),
     tierAfter: int(source.tierAfter, 0, MAX_TIERS, 0),
     starsAfter: int(source.starsAfter, 0, MAX_TIER_STARS, 0),
+    ...(source.forfeit === true ? { forfeit: true } : {}),
+  };
+}
+
+function pending(value: unknown): ManagerPending | null {
+  const source = record(value);
+  const id = text(source.id, 60);
+  if (!id) return null;
+  return {
+    id,
+    at: text(source.at, 40),
+    opponent: opponent(source.opponent),
+    rating: int(source.rating, 0, 999, 0),
   };
 }
 
@@ -213,5 +230,6 @@ export function normalizeState(value: unknown): ManagerState {
       .map(match)
       .filter((entry): entry is ManagerMatch => entry !== null)
       .slice(0, HISTORY_LIMIT),
+    pending: pending(source.pending),
   };
 }

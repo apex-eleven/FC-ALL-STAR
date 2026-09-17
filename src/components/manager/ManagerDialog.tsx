@@ -60,6 +60,11 @@ export default function ManagerDialog({ mode, onClose }: ManagerDialogProps) {
                 · ขึ้นซีซั่นใหม่แรงค์ลด {config.seasonDrop} ขั้น
               </li>
               <li>คู่แข่งคือทีมของผู้เล่นจริงที่ OVR ใกล้เคียง ถ้าไม่มีจะเจอทีมบอท</li>
+              <li>
+                ดูทีมตัวจริงลงเตะสด ~{Math.round(config.matchSeconds / 60)} นาที เร่งได้ x2/x4 · ปรับแทคติก
+                บุก/สมดุล/ตั้งรับ และเปลี่ยนตัวได้ 5 ครั้ง
+              </li>
+              <li>ออกจากแมตช์จัดอันดับกลางคันหรือปิดเกม นับเป็นแพ้ 0-3</li>
               <li>แมตช์ไม่จัดอันดับไม่นับแรงค์และไม่นับชนะสะสม</li>
             </ul>
             <div className={styles.ladder}>

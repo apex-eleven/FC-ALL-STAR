@@ -10,6 +10,7 @@ import type {
   ManagerMatch,
   ManagerMilestone,
   ManagerOpponent,
+  ManagerPending,
   ManagerPlayError,
   ManagerState,
   ManagerTier,
@@ -76,6 +77,7 @@ export function emptyState(): ManagerState {
     claimed: [],
     played: 0,
     history: [],
+    pending: null,
   };
 }
 
@@ -217,6 +219,31 @@ export interface ManagerPlayInput {
   now: Date;
   /** Fixed by the caller, so a re-run of the mutator plays the identical match. */
   matchId: string;
+  /**
+   * The result the live match produced. Absent, the match is decided here from the
+   * two ratings — the quick simulation.
+   */
+  result?: { score: [number, number]; forfeit?: boolean };
+}
+
+export function outcomeOf(score: readonly [number, number]): ManagerMatch['outcome'] {
+  return score[0] > score[1] ? 'win' : score[0] < score[1] ? 'loss' : 'draw';
+}
+
+/**
+ * Marks a ranked match as under way. Settled by `playManagerMatch` with the same id;
+ * left unsettled, it is a forfeit.
+ */
+export function startPending(
+  account: Account,
+  pending: ManagerPending,
+  config: ManagerConfig,
+  now: Date,
+): Account {
+  return {
+    ...account,
+    manager: { ...currentState(account.manager, config, now), pending },
+  };
 }
 
 export interface ManagerPlayOutcome {
@@ -248,8 +275,8 @@ export function playManagerMatch(account: Account, input: ManagerPlayInput): Man
 
   const state = currentState(account.manager, config, now);
   const seed = `${account.id}:manager:${matchId}`;
-  const outcome = playMatch(seed, rating, opponent.rating);
-  const score = scoreFor(seed, outcome);
+  const outcome = input.result ? outcomeOf(input.result.score) : playMatch(seed, rating, opponent.rating);
+  const score = input.result ? input.result.score : scoreFor(seed, outcome);
 
   const after = ranked ? climb(state, outcome, config.tiers) : { tier: state.tier, stars: state.stars };
   const weekWins = ranked && outcome === 'win' ? state.weekWins + 1 : state.weekWins;
@@ -283,6 +310,7 @@ export function playManagerMatch(account: Account, input: ManagerPlayInput): Man
     starsBefore: state.stars,
     tierAfter: after.tier,
     starsAfter: after.stars,
+    ...(input.result?.forfeit ? { forfeit: true } : {}),
   };
 
   return {
@@ -302,6 +330,7 @@ export function playManagerMatch(account: Account, input: ManagerPlayInput): Man
         claimed: [...state.claimed, ...paid.map((milestone) => milestone.id)],
         played: state.played + 1,
         history: [match, ...state.history].slice(0, HISTORY_LIMIT),
+        pending: state.pending?.id === matchId ? null : (state.pending ?? null),
       },
     },
   };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   ChevronLeft,
@@ -17,14 +17,20 @@ import {
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
 import { formatCurrency } from '@/features/currencies/constants';
-import { BACKGROUND_FILE, FIGURE_FILE, MATCHMAKING_MS } from '@/features/manager/constants';
+import { BACKGROUND_FILE, FIGURE_FILE } from '@/features/manager/constants';
 import { nextMilestone, seasonEnd, timeLeft } from '@/features/manager/manager';
-import { useManager, type ManagerPlayResult } from '@/features/manager/ManagerContext';
+import {
+  useManager,
+  type LiveMatch,
+  type ManagerPlayResult,
+} from '@/features/manager/ManagerContext';
+import type { MatchEngine } from '@/features/manager/matchEngine';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import IconButton from '@/components/ui/IconButton';
 import LeaderboardScreen from '@/components/leaderboard/LeaderboardScreen';
 import { avatarSrc } from './avatarSrc';
 import ManagerDialog, { type ManagerDialogMode } from './ManagerDialog';
+import ManagerLiveMatch from './ManagerLiveMatch';
 import ManagerMatchOverlay from './ManagerMatchOverlay';
 import ManagerTrophy from './ManagerTrophy';
 import styles from './ManagerScreen.module.css';
@@ -51,13 +57,18 @@ function networkRtt(): number | null {
 export default function ManagerScreen() {
   const account = useAccount();
   const { back, navigate } = useNavigation();
-  const { config, state, rating, leaderboardRank, refreshOpponents, play } = useManager();
+  const { config, state, rating, leaderboardRank, refreshOpponents, prepare, finish, forfeit } =
+    useManager();
   const [now, setNow] = useState(() => new Date());
   const [slide, setSlide] = useState(0);
   const [dialog, setDialog] = useState<ManagerDialogMode | null>(null);
   const [leaderboard, setLeaderboard] = useState(false);
-  const [match, setMatch] = useState<{ result: ManagerPlayResult; ranked: boolean } | null>(null);
-  const [searching, setSearching] = useState(false);
+  const [live, setLive] = useState<LiveMatch | null>(null);
+  const [result, setResult] = useState<{
+    result: ManagerPlayResult;
+    ranked: boolean;
+    scorers: MatchEngine['scorers'];
+  } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [backgroundFailed, setBackgroundFailed] = useState(false);
   const [figureFailed, setFigureFailed] = useState(false);
@@ -100,16 +111,34 @@ export default function ManagerScreen() {
   const banner = banners[Math.min(slide, banners.length - 1)];
 
   function start(ranked: boolean) {
-    if (searching) return;
-    // Decided and saved first; the search animation only delays the reveal.
-    const result = play(ranked);
-    if (!result.ok) {
-      setToast(PLAY_ERROR[result.error ?? ''] ?? 'เริ่มแมตช์ไม่สำเร็จ');
+    if (live) return;
+    const prepared = prepare(ranked);
+    if (!prepared.ok) {
+      setToast(PLAY_ERROR[prepared.error] ?? 'เริ่มแมตช์ไม่สำเร็จ');
       return;
     }
-    setSearching(true);
-    setMatch({ result, ranked });
+    setResult(null);
+    setLive(prepared.live);
   }
+
+  // Stable, so the live match's frame loop is not restarted by a re-render here.
+  const handleFinished = useCallback(
+    (score: [number, number], scorers: MatchEngine['scorers']) => {
+      if (!live) return;
+      const settled = finish(live, score);
+      setLive(null);
+      if (settled.ok) setResult({ result: settled, ranked: live.ranked, scorers });
+      else setToast('บันทึกผลไม่สำเร็จ');
+    },
+    [live, finish],
+  );
+
+  const handleForfeit = useCallback(() => {
+    if (!live) return;
+    const settled = forfeit(live);
+    setLive(null);
+    if (settled.ok && settled.match) setResult({ result: settled, ranked: live.ranked, scorers: [] });
+  }, [live, forfeit]);
 
   return (
     <div className={styles.screen}>
@@ -323,7 +352,7 @@ export default function ManagerScreen() {
       <button
         type="button"
         className={styles.unranked}
-        disabled={!config.enabled || searching}
+        disabled={!config.enabled || live !== null}
         onClick={() => start(false)}
       >
         เล่นแมตช์ไม่จัดอันดับ
@@ -331,7 +360,7 @@ export default function ManagerScreen() {
       <button
         type="button"
         className={styles.play}
-        disabled={!config.enabled || searching}
+        disabled={!config.enabled || live !== null}
         onClick={() => start(true)}
       >
         <Volleyball size={44} strokeWidth={2.4} />
@@ -341,23 +370,23 @@ export default function ManagerScreen() {
       {!config.enabled && <div className={styles.closed}>โหมดนี้ปิดอยู่ชั่วคราว</div>}
       {toast && <div className={styles.toast}>{toast}</div>}
 
-      {match && (
+      {live && (
+        <ManagerLiveMatch
+          key={live.id}
+          live={live}
+          onFinished={handleFinished}
+          onForfeit={handleForfeit}
+        />
+      )}
+
+      {result && (
         <ManagerMatchOverlay
-          result={match.result}
-          ranked={match.ranked}
+          result={result.result}
+          ranked={result.ranked}
           tiers={config.tiers}
-          searchMs={MATCHMAKING_MS}
-          onRevealed={() => setSearching(false)}
-          onAgain={() => {
-            const ranked = match.ranked;
-            setMatch(null);
-            setSearching(false);
-            window.setTimeout(() => start(ranked), 0);
-          }}
-          onClose={() => {
-            setMatch(null);
-            setSearching(false);
-          }}
+          scorers={result.scorers}
+          onAgain={() => start(result.ranked)}
+          onClose={() => setResult(null)}
         />
       )}
 

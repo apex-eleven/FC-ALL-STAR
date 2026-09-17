@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Star } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
@@ -12,9 +11,8 @@ export interface ManagerMatchOverlayProps {
   result: ManagerPlayResult;
   ranked: boolean;
   tiers: readonly ManagerTier[];
-  /** How long the "finding an opponent" step lasts before the result shows. */
-  searchMs: number;
-  onRevealed(): void;
+  /** Goal scorers from the live match, in order. */
+  scorers: readonly { side: 'home' | 'away'; name: string; minute: number }[];
   onAgain(): void;
   onClose(): void;
 }
@@ -32,30 +30,17 @@ function stars(count: number, filled: number) {
   ));
 }
 
-/**
- * Matchmaking, then the result. The match is already decided and saved when this
- * opens — the search step is presentation only, so closing it early loses nothing.
- */
+/** Full time: the score, the ladder change, and any milestone the win completed. */
 export default function ManagerMatchOverlay({
   result,
   ranked,
   tiers,
-  searchMs,
-  onRevealed,
+  scorers,
   onAgain,
   onClose,
 }: ManagerMatchOverlayProps) {
   const account = useAccount();
-  const [revealed, setRevealed] = useState(false);
   const match = result.match;
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setRevealed(true);
-      onRevealed();
-    }, searchMs);
-    return () => window.clearTimeout(timer);
-  }, [searchMs, onRevealed]);
 
   if (!match) return null;
 
@@ -67,7 +52,7 @@ export default function ManagerMatchOverlay({
     <div className={styles.screen} role="dialog" aria-modal="true" aria-label="ผลการแข่งขัน">
       <div className={styles.scrim} />
 
-      <div className={`${styles.panel} ${revealed ? styles[match.outcome] : ''}`}>
+      <div className={`${styles.panel} ${styles[match.outcome]}`}>
         <span className={styles.mode}>{ranked ? 'แมตช์จัดอันดับ' : 'แมตช์ไม่จัดอันดับ'}</span>
 
         <div className={styles.teams}>
@@ -78,22 +63,15 @@ export default function ManagerMatchOverlay({
           </div>
 
           <div className={styles.middle}>
-            {revealed ? (
-              <>
-                <span className={styles.score}>
-                  {match.score[0]} <i>-</i> {match.score[1]}
-                </span>
-                <span className={styles.outcome}>{OUTCOME_LABEL[match.outcome]}</span>
-              </>
-            ) : (
-              <>
-                <span className={styles.spinner} />
-                <span className={styles.searching}>กำลังค้นหาคู่แข่ง...</span>
-              </>
-            )}
+            <span className={styles.score}>
+              {match.score[0]} <i>-</i> {match.score[1]}
+            </span>
+            <span className={styles.outcome}>
+              {match.forfeit ? 'แพ้ (ออกกลางคัน)' : OUTCOME_LABEL[match.outcome]}
+            </span>
           </div>
 
-          <div className={`${styles.team} ${revealed ? '' : styles.hidden}`}>
+          <div className={styles.team}>
             <img className={styles.avatar} src={avatarSrc(match.opponent.avatarId)} alt="" />
             <span className={styles.name}>{match.opponent.name}</span>
             <span className={styles.ovr}>
@@ -103,7 +81,24 @@ export default function ManagerMatchOverlay({
           </div>
         </div>
 
-        {revealed && ranked && before && after && (
+        {scorers.length > 0 && (
+          <div className={styles.scorers}>
+            <span>
+              {scorers
+                .filter((goal) => goal.side === 'home')
+                .map((goal) => `${goal.name} ${goal.minute}'`)
+                .join(', ')}
+            </span>
+            <span>
+              {scorers
+                .filter((goal) => goal.side === 'away')
+                .map((goal) => `${goal.name} ${goal.minute}'`)
+                .join(', ')}
+            </span>
+          </div>
+        )}
+
+        {ranked && before && after && (
           <div className={styles.ladder}>
             <span className={styles.rung}>
               <b>{before.name}</b>
@@ -127,7 +122,7 @@ export default function ManagerMatchOverlay({
           </div>
         )}
 
-        {revealed && result.paid.length > 0 && (
+        {result.paid.length > 0 && (
           <div className={styles.paid}>
             <span className={styles.paidTitle}>รางวัลชนะสะสม</span>
             <div className={styles.paidList}>
@@ -142,13 +137,13 @@ export default function ManagerMatchOverlay({
           </div>
         )}
 
-        {revealed && !ranked && <p className={styles.note}>แมตช์นี้ไม่นับแรงค์และไม่นับชนะสะสม</p>}
+        {!ranked && <p className={styles.note}>แมตช์นี้ไม่นับแรงค์และไม่นับชนะสะสม</p>}
 
         <div className={styles.actions}>
           <button type="button" className={styles.close} data-sound="back" onClick={onClose}>
             ปิด
           </button>
-          <button type="button" className={styles.again} disabled={!revealed} onClick={onAgain}>
+          <button type="button" className={styles.again} onClick={onAgain}>
             เล่นอีกครั้ง
           </button>
         </div>

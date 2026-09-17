@@ -25,6 +25,15 @@ export const FIGURE_FILE = '/brand/manager_figure.png';
 /** Animated wait before a result, so a match feels like it was found. */
 export const MATCHMAKING_MS = 1600;
 
+/** Real seconds for a full match at 1x; the admin can set anything in this range. */
+export const MATCH_SECONDS_MIN = 60;
+export const MATCH_SECONDS_MAX = 600;
+/** Engine step. Fixed, so a match plays the same however the frames fall. */
+export const ENGINE_DT = 1 / 20;
+export const SPEEDS = [1, 2, 4] as const;
+/** A forfeit is recorded as this score. */
+export const FORFEIT_SCORE: [number, number] = [0, 3];
+
 export function managerId(prefix: string): string {
   const random =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -84,5 +93,6 @@ export function defaultManager(): ManagerConfig {
     figure: '',
     headerCurrency: 'exchange',
     botSpread: 6,
+    matchSeconds: 180,
   };
 }

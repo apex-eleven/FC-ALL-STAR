@@ -63,6 +63,8 @@ export interface ManagerConfig {
   headerCurrency: CurrencyKind;
   /** Squad OVR the fallback bots are drawn around, ± this much. */
   botSpread: number;
+  /** Real seconds a full 90 minutes takes at normal speed. */
+  matchSeconds: number;
 }
 
 export interface ManagerOpponent {
@@ -87,6 +89,20 @@ export interface ManagerMatch {
   starsBefore: number;
   tierAfter: number;
   starsAfter: number;
+  /** Left before the final whistle — recorded as a 0-3 loss. */
+  forfeit?: boolean;
+}
+
+/**
+ * A ranked match that has kicked off but not been settled. Written before the first
+ * whistle; a page that closes mid-match finds it on the next load and settles it as
+ * a forfeit, so quitting a losing game never saves the stars.
+ */
+export interface ManagerPending {
+  id: string;
+  at: string;
+  opponent: ManagerOpponent;
+  rating: number;
 }
 
 /** Per-account progress. Absent on accounts that never opened the mode. */
@@ -103,6 +119,7 @@ export interface ManagerState {
   /** Matches ever played — the seed counter, so each match rolls differently. */
   played: number;
   history: ManagerMatch[];
+  pending?: ManagerPending | null;
 }
 
 export type ManagerPlayError = 'closed' | 'no-squad';

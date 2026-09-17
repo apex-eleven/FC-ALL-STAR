@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -14,17 +15,33 @@ import { fetchLeaderboard } from '@/features/cloud/cloudLeaderboard';
 import type { LeaderboardEntry } from '@/features/leaderboard/types';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { indexOwned, squadRating } from '@/features/squad/squad';
-import { defaultManager, managerId } from './constants';
+import { FORFEIT_SCORE, defaultManager, managerId } from './constants';
+import { botLineup, entryLineup, homeLineup } from './lineup';
 import {
   currentState,
   pickOpponent,
   playManagerMatch,
+  startPending,
   type ManagerPlayOutcome,
 } from './manager';
+import type { MatchSetup } from './matchEngine';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './managerConfigStore';
-import type { ManagerConfig, ManagerState } from './types';
+import type { ManagerConfig, ManagerOpponent, ManagerPlayError, ManagerState } from './types';
 
 export type ManagerPlayResult = Omit<ManagerPlayOutcome, 'account'>;
+
+/** Everything a live match needs, fixed at kick-off. */
+export interface LiveMatch {
+  id: string;
+  ranked: boolean;
+  opponent: ManagerOpponent;
+  rating: number;
+  setup: MatchSetup;
+}
+
+export type PrepareResult =
+  | { ok: true; live: LiveMatch }
+  | { ok: false; error: ManagerPlayError };
 
 interface ManagerValue {
   config: ManagerConfig;
@@ -42,15 +59,31 @@ interface ManagerValue {
   leaderboardRank: number | null;
   /** Re-reads the published elevens opponents are drawn from. */
   refreshOpponents(): void;
-  play(ranked: boolean): ManagerPlayResult;
+  /** Picks the opponent, builds both elevens, and (ranked) records the kick-off. */
+  prepare(ranked: boolean): PrepareResult;
+  /** Settles a finished live match with the score it ended on. */
+  finish(live: LiveMatch, score: [number, number]): ManagerPlayResult;
+  /** Leaves a live match early: a 0-3 loss if ranked, nothing if not. */
+  forfeit(live: LiveMatch): ManagerPlayResult;
 }
 
 const ManagerContext = createContext<ManagerValue | null>(null);
 
+/** Stands in for the lineups of a match settled without being played. */
+const EMPTY_SETUP: MatchSetup = {
+  home: [],
+  away: [],
+  homeBench: [],
+  homeName: '',
+  awayName: '',
+  seed: '',
+  duration: 1,
+};
+
 export function ManagerProvider({ children }: { children: ReactNode }) {
   // useAuth, not useAccount: this sits above the sign-in gate.
   const { account, updateAccount } = useAuth();
-  const { byId } = usePlayers();
+  const { byId, players } = usePlayers();
   const [config, setConfig] = useState<ManagerConfig>(loadConfig);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   // Re-read once a minute so the season and week roll over on an open screen.
@@ -97,33 +130,122 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
     [account, config, clock],
   );
 
-  /**
-   * Opponent, id, and clock are fixed out here, then the same match is applied to the
-   * latest save — the mutator may run twice, and both runs must play the same game.
-   */
-  const play = useCallback(
-    (ranked: boolean): ManagerPlayResult => {
-      if (!account) return { ok: false, error: 'closed', match: null, paid: [] };
-      const now = new Date();
-      const matchId = managerId('m');
-      const opponent = pickOpponent(`${account.id}:${matchId}`, account.id, rating, entries, config);
-      const input = { ranked, opponent, rating, config, now, matchId };
+  // The match this page is playing, so a pending one found on load can be told
+  // apart from the one just kicked off.
+  const activeId = useRef<string | null>(null);
 
+  const settle = useCallback(
+    (live: LiveMatch, score: [number, number], forfeit: boolean): ManagerPlayResult => {
+      if (!account) return { ok: false, error: 'closed', match: null, paid: [] };
+      const input = {
+        ranked: live.ranked,
+        opponent: live.opponent,
+        rating: live.rating,
+        config,
+        now: new Date(),
+        matchId: live.id,
+        result: { score, forfeit },
+      };
       const preview = playManagerMatch(account, input);
+      activeId.current = null;
       if (!preview.ok) return { ok: false, error: preview.error, match: null, paid: [] };
 
       updateAccount((current) => {
+        // A ranked match settles once: if its kick-off record is gone (settled or
+        // forfeited from another tab), there is nothing left to apply.
+        if (live.ranked && current.manager?.pending?.id !== live.id) return current;
         const outcome = playManagerMatch(current, input);
         return outcome.ok ? outcome.account : current;
       });
       return { ok: true, error: null, match: preview.match, paid: preview.paid };
     },
-    [account, rating, entries, config, updateAccount],
+    [account, config, updateAccount],
   );
 
+  const prepare = useCallback(
+    (ranked: boolean): PrepareResult => {
+      if (!account || !config.enabled) return { ok: false, error: 'closed' };
+      if (rating <= 0) return { ok: false, error: 'no-squad' };
+
+      const id = managerId('m');
+      const opponent = pickOpponent(`${account.id}:${id}`, account.id, rating, entries, config);
+      const entry = opponent.bot ? undefined : entries.find((row) => row.uid === opponent.id);
+      const owned = indexOwned(syncOwned(account.club.players, byId));
+      const home = homeLineup(account, owned);
+
+      const live: LiveMatch = {
+        id,
+        ranked,
+        opponent,
+        rating,
+        setup: {
+          home: home.spots,
+          away: entry
+            ? entryLineup(entry)
+            : botLineup(opponent, players, [
+                ...home.spots.map((spot) => spot.player.name),
+                ...home.bench.map((player) => player.name),
+              ]),
+          homeBench: home.bench,
+          homeName: account.username,
+          awayName: opponent.name,
+          seed: `${account.id}:${id}`,
+          duration: config.matchSeconds,
+        },
+      };
+
+      activeId.current = id;
+      if (ranked) {
+        const pending = { id, at: new Date().toISOString(), opponent, rating };
+        updateAccount((current) => startPending(current, pending, config, new Date()));
+      }
+      return { ok: true, live };
+    },
+    [account, config, rating, entries, byId, players, updateAccount],
+  );
+
+  const finish = useCallback(
+    (live: LiveMatch, score: [number, number]) => settle(live, score, false),
+    [settle],
+  );
+
+  const forfeit = useCallback(
+    (live: LiveMatch): ManagerPlayResult => {
+      if (!live.ranked) {
+        // Nothing rides on an unranked match; leaving just ends it.
+        activeId.current = null;
+        return { ok: true, error: null, match: null, paid: [] };
+      }
+      return settle(live, [...FORFEIT_SCORE], true);
+    },
+    [settle],
+  );
+
+  /** A ranked match still pending when this page did not start it was abandoned. */
+  const pending = account?.manager?.pending ?? null;
+  useEffect(() => {
+    if (!pending || pending.id === activeId.current) return;
+    settle(
+      { id: pending.id, ranked: true, opponent: pending.opponent, rating: pending.rating, setup: EMPTY_SETUP },
+      [...FORFEIT_SCORE],
+      true,
+    );
+  }, [pending, settle]);
+
   const value = useMemo<ManagerValue>(
-    () => ({ config, replace, reset, state, rating, leaderboardRank, refreshOpponents, play }),
-    [config, replace, reset, state, rating, leaderboardRank, refreshOpponents, play],
+    () => ({
+      config,
+      replace,
+      reset,
+      state,
+      rating,
+      leaderboardRank,
+      refreshOpponents,
+      prepare,
+      finish,
+      forfeit,
+    }),
+    [config, replace, reset, state, rating, leaderboardRank, refreshOpponents, prepare, finish, forfeit],
   );
 
   return <ManagerContext.Provider value={value}>{children}</ManagerContext.Provider>;

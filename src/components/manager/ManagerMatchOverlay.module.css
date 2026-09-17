@@ -59,10 +59,6 @@
   transition: opacity 0.3s;
 }
 
-.hidden {
-  opacity: 0;
-}
-
 .avatar {
   width: 140px;
   height: 140px;
@@ -141,25 +137,16 @@
   color: #ff6b6b;
 }
 
-.spinner {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  border: 7px solid rgba(255, 255, 255, 0.15);
-  border-top-color: #c6f23a;
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.searching {
+.scorers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 320px;
+  width: 100%;
+  margin-top: -10px;
   font-family: var(--font-ui);
-  font-size: 24px;
+  font-size: 18px;
   color: #d6d0e8;
+  text-align: center;
 }
 
 .ladder {

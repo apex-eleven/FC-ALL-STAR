@@ -8,6 +8,8 @@ import {
   BANNER_IMAGE,
   FIGURE_IMAGE,
   IMAGE_BUDGET_WARN,
+  MATCH_SECONDS_MAX,
+  MATCH_SECONDS_MIN,
   MAX_BANNERS,
   MAX_MILESTONE_REWARDS,
   MAX_MILESTONES,
@@ -290,6 +292,20 @@ export default function AdminManager() {
               />
             </label>
           </div>
+          <label className={styles.field}>
+            <span className={styles.label}>
+              ความยาวแมตช์ที่ความเร็ว x1 (วินาที {MATCH_SECONDS_MIN}–{MATCH_SECONDS_MAX})
+            </span>
+            <input
+              className={styles.input}
+              inputMode="numeric"
+              defaultValue={config.matchSeconds}
+              key={config.matchSeconds}
+              // Committed on blur: typing "180" passes through "1" and "18", which the
+              // normalizer would clamp up to the minimum.
+              onBlur={(event) => patch({ matchSeconds: whole(event.target.value) })}
+            />
+          </label>
           <label className={styles.field}>
             <span className={styles.label}>เงินที่แสดงมุมขวาบน</span>
             <select
