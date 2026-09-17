@@ -79,11 +79,29 @@ button {
   border-radius: var(--radius-xs);
 }
 
+/*
+ * Motion is the player's choice, in the settings menu — see features/motion.
+ *
+ * `system` (and the state before the app has set the attribute) follows the device's
+ * reduce-motion setting; `off` always stills the page; `full` is left alone, because
+ * a gachapon reel that teleports to its result reads as a broken page, not as a
+ * preference being honoured.
+ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root:not([data-motion]) *,
+  :root:not([data-motion]) *::before,
+  :root:not([data-motion]) *::after,
+  :root[data-motion='system'] *,
+  :root[data-motion='system'] *::before,
+  :root[data-motion='system'] *::after {
     transition-duration: 1ms !important;
     animation-duration: 1ms !important;
   }
+}
+
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  transition-duration: 1ms !important;
+  animation-duration: 1ms !important;
 }

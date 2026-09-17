@@ -118,6 +118,43 @@
   color: #ffffff;
 }
 
+/* A label that needs the full width, with its control on the next line. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 5px 0;
+}
+
+/* Three-way choice, spread across the menu's width. */
+.choices {
+  display: flex;
+  gap: 4px;
+}
+
+.choices .choice {
+  flex: 1;
+}
+
+.choice {
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.choiceOn {
+  background: var(--gradient-cta);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+
 .slider {
   width: 100%;
   height: 18px;
@@ -176,4 +213,15 @@
   font-size: var(--text-2xs);
   font-weight: 700;
   color: var(--color-teal);
+}
+
+/* The same note, for something explained rather than something wrong. */
+.hint {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-dim);
 }

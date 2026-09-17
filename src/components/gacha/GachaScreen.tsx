@@ -9,6 +9,7 @@ import type { GachaFeedRow } from '@/features/cloud/cloudGachaFeed';
 import { formatCurrency } from '@/features/currencies/constants';
 import { RARITY_COLOR, RARITY_LABEL } from '@/features/gacha/constants';
 import { livePrizes, percentOf } from '@/features/gacha/gacha';
+import { animates } from '@/features/motion/motion';
 import { useGacha } from '@/features/gacha/GachaContext';
 import type { GachaPrize, GachaWin } from '@/features/gacha/types';
 import { useNavigation } from '@/features/navigation/NavigationContext';
@@ -31,6 +32,12 @@ const REEL_LENGTH = 56;
 const WINNER_INDEX = 48;
 /** Matches the CSS transition on the strip. */
 const SPIN_MS = 5200;
+/**
+ * The wait when animations are switched off (settings menu, or the device's own
+ * reduce-motion setting). The strip cannot travel, so waiting five seconds would be
+ * five seconds of a still screen; long enough to read as "opening", no longer.
+ */
+const STILL_MS = 600;
 
 interface Toast {
   id: number;
@@ -67,6 +74,8 @@ export default function GachaScreen() {
   const [reel, setReel] = useState<GachaPrize[]>([]);
   const [offset, setOffset] = useState(REST_OFFSET);
   const [spinning, setSpinning] = useState(false);
+  /** How long this run takes: the full travel, or the short wait with motion off. */
+  const [runMs, setRunMs] = useState(SPIN_MS);
   const [won, setWon] = useState<GachaPrize | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   /**
@@ -172,6 +181,11 @@ export default function GachaScreen() {
     });
     void stripRef.current?.getBoundingClientRect().left;
 
+    // A device with reduce-motion on (battery saver, "animation effects off") stills
+    // every transition in the app, so the strip would jump and the screen would then
+    // sit there. The wait follows what the page can actually show.
+    const travel = animates() ? SPIN_MS : STILL_MS;
+    setRunMs(travel);
     setSpinning(true);
     setOffset(FRAME_LEFT - WINNER_INDEX * PITCH);
 
@@ -183,7 +197,7 @@ export default function GachaScreen() {
       const shown = view(prize.reward);
       tell(`ได้รับ ${prize.name.trim() || shown.label} · ${shown.count}`, false, RARITY_COLOR[prize.rarity]);
       refreshFeed();
-    }, SPIN_MS);
+    }, travel);
   }
 
   function card(prize: GachaPrize, index: number) {
@@ -264,7 +278,7 @@ export default function GachaScreen() {
               className={styles.strip}
               style={{
                 transform: `translateX(${offset}px)`,
-                transitionDuration: spinning ? `${SPIN_MS}ms` : '0ms',
+                transitionDuration: spinning ? `${runMs}ms` : '0ms',
               }}
             >
               {reel.map((prize, index) => card(prize, index))}

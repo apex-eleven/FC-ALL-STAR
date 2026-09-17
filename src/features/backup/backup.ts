@@ -42,6 +42,9 @@ const PERSONAL_KEYS = [
   // Which announcement this device has closed. Shared, it would carry the admin's
   // own "already seen" out to everyone and the notice would never appear.
   `${STORAGE_PREFIX}announcement-seen:v1`,
+  // How much this device animates. One player's phone on battery saver must not
+  // decide how the game looks for everybody else.
+  `${STORAGE_PREFIX}motion:v1`,
 ];
 
 /** Keys holding account data — excluded from anything written into public/. */

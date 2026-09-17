@@ -19,6 +19,7 @@ import { ManagerProvider } from '@/features/manager/ManagerContext';
 import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
 import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
+import { applyMotion, loadMotion } from '@/features/motion/motion';
 import { restoreConfigFromRepo } from '@/features/backup/backup';
 import { pullConfigFromCloud } from '@/features/cloud/cloudConfig';
 import CloudConfigSync from '@/features/cloud/CloudConfigSync';
@@ -82,6 +83,9 @@ function render() {
     </StrictMode>,
   );
 }
+
+// Before anything renders: this attribute decides whether the first screen animates.
+applyMotion(loadMotion());
 
 /**
  * Fills an empty browser from public/config/admin.json, then renders.

@@ -1,9 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { displayNameOf } from '@/features/auth/constants';
 import { requiredXPForLevel } from '@/features/profile/leveling';
 import { useSound } from '@/features/sound/SoundContext';
 import { MUSIC_TRACKS, resolveTrack } from '@/features/sound/tracks';
+import {
+  applyMotion,
+  motionMode,
+  saveMotion,
+  MOTION_LABEL,
+  MOTION_MODES,
+  type MotionMode,
+} from '@/features/motion/motion';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import styles from './SettingsMenu.module.css';
 
@@ -22,7 +30,14 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
   const { signOut } = useAuth();
   const { config, update, play, musicBlocked } = useSound();
   const { isFullscreen, supported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen();
+  const [motion, setMotion] = useState<MotionMode>(motionMode);
   const currentTrack = resolveTrack(config.musicTrackId);
+
+  function chooseMotion(mode: MotionMode) {
+    applyMotion(mode);
+    saveMotion(mode);
+    setMotion(mode);
+  }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -43,9 +58,10 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
           </span>
         </div>
 
-        {fullscreenSupported && (
-          <div className={styles.group}>
-            <span className={styles.groupTitle}>หน้าจอ</span>
+        <div className={styles.group}>
+          <span className={styles.groupTitle}>หน้าจอ</span>
+
+          {fullscreenSupported && (
             <div className={styles.row}>
               <span className={styles.rowLabel}>เต็มหน้าจอ</span>
               <button
@@ -58,8 +74,32 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
                 {isFullscreen ? 'ออก' : 'เข้า'}
               </button>
             </div>
+          )}
+
+          {/* Some devices — battery saver on Android, "animation effects off" on
+              Windows — ask every site to stop animating. That silently stills the
+              gachapon reel and the walkout, so the choice is offered here. */}
+          <div className={styles.stack}>
+            <span className={styles.rowLabel}>อนิเมชั่นและเอฟเฟกต์</span>
+            <div className={styles.choices}>
+              {MOTION_MODES.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  data-sound="toggle"
+                  aria-pressed={motion === mode}
+                  className={`${styles.choice} ${motion === mode ? styles.choiceOn : ''}`}
+                  onClick={() => chooseMotion(mode)}
+                >
+                  {MOTION_LABEL[mode]}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
+          <span className={styles.hint}>
+            &quot;ตามเครื่อง&quot; = ปิดอนิเมชั่นตามที่ตั้งไว้ในเครื่อง เช่น โหมดประหยัดแบต หรือ ลดการเคลื่อนไหว
+          </span>
+        </div>
 
         <div className={styles.group}>
           <span className={styles.groupTitle}>เสียง</span>
