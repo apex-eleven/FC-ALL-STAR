@@ -3,7 +3,7 @@ import { addPlayers } from '@/features/club/club';
 import { CLUB_CAPACITY } from '@/features/club/constants';
 import type { Club, OwnedPlayer } from '@/features/club/types';
 import { appendEntry, credit, debit } from '@/features/currencies/wallet';
-import type { Wallet, WalletEntry } from '@/features/currencies/types';
+import type { Wallet, WalletEntry, WalletReason } from '@/features/currencies/types';
 import { cardToPlayer } from '@/features/draft/pool';
 import { seasonIdAt } from '@/features/league/season';
 import type { PlayerCard } from '@/features/players/types';
@@ -137,7 +137,7 @@ function credited(
   wallet: Wallet,
   ledger: WalletEntry[],
   payout: readonly ShopReward[],
-  reason: 'shop' | 'admin-grant',
+  reason: Extract<WalletReason, 'shop' | 'admin-grant' | 'mission'>,
   by?: string,
 ): { ok: boolean; wallet: Wallet; ledger: WalletEntry[] } {
   let nextWallet = wallet;
@@ -166,6 +166,7 @@ function delivered(
   payout: readonly ShopReward[],
   lookup: CardLookup,
   stamp: ShopStamp,
+  eventId: string = SHOP_EVENT_ID,
 ): Delivery {
   const lines = payout.filter(isCardReward);
   if (lines.length === 0) return { ok: true, club, cards: [] };
@@ -182,7 +183,7 @@ function delivered(
       cards.push({
         id: `${stamp.seed}-${cards.length + 1}`,
         playerId: card.id,
-        eventId: SHOP_EVENT_ID,
+        eventId,
         name: resolved.name,
         rating: resolved.rating,
         position: resolved.position,
@@ -333,6 +334,33 @@ export function grantPurchase(
       club: cards.club,
       shop: recorded(progress, item, now, config),
     },
+  };
+}
+
+export type RewardDelivery =
+  | { ok: true; account: Account; cards: OwnedPlayer[] }
+  | { ok: false; error: Extract<ShopBuyError, 'at-cap' | 'club-full' | 'card-missing'> };
+
+/**
+ * Hands over a reward list outside a purchase — mission and chest payouts. Same
+ * all-or-nothing rules as buying: every card is checked before anything is credited.
+ */
+export function deliverRewards(
+  account: Account,
+  payout: readonly ShopReward[],
+  lookup: CardLookup,
+  stamp: ShopStamp,
+  reason: 'mission',
+  eventId: string,
+): RewardDelivery {
+  const cards = delivered(account.club, payout, lookup, stamp, eventId);
+  if (!cards.ok) return { ok: false, error: cards.error === 'club-full' ? 'club-full' : 'card-missing' };
+  const given = credited(account.wallet, account.ledger, payout, reason);
+  if (!given.ok) return { ok: false, error: 'at-cap' };
+  return {
+    ok: true,
+    cards: cards.cards,
+    account: { ...account, wallet: given.wallet, ledger: given.ledger, club: cards.club },
   };
 }
 

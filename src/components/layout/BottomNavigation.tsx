@@ -7,6 +7,7 @@ import {
   Video,
 } from 'lucide-react';
 import { bottomNavItems } from '@/data/mock/navigation';
+import { useMissions } from '@/features/missions/MissionContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { useRankUp } from '@/features/rankup/RankUpContext';
 import { useTransfer } from '@/features/transfers/TransferContext';
@@ -26,6 +27,7 @@ export default function BottomNavigation() {
   const { navigate } = useNavigation();
   const { config: rankup } = useRankUp();
   const { config: transfer } = useTransfer();
+  const { config: missions } = useMissions();
 
   /**
    * Which tabs actually go somewhere.
@@ -34,6 +36,7 @@ export default function BottomNavigation() {
    * button goes inert rather than opening a screen that only says it is closed.
    */
   const targets: Partial<Record<BottomNavIcon, () => void>> = {
+    ...(missions.enabled ? { missions: () => navigate('missions') } : {}),
     league: () => navigate('league'),
     ...(rankup.enabled ? { rankup: () => navigate('rankup') } : {}),
     ...(transfer.enabled ? { contracts: () => navigate('transfer') } : {}),

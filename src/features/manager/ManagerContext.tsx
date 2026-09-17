@@ -19,6 +19,7 @@ import {
 } from '@/features/cloud/cloudManagerLadder';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import type { LeaderboardEntry } from '@/features/leaderboard/types';
+import { useMissions } from '@/features/missions/MissionContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { indexOwned, squadRating } from '@/features/squad/squad';
 import { FORFEIT_SCORE, defaultManager, managerId } from './constants';
@@ -93,6 +94,7 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
   // useAuth, not useAccount: this sits above the sign-in gate.
   const { account, updateAccount } = useAuth();
   const { byId, players } = usePlayers();
+  const { note } = useMissions();
   const [config, setConfig] = useState<ManagerConfig>(loadConfig);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [ladderRows, setLadderRows] = useState<ManagerLadderRow[] | null>(null);
@@ -204,11 +206,16 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
         // forfeited from another tab), there is nothing left to apply.
         if (live.ranked && current.manager?.pending?.id !== live.id) return current;
         const outcome = playManagerMatch(current, input);
-        return outcome.ok ? outcome.account : current;
+        if (!outcome.ok || !outcome.match) return current;
+        // A forfeit is a result, not a match played — it counts toward no mission.
+        if (forfeit) return outcome.account;
+        const played = note(outcome.account, 'manager-play', 1);
+        const won = note(played, 'manager-win', outcome.match.outcome === 'win' ? 1 : 0);
+        return note(won, 'manager-goal', outcome.match.score[0]);
       });
       return { ok: true, error: null, match: preview.match, paid: preview.paid };
     },
-    [account, config, updateAccount],
+    [account, config, updateAccount, note],
   );
 
   const prepare = useCallback(

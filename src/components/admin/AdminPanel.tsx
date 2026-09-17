@@ -26,6 +26,7 @@ import AdminStore from './AdminStore';
 import AdminTransfer from './AdminTransfer';
 import AdminShop from './AdminShop';
 import AdminManager from './AdminManager';
+import AdminMissions from './AdminMissions';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
 
@@ -50,6 +51,7 @@ type Tab =
   | 'transfer'
   | 'shop'
   | 'manager'
+  | 'missions'
   | 'announcement'
   | 'walkout'
   | 'backup';
@@ -68,6 +70,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'transfer', label: 'เซ็นสัญญา' },
   { id: 'shop', label: 'ร้านค้าไอเท็ม' },
   { id: 'manager', label: 'เมเนเจอร์โหมด' },
+  { id: 'missions', label: 'ภารกิจ' },
   { id: 'announcement', label: 'ประกาศ' },
   { id: 'walkout', label: 'Walkout' },
   { id: 'backup', label: 'สำรองข้อมูล' },
@@ -244,6 +247,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'transfer' && <AdminTransfer />}
         {tab === 'shop' && <AdminShop />}
         {tab === 'manager' && <AdminManager />}
+        {tab === 'missions' && <AdminMissions />}
         {tab === 'announcement' && <AdminAnnouncement />}
         {tab === 'walkout' && <AdminWalkout />}
         {tab === 'backup' && <AdminBackup />}

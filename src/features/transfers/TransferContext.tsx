@@ -12,6 +12,7 @@ import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 import { syncOwned } from '@/features/club/sync';
 import type { OwnedPlayer } from '@/features/club/types';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { useMissions } from '@/features/missions/MissionContext';
 import type { PlayerCard } from '@/features/players/types';
 import { DEFAULT_BANDS, DEFAULT_TRANSFER } from './constants';
 import {
@@ -63,6 +64,7 @@ export function TransferProvider({ children }: { children: ReactNode }) {
   // no account yet and useAccount would throw.
   const { account, updateAccount } = useAuth();
   const { byId } = usePlayers();
+  const { note } = useMissions();
   const [config, setConfig] = useState<TransferConfig>(loadConfig);
 
   useEffect(() => {
@@ -111,11 +113,11 @@ export function TransferProvider({ children }: { children: ReactNode }) {
 
       updateAccount((current) => {
         const outcome = buyCard(current, card, config, stamp);
-        return outcome.ok ? outcome.account : current;
+        return outcome.ok ? note(outcome.account, 'transfer-buy', 1) : current;
       });
       return { ok: true, error: null, card: preview.card };
     },
-    [account, config, updateAccount],
+    [account, config, updateAccount, note],
   );
 
   const sell = useCallback(
@@ -126,11 +128,11 @@ export function TransferProvider({ children }: { children: ReactNode }) {
 
       updateAccount((current) => {
         const outcome = sellCards(current, ownedIds, config, refresh);
-        return outcome.ok ? outcome.account : current;
+        return outcome.ok ? note(outcome.account, 'transfer-sell', outcome.sold) : current;
       });
       return { ok: true, error: null, sold: preview.sold, earned: preview.earned };
     },
-    [account, config, refresh, updateAccount],
+    [account, config, refresh, updateAccount, note],
   );
 
   const toggleWatch = useCallback(

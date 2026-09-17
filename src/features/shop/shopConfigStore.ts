@@ -96,6 +96,11 @@ function rewards(value: unknown): ShopReward[] {
     .slice(0, MAX_REWARDS);
 }
 
+/** The shop's reward-list repair, shared with anything that pays shop-shaped rewards. */
+export function normalizeRewards(value: unknown): ShopReward[] {
+  return rewards(value);
+}
+
 /** Only data URLs come back — a stored http(s) value would mean hand-edited storage. */
 function image(value: unknown): string {
   return typeof value === 'string' && value.startsWith('data:image/') ? value : '';

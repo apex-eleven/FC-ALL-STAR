@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
+import { useMissions } from '@/features/missions/MissionContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { defaultShop } from './constants';
 import { buyWith, grantPurchase, shopStamp, type ShopBuyOutcome } from './shop';
@@ -38,6 +39,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const { account, updateAccount, updateOther } = useAuth();
   // Card rewards are resolved against the catalogue at the moment of purchase.
   const { byId } = usePlayers();
+  const { note } = useMissions();
   const [config, setConfig] = useState<ShopConfig>(loadConfig);
 
   useEffect(() => {
@@ -70,11 +72,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 
       updateAccount((current) => {
         const outcome = buyWith(current, item, kind, config, now, byId, stamp);
-        return outcome.ok ? outcome.account : current;
+        return outcome.ok ? note(outcome.account, 'shop-buy', 1) : current;
       });
       return { ok: true, error: null, payout: preview.payout };
     },
-    [account, config, updateAccount, byId],
+    [account, config, updateAccount, byId, note],
   );
 
   const grant = useCallback(

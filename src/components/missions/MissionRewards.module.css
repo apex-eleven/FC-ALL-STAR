@@ -1,0 +1,94 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 86px;
+  height: 86px;
+  padding-bottom: 6px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* A portrait fills more of the chip than a coin. */
+.card {
+  width: 50px;
+  height: 56px;
+  margin-bottom: 0;
+  object-fit: cover;
+  object-position: top;
+  border-radius: var(--radius-xs);
+}
+
+.plus {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #ffe27a 0%, #d9a441 100%);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  color: #2a1a00;
+  white-space: nowrap;
+}
+
+.amount {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text);
+  white-space: nowrap;
+}
+
+.compact {
+  gap: 4px;
+}
+
+.compact .chip {
+  width: 58px;
+  height: 58px;
+  padding-bottom: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.compact .icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 2px;
+}
+
+.compact .card {
+  width: 32px;
+  height: 36px;
+}
+
+.compact .amount {
+  font-size: 13px;
+}
+
+.compact .plus {
+  top: -7px;
+  font-size: 11px;
+}

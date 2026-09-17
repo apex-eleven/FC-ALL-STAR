@@ -3,6 +3,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { addPlayers } from '@/features/club/club';
 import type { OwnedPlayer } from '@/features/club/types';
 import { useWallet } from '@/features/currencies/useWallet';
+import { useMissions } from '@/features/missions/MissionContext';
 import { normalizeCounters, pull, type PullOutcome } from './pull';
 import type { DraftCounters, DraftEvent, DraftPack } from './types';
 
@@ -41,6 +42,7 @@ export interface DraftRunApi {
 export function useDraftRun(): DraftRunApi {
   const { account, updateAccount } = useAuth();
   const { spend } = useWallet();
+  const { note } = useMissions();
 
   const countersFor = useCallback(
     (event: DraftEvent) =>
@@ -137,10 +139,12 @@ export function useDraftRun(): DraftRunApi {
         },
         club: addPlayers(current.club, owned),
       }));
+      // Applied straight after the pull, like the charge above it.
+      updateAccount((current) => note(current, 'draft-pull', result.outcomes.length));
 
       return { ok: true, error: null, outcomes: result.outcomes };
     },
-    [account, spend, updateAccount],
+    [account, spend, updateAccount, note],
   );
 
   return { countersFor, run, totalPulls, purchasesOf, remainingOf };

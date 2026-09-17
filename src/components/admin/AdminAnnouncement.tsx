@@ -37,6 +37,7 @@ const ROUTE_LABEL: Record<string, string> = {
   transfer: 'การเซ็นสัญญา',
   shop: 'ร้านค้า',
   manager: 'เมเนเจอร์โหมด',
+  missions: 'ภารกิจ',
 };
 
 const TONES: readonly AnnouncementTone[] = ['info', 'event', 'warning'];

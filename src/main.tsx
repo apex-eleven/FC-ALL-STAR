@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthContext';
 import { AvatarProvider } from '@/features/avatars/AvatarContext';
 import { NewsProvider } from '@/features/news/NewsContext';
 import { PlayerProvider } from '@/features/players/PlayerContext';
+import { MissionProvider } from '@/features/missions/MissionContext';
 import { DraftProvider } from '@/features/draft/DraftContext';
 import { LeagueProvider } from '@/features/league/LeagueContext';
 import { AnnouncementProvider } from '@/features/announcement/AnnouncementContext';
@@ -29,7 +30,9 @@ const root = createRoot(container);
 // by the provider, so anything mounted outside it would be silent.
 //
 // Players sits above drafts because a draft's pool is a list of card ids that the
-// catalogue resolves — the packs cannot be built without it.
+// catalogue resolves — the packs cannot be built without it. Missions sit right
+// under it (card rewards resolve there too) and above everything that counts toward
+// a mission.
 function render() {
   root.render(
     <StrictMode>
@@ -38,26 +41,28 @@ function render() {
           <AvatarProvider>
             <NewsProvider>
               <PlayerProvider>
-                <DraftProvider>
-                  <LeagueProvider>
-                    <WalkoutProvider>
-                      <RankUpProvider>
-                        <TransferProvider>
-                          <ShopProvider>
-                            <ManagerProvider>
-                              <NavigationProvider>
-                                <AnnouncementProvider>
-                                  <CloudConfigSync />
-                                  <App />
-                                </AnnouncementProvider>
-                              </NavigationProvider>
-                            </ManagerProvider>
-                          </ShopProvider>
-                        </TransferProvider>
-                      </RankUpProvider>
-                    </WalkoutProvider>
-                  </LeagueProvider>
-                </DraftProvider>
+                <MissionProvider>
+                  <DraftProvider>
+                    <LeagueProvider>
+                      <WalkoutProvider>
+                        <RankUpProvider>
+                          <TransferProvider>
+                            <ShopProvider>
+                              <ManagerProvider>
+                                <NavigationProvider>
+                                  <AnnouncementProvider>
+                                    <CloudConfigSync />
+                                    <App />
+                                  </AnnouncementProvider>
+                                </NavigationProvider>
+                              </ManagerProvider>
+                            </ShopProvider>
+                          </TransferProvider>
+                        </RankUpProvider>
+                      </WalkoutProvider>
+                    </LeagueProvider>
+                  </DraftProvider>
+                </MissionProvider>
               </PlayerProvider>
             </NewsProvider>
           </AvatarProvider>

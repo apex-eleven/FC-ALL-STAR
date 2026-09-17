@@ -7,6 +7,7 @@ import { syncOwned } from '@/features/club/sync';
 import type { OwnedPlayer } from '@/features/club/types';
 import { formatCurrency } from '@/features/currencies/constants';
 import { useWallet } from '@/features/currencies/useWallet';
+import { useMissions } from '@/features/missions/MissionContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { MAX_PLUS, plusTone } from '@/features/rankup/constants';
@@ -46,6 +47,7 @@ export default function RankUpScreen() {
   const { byId } = usePlayers();
   const { config } = useRankUp();
   const { balances, spend } = useWallet();
+  const { note } = useMissions();
   const { play } = useSound();
 
   const [targetId, setTargetId] = useState<string | null>(null);
@@ -180,7 +182,8 @@ export default function RankUpScreen() {
           .filter((card) => !gone.has(card.id))
           .map((card) => (card.id === snapshot.id ? { ...card, plus: outcome.to } : card));
 
-        return { ...current, squad, club: { players: nextPlayers } };
+        const next = { ...current, squad, club: { players: nextPlayers } };
+        return note(note(next, 'rankup-try', 1), 'rankup-success', outcome.success ? 1 : 0);
       });
 
       setMaterialIds([]);

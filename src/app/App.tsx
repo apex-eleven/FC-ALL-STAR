@@ -11,6 +11,7 @@ import RankUpScreen from '@/components/rankup/RankUpScreen';
 import TransferScreen from '@/components/transfer/TransferScreen';
 import ShopScreen from '@/components/shop/ShopScreen';
 import ManagerScreen from '@/components/manager/ManagerScreen';
+import MissionScreen from '@/components/missions/MissionScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
@@ -84,6 +85,12 @@ export default function App() {
     screen = (
       <Stage>
         <ManagerScreen />
+      </Stage>
+    );
+  } else if (route === 'missions') {
+    screen = (
+      <Stage>
+        <MissionScreen />
       </Stage>
     );
   } else if (route === 'club') {

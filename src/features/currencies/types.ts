@@ -39,7 +39,9 @@ export type WalletReason =
   /** Rewards from an item bought in the shop. */
   | 'shop'
   /** A weekly win milestone in manager mode. */
-  | 'manager';
+  | 'manager'
+  /** A claimed daily or weekly mission, or a mission chest. */
+  | 'mission';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

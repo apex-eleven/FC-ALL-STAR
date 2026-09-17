@@ -12,6 +12,7 @@ import { appendEntry, credit } from '@/features/currencies/wallet';
 import { indexOwned, squadRating } from '@/features/squad/squad';
 import { syncOwned } from '@/features/club/sync';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { useMissions } from '@/features/missions/MissionContext';
 import { fetchEntries, publishEntry, type LeagueEntry } from '@/features/cloud/cloudLeague';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import { loadConfig, saveConfig, normalizeConfig, type SaveResult } from './leagueConfigStore';
@@ -49,6 +50,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   // screen rather than showing the login form.
   const { account, updateAccount } = useAuth();
   const { byId } = usePlayers();
+  const { note } = useMissions();
   const [config, setConfig] = useState<LeagueConfig>(loadConfig);
 
   /**
@@ -146,7 +148,16 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      return { ...current, wallet, ledger, league: result.state };
+      // Fixtures this catch-up resolved, for missions — measured against the saved
+      // standing, so applying the same result twice counts it once. A rolled-over
+      // season starts from nothing, so only same-season progress counts.
+      const before = current.league;
+      const sameSeason = before !== undefined && before.seasonId === result.state.seasonId;
+      const playedNow = sameSeason ? result.state.played - before.played : 0;
+      const wonNow = sameSeason ? (result.state.record?.won ?? 0) - (before.record?.won ?? 0) : 0;
+
+      const next = { ...current, wallet, ledger, league: result.state };
+      return note(note(next, 'league-play', playedNow), 'league-win', wonNow);
     });
 
     // Publish after the fixtures resolved, so the table other players read is this
@@ -165,7 +176,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     // `state` is read from the account, which updateAccount replaces — depending on it
     // directly would loop. The account object identity is the honest trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, config, rating, updateAccount, tableStars, realOpponents]);
+  }, [account, config, rating, updateAccount, tableStars, realOpponents, note]);
 
   /**
    * Refreshes the shared table.
