@@ -244,7 +244,7 @@ export default function ManagerScreen() {
       )}
 
       {/* Player ID and leaderboard place. */}
-      <button type="button" className={styles.clubCard} onClick={() => navigate('club')}>
+      <button type="button" className={styles.clubCard} onClick={() => setLeaderboard(true)} aria-label="Leaderboard แรงค์">
         <span className={styles.clubIcon}>
           <img src={avatarSrc(account.avatarId)} alt="" draggable={false} />
         </span>
@@ -259,7 +259,7 @@ export default function ManagerScreen() {
         <button type="button" className={styles.round} onClick={() => navigate('club')} aria-label="ทีมของฉัน">
           <Shirt size={48} strokeWidth={2.2} fill="currentColor" />
         </button>
-        <button type="button" className={styles.round} onClick={() => setLeaderboard(true)} aria-label="อันดับทีม">
+        <button type="button" className={styles.round} onClick={() => navigate('club')} aria-label="สโมสร">
           <svg viewBox="0 0 48 48" width="50" height="50" aria-hidden="true">
             <rect x="4" y="9" width="40" height="30" rx="2" fill="none" stroke="currentColor" strokeWidth="3.4" />
             <line x1="24" y1="9" x2="24" y2="39" stroke="currentColor" strokeWidth="3" />
