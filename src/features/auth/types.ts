@@ -8,6 +8,7 @@ import type { TransferProgress } from '@/features/transfers/types';
 import type { ShopProgress } from '@/features/shop/types';
 import type { ManagerState } from '@/features/manager/types';
 import type { MissionProgress } from '@/features/missions/types';
+import type { StarPassProgress } from '@/features/starpass/types';
 
 export type Role = 'player' | 'admin';
 
@@ -58,6 +59,8 @@ export interface Account extends Entity {
   manager?: ManagerState;
   /** Daily and weekly mission counts and claims. Absent until the first counted action. */
   missions?: MissionProgress;
+  /** This season's Star Pass: XP, claims, premium. Absent until the first XP. */
+  starpass?: StarPassProgress;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

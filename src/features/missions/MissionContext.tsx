@@ -12,6 +12,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { shopStamp } from '@/features/shop/shop';
+import { useStarPass } from '@/features/starpass/StarPassContext';
 import { defaultMissions } from './constants';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './missionConfigStore';
 import {
@@ -57,6 +58,7 @@ export function MissionProvider({ children }: { children: ReactNode }) {
   // useAuth, not useAccount: this sits above the sign-in gate.
   const { account, updateAccount } = useAuth();
   const { byId } = usePlayers();
+  const { awardMission } = useStarPass();
   const [config, setConfig] = useState<MissionConfig>(loadConfig);
   // Re-read once a minute so the day and week roll over on an open screen.
   const [clock, setClock] = useState(() => Date.now());
@@ -124,8 +126,14 @@ export function MissionProvider({ children }: { children: ReactNode }) {
 
   const claim = useCallback(
     (missionId: string): MissionClaimResult =>
-      settle((target, now, stamp) => claimMission(target, missionId, now, config, byId, stamp)),
-    [settle, config, byId],
+      settle((target, now, stamp) => {
+        const outcome = claimMission(target, missionId, now, config, byId, stamp);
+        if (!outcome.ok) return outcome;
+        // A claimed mission's points also count as Star Pass XP.
+        const points = config.missions.find((entry) => entry.id === missionId)?.points ?? 0;
+        return { ...outcome, account: awardMission(outcome.account, points) };
+      }),
+    [settle, config, byId, awardMission],
   );
 
   const openChest = useCallback(

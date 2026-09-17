@@ -12,6 +12,7 @@ import TransferScreen from '@/components/transfer/TransferScreen';
 import ShopScreen from '@/components/shop/ShopScreen';
 import ManagerScreen from '@/components/manager/ManagerScreen';
 import MissionScreen from '@/components/missions/MissionScreen';
+import StarPassScreen from '@/components/starpass/StarPassScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
@@ -91,6 +92,12 @@ export default function App() {
     screen = (
       <Stage>
         <MissionScreen />
+      </Stage>
+    );
+  } else if (route === 'starpass') {
+    screen = (
+      <Stage>
+        <StarPassScreen />
       </Stage>
     );
   } else if (route === 'club') {

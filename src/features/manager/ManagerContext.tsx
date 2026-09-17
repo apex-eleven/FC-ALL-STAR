@@ -21,6 +21,7 @@ import { isCloudEnabled } from '@/features/cloud/firebase';
 import type { LeaderboardEntry } from '@/features/leaderboard/types';
 import { useMissions } from '@/features/missions/MissionContext';
 import { usePlayers } from '@/features/players/PlayerContext';
+import { useStarPass } from '@/features/starpass/StarPassContext';
 import { indexOwned, squadRating } from '@/features/squad/squad';
 import { FORFEIT_SCORE, defaultManager, managerId } from './constants';
 import { resolveLadder, type LadderView } from './ladder';
@@ -95,6 +96,7 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
   const { account, updateAccount } = useAuth();
   const { byId, players } = usePlayers();
   const { note } = useMissions();
+  const { awardMatch } = useStarPass();
   const [config, setConfig] = useState<ManagerConfig>(loadConfig);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [ladderRows, setLadderRows] = useState<ManagerLadderRow[] | null>(null);
@@ -211,11 +213,12 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
         if (forfeit) return outcome.account;
         const played = note(outcome.account, 'manager-play', 1);
         const won = note(played, 'manager-win', outcome.match.outcome === 'win' ? 1 : 0);
-        return note(won, 'manager-goal', outcome.match.score[0]);
+        const scored = note(won, 'manager-goal', outcome.match.score[0]);
+        return awardMatch(scored, outcome.match.outcome);
       });
       return { ok: true, error: null, match: preview.match, paid: preview.paid };
     },
-    [account, config, updateAccount, note],
+    [account, config, updateAccount, note, awardMatch],
   );
 
   const prepare = useCallback(

@@ -41,7 +41,9 @@ export type WalletReason =
   /** A weekly win milestone in manager mode. */
   | 'manager'
   /** A claimed daily or weekly mission, or a mission chest. */
-  | 'mission';
+  | 'mission'
+  /** A claimed Star Pass level. */
+  | 'starpass';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

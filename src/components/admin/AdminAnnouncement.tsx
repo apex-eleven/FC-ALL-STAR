@@ -38,6 +38,7 @@ const ROUTE_LABEL: Record<string, string> = {
   shop: 'ร้านค้า',
   manager: 'เมเนเจอร์โหมด',
   missions: 'ภารกิจ',
+  starpass: 'Star Pass',
 };
 
 const TONES: readonly AnnouncementTone[] = ['info', 'event', 'warning'];

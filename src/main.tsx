@@ -6,6 +6,7 @@ import { AvatarProvider } from '@/features/avatars/AvatarContext';
 import { NewsProvider } from '@/features/news/NewsContext';
 import { PlayerProvider } from '@/features/players/PlayerContext';
 import { MissionProvider } from '@/features/missions/MissionContext';
+import { StarPassProvider } from '@/features/starpass/StarPassContext';
 import { DraftProvider } from '@/features/draft/DraftContext';
 import { LeagueProvider } from '@/features/league/LeagueContext';
 import { AnnouncementProvider } from '@/features/announcement/AnnouncementContext';
@@ -30,9 +31,9 @@ const root = createRoot(container);
 // by the provider, so anything mounted outside it would be silent.
 //
 // Players sits above drafts because a draft's pool is a list of card ids that the
-// catalogue resolves — the packs cannot be built without it. Missions sit right
-// under it (card rewards resolve there too) and above everything that counts toward
-// a mission.
+// catalogue resolves — the packs cannot be built without it. Star Pass and missions
+// sit right under it (card rewards resolve there too) and above everything that
+// counts toward them; missions give Star Pass XP, so the pass is outermost.
 function render() {
   root.render(
     <StrictMode>
@@ -41,28 +42,30 @@ function render() {
           <AvatarProvider>
             <NewsProvider>
               <PlayerProvider>
-                <MissionProvider>
-                  <DraftProvider>
-                    <LeagueProvider>
-                      <WalkoutProvider>
-                        <RankUpProvider>
-                          <TransferProvider>
-                            <ShopProvider>
-                              <ManagerProvider>
-                                <NavigationProvider>
-                                  <AnnouncementProvider>
-                                    <CloudConfigSync />
-                                    <App />
-                                  </AnnouncementProvider>
-                                </NavigationProvider>
-                              </ManagerProvider>
-                            </ShopProvider>
-                          </TransferProvider>
-                        </RankUpProvider>
-                      </WalkoutProvider>
-                    </LeagueProvider>
-                  </DraftProvider>
-                </MissionProvider>
+                <StarPassProvider>
+                  <MissionProvider>
+                    <DraftProvider>
+                      <LeagueProvider>
+                        <WalkoutProvider>
+                          <RankUpProvider>
+                            <TransferProvider>
+                              <ShopProvider>
+                                <ManagerProvider>
+                                  <NavigationProvider>
+                                    <AnnouncementProvider>
+                                      <CloudConfigSync />
+                                      <App />
+                                    </AnnouncementProvider>
+                                  </NavigationProvider>
+                                </ManagerProvider>
+                              </ShopProvider>
+                            </TransferProvider>
+                          </RankUpProvider>
+                        </WalkoutProvider>
+                      </LeagueProvider>
+                    </DraftProvider>
+                  </MissionProvider>
+                </StarPassProvider>
               </PlayerProvider>
             </NewsProvider>
           </AvatarProvider>
