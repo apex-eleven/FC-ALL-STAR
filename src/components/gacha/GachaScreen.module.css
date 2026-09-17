@@ -420,6 +420,78 @@
   }
 }
 
+/* ── History ──────────────────────────────────────────────────────────── */
+
+/* Mirrors the winners panel on the other side of the spin button. */
+.history {
+  position: absolute;
+  top: 778px;
+  left: 40px;
+  z-index: var(--z-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 300px;
+  max-height: 148px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 13, 26, 0.82);
+}
+
+/* The last ten wins; the panel only has room for three, so it scrolls. */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.historyList::-webkit-scrollbar {
+  width: 5px;
+}
+
+.historyList::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* One line per win: the name reads, the time sits on the right. */
+.historyRow {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px 0 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.historyName {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyWhen {
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.55);
+}
+
 /* ── Winners ──────────────────────────────────────────────────────────── */
 
 .feed {

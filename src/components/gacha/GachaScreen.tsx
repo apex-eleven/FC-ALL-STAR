@@ -39,6 +39,15 @@ interface Toast {
   color: string;
 }
 
+/** "17/9 19:53" — short enough for the history row, still says which day. */
+function stamped(at: string): string {
+  const when = new Date(at);
+  if (Number.isNaN(when.getTime())) return '';
+  return `${when.getDate()}/${when.getMonth() + 1} ${String(when.getHours()).padStart(2, '0')}:${String(
+    when.getMinutes(),
+  ).padStart(2, '0')}`;
+}
+
 const ERROR: Record<string, string> = {
   closed: 'กาชาปองปิดอยู่',
   empty: 'ยังไม่ได้ตั้งรางวัล ติดต่อแอดมิน',
@@ -268,6 +277,23 @@ export default function GachaScreen() {
           </div>
         </>
       )}
+
+      <aside className={styles.history} aria-label="ประวัติของที่เคยได้รับ">
+        <span className={styles.feedTitle}>ของที่เคยได้ ({state.history.length})</span>
+        {state.history.length === 0 ? (
+          <span className={styles.feedEmpty}>ยังไม่เคยหมุน</span>
+        ) : (
+          <div className={styles.historyList}>
+            {state.history.map((win) => (
+              <div key={win.id} className={styles.historyRow} title={RARITY_LABEL[win.rarity]}>
+                <span className={styles.feedBand} style={{ background: RARITY_COLOR[win.rarity] }} />
+                <span className={styles.historyName}>{win.name}</span>
+                <span className={styles.historyWhen}>{stamped(win.at)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </aside>
 
       <aside className={styles.feed} aria-label="ประกาศรายชื่อคนที่ได้ไอเท็ม">
         <span className={styles.feedTitle}>รายชื่อคนที่ได้รางวัล</span>
