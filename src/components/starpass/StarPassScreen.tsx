@@ -216,10 +216,11 @@ export default function StarPassScreen() {
     });
   }
 
-  function rewardArt(reward: StarPassReward, big: boolean) {
+  function rewardArt(reward: StarPassReward, size: 'big' | 'normal' | 'small') {
     const shown = view(reward);
+    const sizeClass = size === 'big' ? styles.artBig : size === 'small' ? styles.artSmall : '';
     return (
-      <span className={`${styles.art} ${big ? styles.artBig : ''}`}>
+      <span className={`${styles.art} ${sizeClass}`}>
         <img
           className={shown.isCard ? styles.cardArt : styles.coinArt}
           src={shown.icon}
@@ -251,11 +252,26 @@ export default function StarPassScreen() {
           }
         }}
       >
-        <span className={styles.icons}>
-          {rewardArt(first, pinnedCell)}
-          {rewards.length > 1 && <span className={styles.more}>+{rewards.length - 1}</span>}
-        </span>
-        {!pinnedCell && <span className={styles.count}>x{formatCurrency(first.amount)}</span>}
+        {rewards.length === 1 ? (
+          <>
+            <span className={styles.icons}>{rewardArt(first, pinnedCell ? 'big' : 'normal')}</span>
+            {!pinnedCell && <span className={styles.count}>x{formatCurrency(first.amount)}</span>}
+          </>
+        ) : (
+          // Every reward in the cell, each with its own amount: two across, up to three down.
+          <span
+            className={`${styles.grid} ${
+              rewards.length === 2 ? styles.grid2 : rewards.length <= 4 ? styles.grid4 : styles.grid6
+            }`}
+          >
+            {rewards.map((reward, i) => (
+              <span key={`${reward.kind}-${i}`} className={styles.item}>
+                {rewardArt(reward, 'small')}
+                <span className={styles.itemCount}>x{formatCurrency(reward.amount)}</span>
+              </span>
+            ))}
+          </span>
+        )}
         {status === 'claimed' && (
           <span className={styles.done}>
             <Check size={22} strokeWidth={3.4} />

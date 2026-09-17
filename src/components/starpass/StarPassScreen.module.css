@@ -384,16 +384,82 @@
   color: #2a1a00;
 }
 
-.more {
-  align-self: flex-end;
-  margin-left: -8px;
-  padding: 1px 7px;
-  border-radius: var(--radius-pill);
-  background: rgba(0, 0, 0, 0.55);
+/* ---- several rewards in one cell ---------------------------------- */
+
+.grid {
+  --item: 84px;
+  --count: 26px;
+  position: absolute;
+  inset: 14px 6px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: center;
+  justify-items: center;
+  row-gap: 8px;
+}
+
+.grid4 {
+  --item: 70px;
+  --count: 23px;
+}
+
+.grid6 {
+  --item: 58px;
+  --count: 20px;
+}
+
+.free .grid4 {
+  --item: 60px;
+  --count: 21px;
+  row-gap: 4px;
+}
+
+.free .grid6 {
+  --item: 44px;
+  --count: 17px;
+  row-gap: 2px;
+}
+
+.pinnedCell .grid {
+  --item: 86px;
+  --count: 24px;
+}
+
+.pinnedCell .grid6 {
+  --item: 66px;
+  --count: 20px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.artSmall {
+  width: var(--item);
+  height: var(--item);
+}
+
+.artSmall .plus {
+  top: -4px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.itemCount {
   font-family: 'Saira', var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
+  font-size: var(--count);
+  font-weight: 700;
+  line-height: 1;
   color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.claimed .itemCount {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .count {
