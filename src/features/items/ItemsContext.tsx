@@ -9,7 +9,10 @@ import {
 } from 'react';
 import type { Account } from '@/features/auth/types';
 import { useAuth } from '@/features/auth/AuthContext';
+import { ASSETS } from '@/assets/assetMap';
 import { useAvatars } from '@/features/avatars/AvatarContext';
+import { ITEM_AVATAR_LEVEL, itemAvatarId, setExtraAvatars } from '@/features/avatars/extraAvatars';
+import type { Avatar } from '@/features/avatars/types';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { useStarPass } from '@/features/starpass/StarPassContext';
@@ -39,6 +42,11 @@ interface ItemsValue {
   replace(next: ItemsConfig): SaveResult;
   reset(): SaveResult;
   byId(itemId: string): ItemDef | undefined;
+  /**
+   * Every avatar: the catalogue, then the pictures avatar items add. Item avatars
+   * can only be unlocked by using the item (see `inventory.avatars`).
+   */
+  avatars: Avatar[];
   /** The signed-in account's bag. */
   inventory: Inventory;
   applyAvatar(itemId: string): ItemUseResult;
@@ -91,6 +99,28 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
 
   const byId = useCallback((itemId: string) => config.items.find((item) => item.id === itemId), [config]);
 
+  const itemAvatars = useMemo<Avatar[]>(
+    () =>
+      config.items.flatMap((item) =>
+        item.effect.type === 'avatar' && !item.effect.avatarId
+          ? [
+              {
+                id: itemAvatarId(item.id),
+                name: item.effect.avatarName || item.name,
+                source: item.image || ASSETS.items.avatar,
+                defaultRequiredLevel: ITEM_AVATAR_LEVEL,
+                requiredLevel: ITEM_AVATAR_LEVEL,
+                overridden: false,
+              },
+            ]
+          : [],
+      ),
+    [config],
+  );
+  // Published before children render, so plain avatar lookups see the same list.
+  setExtraAvatars(itemAvatars);
+  const allAvatars = useMemo(() => [...avatars, ...itemAvatars], [avatars, itemAvatars]);
+
   /**
    * Checked on the account on screen, then applied to the latest save with the same
    * rolls and card ids — the mutator may run twice and both runs must agree.
@@ -110,7 +140,7 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
     [account, updateAccount],
   );
 
-  const validAvatar = useCallback((id: string) => avatars.some((avatar) => avatar.id === id), [avatars]);
+  const validAvatar = useCallback((id: string) => allAvatars.some((avatar) => avatar.id === id), [allAvatars]);
 
   const applyAvatar = useCallback(
     (itemId: string) => settle((target) => applyAvatarItem(target, config, itemId, validAvatar)),
@@ -177,6 +207,7 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
       replace,
       reset,
       byId,
+      avatars: allAvatars,
       inventory,
       applyAvatar,
       rename,
@@ -194,6 +225,7 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
       replace,
       reset,
       byId,
+      allAvatars,
       inventory,
       applyAvatar,
       rename,

@@ -9,6 +9,7 @@ import { cardToPlayer } from '@/features/draft/pool';
 import type { PlayerCard } from '@/features/players/types';
 import { MAX_PLUS } from '@/features/rankup/constants';
 import { currentPass } from '@/features/starpass/starpass';
+import { itemAvatarId } from '@/features/avatars/extraAvatars';
 import { ITEM_EVENT_ID } from './constants';
 import { adjust, countOf, inventoryOf } from './inventory';
 import type { ItemDef, ItemEffect, ItemUseError, ItemsConfig } from './types';
@@ -108,8 +109,9 @@ export function applyAvatarItem(
 ): ItemUseOutcome {
   const found = ready(account, config, itemId, 'avatar');
   if ('error' in found) return failed(account, found.error);
-  const avatarId = found.def.effect.avatarId;
-  if (!avatarId || !validAvatar(avatarId)) return failed(account, 'unknown');
+  // No catalogue avatar chosen: the item's own picture is the avatar.
+  const avatarId = found.def.effect.avatarId || itemAvatarId(found.def.id);
+  if (found.def.effect.avatarId && !validAvatar(avatarId)) return failed(account, 'unknown');
   const inventory = inventoryOf(account.inventory);
   if (inventory.avatars.includes(avatarId)) return failed(account, 'owned');
   const spent = spend(account, itemId);
@@ -220,6 +222,12 @@ export function heldShield(account: Account, config: ItemsConfig): ItemDef | nul
       (def) => def.enabled && def.effect.type === 'shield' && countOf(account.inventory, def.id) > 0,
     ) ?? null
   );
+}
+
+/** The avatar an avatar item gives, as an id. */
+export function avatarOfItem(def: ItemDef): string | null {
+  if (def.effect.type !== 'avatar') return null;
+  return def.effect.avatarId || itemAvatarId(def.id);
 }
 
 export function shieldCount(account: Account, config: ItemsConfig): number {

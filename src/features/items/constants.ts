@@ -36,7 +36,7 @@ export function itemId(prefix = 'it'): string {
 export function defaultEffect(type: ItemType): ItemEffect {
   switch (type) {
     case 'avatar':
-      return { type, avatarId: '' };
+      return { type, avatarId: '', avatarName: '' };
     case 'pack':
       return { type, ovrMin: 100, ovrMax: 120, plusMin: 0, plusMax: 3 };
     case 'plus':
@@ -57,9 +57,10 @@ function item(id: string, name: string, description: string, effect: ItemEffect)
 export function defaultItems(): ItemsConfig {
   return {
     items: [
-      item('it-avatar', 'รูปโปรไฟล์พิเศษ', 'กดใช้เพื่อปลดล็อกรูปโปรไฟล์นี้ได้ทันที ไม่ต้องรอเลเวล', {
+      item('it-avatar', 'รูปโปรไฟล์พิเศษ', 'กดใช้เพื่อเพิ่มรูปโปรไฟล์นี้ และเปลี่ยนเป็นรูปนี้ทันที', {
         type: 'avatar',
         avatarId: '',
+        avatarName: 'รูปพิเศษ',
       }),
       item('it-shield', 'โล่กันดาวลด', 'เปิดใช้ที่หน้าเมเนเจอร์โหมดก่อนแข่ง แพ้แมตช์จัดอันดับดาวไม่ลด (ใช้ 1 อันต่อการแพ้ 1 ครั้ง)', {
         type: 'shield',

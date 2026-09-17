@@ -1,7 +1,6 @@
-import { avatarCatalogue } from '@/data/mock/avatars';
+import { avatarSource } from '@/features/avatars/extraAvatars';
 
-/** Avatar art by id, falling back to the first in the catalogue. */
+/** Avatar art by id — catalogue or item avatar — falling back to the first in the catalogue. */
 export function avatarSrc(avatarId: string): string {
-  const found = avatarCatalogue.find((entry) => entry.id === avatarId);
-  return (found ?? avatarCatalogue[0])?.source ?? '';
+  return avatarSource(avatarId);
 }

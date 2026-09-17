@@ -1,7 +1,8 @@
 import { Lock } from 'lucide-react';
 import { X } from 'lucide-react';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
-import { useAvatars } from '@/features/avatars/AvatarContext';
+import { isItemAvatarId } from '@/features/avatars/extraAvatars';
+import { useItems } from '@/features/items/ItemsContext';
 import { isUnlocked, unlockedCount } from '@/features/avatars/unlocks';
 import GlassPanel from '@/components/ui/GlassPanel';
 import styles from './AvatarPicker.module.css';
@@ -13,9 +14,9 @@ export interface AvatarPickerProps {
 export default function AvatarPicker({ onClose }: AvatarPickerProps) {
   const account = useAccount();
   const { setAvatar } = useAuth();
-  const { avatars } = useAvatars();
-
   const extra = account.inventory?.avatars ?? [];
+  // Item avatars appear once the item has been used; until then there is nothing to pick.
+  const avatars = useItems().avatars.filter((avatar) => !isItemAvatarId(avatar.id) || extra.includes(avatar.id));
   const unlocked = unlockedCount(avatars, account.level, extra);
 
   return (

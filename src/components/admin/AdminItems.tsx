@@ -166,28 +166,49 @@ export default function AdminItems() {
     switch (effect.type) {
       case 'avatar':
         return (
-          <label className={styles.field}>
-            <span className={styles.label}>รูปโปรไฟล์ที่ปลดล็อก</span>
-            <select
-              className={styles.input}
-              value={effect.avatarId}
-              onChange={(event) => patchEffect(item, { avatarId: event.target.value })}
-            >
-              <option value="">— เลือกรูป —</option>
-              {avatars.map((avatar) => (
-                <option key={avatar.id} value={avatar.id}>
-                  {avatar.name} (ปกติเลเวล {avatar.requiredLevel})
-                </option>
-              ))}
-            </select>
-            {effect.avatarId && (
-              <img
-                className={styles.avatarThumb}
-                src={avatars.find((avatar) => avatar.id === effect.avatarId)?.source}
-                alt=""
-              />
+          <>
+            <label className={styles.field}>
+              <span className={styles.label}>รูปโปรไฟล์ที่ได้</span>
+              <select
+                className={styles.input}
+                value={effect.avatarId}
+                onChange={(event) => patchEffect(item, { avatarId: event.target.value })}
+              >
+                <option value="">รูปของไอเท็มนี้ (เพิ่มเป็นรูปโปรไฟล์ใหม่)</option>
+                {avatars.map((avatar) => (
+                  <option key={avatar.id} value={avatar.id}>
+                    {avatar.name} (ปกติเลเวล {avatar.requiredLevel})
+                  </option>
+                ))}
+              </select>
+              {effect.avatarId && (
+                <img
+                  className={styles.avatarThumb}
+                  src={avatars.find((avatar) => avatar.id === effect.avatarId)?.source}
+                  alt=""
+                />
+              )}
+            </label>
+            {!effect.avatarId && (
+              <>
+                <label className={styles.field}>
+                  <span className={styles.label}>ชื่อรูปโปรไฟล์ (โชว์ในหน้าเลือกรูป)</span>
+                  <input
+                    className={styles.input}
+                    maxLength={NAME_MAX}
+                    placeholder={item.name}
+                    value={effect.avatarName}
+                    onChange={(event) => patchEffect(item, { avatarName: event.target.value })}
+                  />
+                </label>
+                <p className={`${styles.legend} ${item.image ? '' : styles.warnText}`}>
+                  {item.image
+                    ? 'ผู้เล่นกดใช้แล้ว รูปของไอเท็มนี้จะถูกเพิ่มในหน้าเลือกรูปโปรไฟล์และเปลี่ยนเป็นรูปนี้ทันที'
+                    : 'ยังไม่ได้อัปโหลดรูป — กด "อัปโหลดรูป" ด้านบน ไม่อย่างนั้นจะใช้รูปเริ่มต้น'}
+                </p>
+              </>
             )}
-          </label>
+          </>
         );
       case 'pack': {
         const pool = cardsInRange(players, effect.ovrMin, effect.ovrMax).length;

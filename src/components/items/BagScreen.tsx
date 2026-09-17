@@ -3,11 +3,10 @@ import { Check, ChevronLeft, Home, Search } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
 import { USERNAME_MAX_LENGTH, displayNameOf } from '@/features/auth/constants';
-import { useAvatars } from '@/features/avatars/AvatarContext';
 import { formatCurrency } from '@/features/currencies/constants';
 import type { CurrencyKind } from '@/features/currencies/types';
 import { cardToPlayer } from '@/features/draft/pool';
-import { cardsInRange, plusTargets } from '@/features/items/items';
+import { avatarOfItem, cardsInRange, plusTargets } from '@/features/items/items';
 import { useItems, type ItemUseResult } from '@/features/items/ItemsContext';
 import type { ItemDef } from '@/features/items/types';
 import { useNavigation } from '@/features/navigation/NavigationContext';
@@ -46,7 +45,6 @@ export default function BagScreen() {
   const account = useAccount();
   const { back, navigate } = useNavigation();
   const { players, byId: cardById } = usePlayers();
-  const { avatars } = useAvatars();
   const items = useItems();
   const { config, inventory, shields } = items;
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -93,8 +91,9 @@ export default function BagScreen() {
     const effect = def.effect;
     switch (effect.type) {
       case 'avatar': {
-        const avatar = avatars.find((entry) => entry.id === effect.avatarId);
-        const owned = inventory.avatars.includes(effect.avatarId);
+        const avatarId = avatarOfItem(def) ?? '';
+        const avatar = items.avatars.find((entry) => entry.id === avatarId);
+        const owned = inventory.avatars.includes(avatarId);
         return (
           <div className={styles.action}>
             {avatar ? (

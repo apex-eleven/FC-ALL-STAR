@@ -1,4 +1,5 @@
 import { DEFAULT_AVATAR_ID, MAX_REQUIRED_LEVEL, MIN_REQUIRED_LEVEL } from './constants';
+import { isItemAvatarId } from './extraAvatars';
 import type { Avatar, AvatarCatalogue, AvatarLevelOverrides } from './types';
 
 export function clampRequiredLevel(level: number): number {
@@ -46,6 +47,8 @@ export function findAvatar(avatars: readonly Avatar[], id: string): Avatar | und
  */
 export function normalizeAvatarId(value: unknown, catalogue: AvatarCatalogue): string {
   if (typeof value === 'string' && catalogue.some((avatar) => avatar.id === value)) return value;
+  // An item avatar is checked when it is shown: the item list may not be loaded yet.
+  if (typeof value === 'string' && isItemAvatarId(value) && value.length <= 80) return value;
   return DEFAULT_AVATAR_ID;
 }
 

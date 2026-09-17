@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, Trophy, X } from 'lucide-react';
 import { ASSETS } from '@/assets/assetMap';
-import { avatarCatalogue } from '@/data/mock/avatars';
+import { avatarSource } from '@/features/avatars/extraAvatars';
 import { fetchLeaderboard } from '@/features/cloud/cloudLeaderboard';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import { FORMATIONS } from '@/features/squad/constants';
@@ -18,8 +18,7 @@ export interface LeaderboardScreenProps {
 
 /** Same idea as the league table: clubs have no crests, so every row wears an avatar. */
 function avatarSrc(avatarId: string): string {
-  const found = avatarCatalogue.find((entry) => entry.id === avatarId);
-  return (found ?? avatarCatalogue[0])?.source ?? '';
+  return avatarSource(avatarId);
 }
 
 /**

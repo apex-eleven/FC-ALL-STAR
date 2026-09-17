@@ -53,7 +53,7 @@ function effect(value: unknown): ItemEffect | null {
   const base = defaultEffect(type);
   switch (base.type) {
     case 'avatar':
-      return { type: 'avatar', avatarId: text(source.avatarId, 60) };
+      return { type: 'avatar', avatarId: text(source.avatarId, 60), avatarName: text(source.avatarName, NAME_MAX) };
     case 'pack': {
       const ovrMin = int(source.ovrMin, 1, MAX_OVR, base.ovrMin);
       const plusMin = int(source.plusMin, 0, MAX_PLUS, base.plusMin);

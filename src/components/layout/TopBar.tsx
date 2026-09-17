@@ -2,7 +2,7 @@ import { Newspaper } from 'lucide-react';
 import { newsButtonLabel } from '@/data/mock/home';
 import { useAccount, useIsAdmin } from '@/features/auth/AuthContext';
 import { displayNameOf } from '@/features/auth/constants';
-import { useAvatars } from '@/features/avatars/AvatarContext';
+import { useItems } from '@/features/items/ItemsContext';
 import { resolveDisplayAvatar } from '@/features/avatars/unlocks';
 import { requiredXPForLevel } from '@/features/profile/leveling';
 import PlayerProfile from '@/components/profile/PlayerProfile';
@@ -26,7 +26,7 @@ export default function TopBar({
   // on the cloud they do not — admin there is a document in Firestore, and a name
   // anyone can register must not be what unlocks the panel.
   const isAdmin = useIsAdmin();
-  const { avatars } = useAvatars();
+  const { avatars } = useItems();
 
   // Falls back to the default if an admin has since raised the requirement above
   // this player's level. The stored choice is kept, so lowering it restores them.

@@ -28,6 +28,7 @@ import { normalizeState as normalizeManagerState } from '@/features/manager/mana
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
 import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
+import { isItemAvatarId } from '@/features/avatars/extraAvatars';
 import {
   ADMIN_SIGNUP_CODE,
   checkPassword,
@@ -73,7 +74,7 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
       typeof data.lastSignInAt === 'string' ? data.lastSignInAt : new Date().toISOString(),
     avatarId:
       typeof data.avatarId === 'string' &&
-      avatarCatalogue.some((entry) => entry.id === data.avatarId)
+      (avatarCatalogue.some((entry) => entry.id === data.avatarId) || isItemAvatarId(data.avatarId))
         ? data.avatarId
         : DEFAULT_AVATAR_ID,
     wallet: normalizeWallet(data.wallet),

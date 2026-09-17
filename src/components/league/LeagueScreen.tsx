@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, Clock, Crown, Home, Star } from 'lucide-react';
-import { avatarCatalogue } from '@/data/mock/avatars';
+import { avatarSource } from '@/features/avatars/extraAvatars';
 import { currencies } from '@/data/mock/currencies';
 import BrandGlyph from '@/components/ui/BrandGlyph';
 import { useAccount } from '@/features/auth/AuthContext';
@@ -31,8 +31,7 @@ import styles from './LeagueScreen.module.css';
  * player's own avatar on their row, a seeded one on each rival.
  */
 function avatarSrc(avatarId: string): string {
-  const found = avatarCatalogue.find((entry) => entry.id === avatarId);
-  return (found ?? avatarCatalogue[0])?.source ?? '';
+  return avatarSource(avatarId);
 }
 
 function hhmm(date: Date): string {

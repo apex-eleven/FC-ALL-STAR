@@ -9,8 +9,12 @@ import type { CurrencyKind } from '@/features/currencies/types';
  */
 
 export type ItemEffect =
-  /** Unlocks one profile avatar regardless of level, and puts it on. */
-  | { type: 'avatar'; avatarId: string }
+  /**
+   * Unlocks a profile avatar and puts it on. `avatarId` '' = the item's own picture
+   * becomes a new avatar (named `avatarName`); otherwise a catalogue avatar is
+   * unlocked regardless of level.
+   */
+  | { type: 'avatar'; avatarId: string; avatarName: string }
   /** Switched on in manager mode: a ranked loss keeps its stars and spends one. */
   | { type: 'shield' }
   /** A random catalogue card rated ovrMin..ovrMax, arriving at plusMin..plusMax. */
