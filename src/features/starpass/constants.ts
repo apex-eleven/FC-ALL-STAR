@@ -11,6 +11,8 @@ export const TITLE_MAX = 30;
 export const STARPASS_EVENT_ID = 'starpass';
 /** Bounds a hand-edited XP total. */
 export const MAX_TOTAL_XP = 1_000_000_000;
+/** Showcase art shares the 1 MiB settings document. */
+export const SHOWCASE_IMAGE = { maxWidth: 512, maxHeight: 512, maxBytes: 60_000 };
 
 export function starpassId(prefix: string): string {
   const random =
@@ -35,7 +37,7 @@ function level(index: number): StarPassLevel {
       : n % 2 === 0
         ? [{ kind: 'gem', amount: 100 }]
         : [{ kind: 'ticket', amount: 1 }];
-  return { id: `lv-${n}`, free, premium };
+  return { id: `lv-${n}`, free, premium, featured: n % 10 === 0 };
 }
 
 export function defaultStarPass(): StarPassConfig {
@@ -49,6 +51,9 @@ export function defaultStarPass(): StarPassConfig {
     matchLoss: 10,
     priceGem: 1_000,
     priceFcpoint: null,
+    skipPrice: 1,
+    showcaseCardId: '',
+    showcaseImage: '',
     levels: Array.from({ length: 30 }, (_, index) => level(index)),
   };
 }

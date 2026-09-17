@@ -42,6 +42,11 @@ function bool(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
+/** Only data URLs come back — a stored http(s) value would mean hand-edited storage. */
+function image(value: unknown): string {
+  return typeof value === 'string' && value.startsWith('data:image/') ? value : '';
+}
+
 export function normalizeConfig(value: unknown): StarPassConfig {
   if (value === null || value === undefined) return defaultStarPass();
   const source = record(value);
@@ -55,7 +60,12 @@ export function normalizeConfig(value: unknown): StarPassConfig {
       let id = text(entry.id, 40);
       if (!id || seen.has(id)) id = starpassId('lv');
       seen.add(id);
-      return { id, free: normalizeRewards(entry.free), premium: normalizeRewards(entry.premium) };
+      return {
+        id,
+        free: normalizeRewards(entry.free),
+        premium: normalizeRewards(entry.premium),
+        featured: bool(entry.featured, false),
+      };
     });
 
   return {
@@ -68,6 +78,9 @@ export function normalizeConfig(value: unknown): StarPassConfig {
     matchLoss: int(source.matchLoss, 0, MAX_XP, fallback.matchLoss),
     priceGem: 'priceGem' in source ? price(source.priceGem) : fallback.priceGem,
     priceFcpoint: 'priceFcpoint' in source ? price(source.priceFcpoint) : fallback.priceFcpoint,
+    skipPrice: int(source.skipPrice, 0, MAX_RATE, fallback.skipPrice),
+    showcaseCardId: text(source.showcaseCardId, 80),
+    showcaseImage: image(source.showcaseImage),
     levels,
   };
 }

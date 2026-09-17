@@ -209,6 +209,39 @@ export function buyPremium(
   };
 }
 
+/** FC points to buy the next level now: the XP still missing × `skipPrice`. null = not on offer. */
+export function skipCost(pass: StarPassProgress, config: StarPassConfig): number | null {
+  if (!config.enabled || config.skipPrice <= 0) return null;
+  const step = levelProgress(pass.xp, config);
+  if (step.maxed) return null;
+  return (step.need - step.into) * config.skipPrice;
+}
+
+/** Buys the next level with FC points: XP is topped up to exactly that level. */
+export function buyLevel(account: Account, season: number, config: StarPassConfig): StarPassOutcome {
+  if (!config.enabled) return failed(account, 'closed');
+  const pass = currentPass(account.starpass, season);
+  if (levelOf(pass.xp, config) >= config.levels.length) return failed(account, 'maxed');
+  const cost = skipCost(pass, config);
+  if (cost === null) return failed(account, 'not-sold');
+
+  const paid = debit(account.wallet, 'fcpoint', cost, { reason: 'purchase' });
+  if (!paid.ok || !paid.entry) return failed(account, 'insufficient-funds');
+  const next = (levelOf(pass.xp, config) + 1) * Math.max(1, config.xpPerLevel);
+  return {
+    ok: true,
+    error: null,
+    rewards: [],
+    cards: [],
+    account: {
+      ...account,
+      wallet: paid.wallet,
+      ledger: appendEntry(account.ledger, paid.entry),
+      starpass: { ...pass, xp: Math.min(MAX_TOTAL_XP, next) },
+    },
+  };
+}
+
 /** Admin: opens (or closes) the premium track for this season without charging. */
 export function setPremium(account: Account, premium: boolean, season: number): Account {
   const pass = currentPass(account.starpass, season);

@@ -19,6 +19,7 @@ import { shopStamp } from '@/features/shop/shop';
 import { defaultStarPass } from './constants';
 import {
   addXp,
+  buyLevel,
   buyPremium,
   claimAll,
   claimLevel,
@@ -64,6 +65,8 @@ interface StarPassValue {
   claim(levelId: string, track: StarPassTrack): StarPassResult;
   claimEverything(): StarPassResult;
   buy(kind: PremiumPayKind): StarPassResult;
+  /** Buys the next level with FC points. */
+  buyNextLevel(): StarPassResult;
   /** Admin: open or close another account's premium track for this season. */
   grant(username: string, premium: boolean): Promise<boolean>;
 }
@@ -163,6 +166,11 @@ export function StarPassProvider({ children }: { children: ReactNode }) {
     [settle, season, config],
   );
 
+  const buyNextLevel = useCallback(
+    () => settle((target) => buyLevel(target, season, config)),
+    [settle, season, config],
+  );
+
   const grant = useCallback(
     (username: string, premium: boolean) =>
       updateOther(username, (current) => setPremium(current, premium, seasonNow())),
@@ -183,9 +191,25 @@ export function StarPassProvider({ children }: { children: ReactNode }) {
       claim,
       claimEverything,
       buy,
+      buyNextLevel,
       grant,
     }),
-    [config, replace, reset, season, endsAt, pass, refresh, awardMission, awardMatch, claim, claimEverything, buy, grant],
+    [
+      config,
+      replace,
+      reset,
+      season,
+      endsAt,
+      pass,
+      refresh,
+      awardMission,
+      awardMatch,
+      claim,
+      claimEverything,
+      buy,
+      buyNextLevel,
+      grant,
+    ],
   );
 
   return <StarPassContext.Provider value={value}>{children}</StarPassContext.Provider>;

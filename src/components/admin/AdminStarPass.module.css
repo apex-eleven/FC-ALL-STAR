@@ -214,7 +214,7 @@
 .levelHead,
 .level {
   display: grid;
-  grid-template-columns: 36px 1fr 1fr auto;
+  grid-template-columns: 52px 1fr 1fr auto;
   gap: 10px;
   align-items: start;
 }
@@ -243,4 +243,43 @@
   font-size: var(--text-base);
   font-weight: 900;
   color: var(--color-text);
+}
+
+.levelSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.showcaseRow {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.showcaseThumb {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--color-dim);
+}
+
+.showcaseThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.showcasePick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }

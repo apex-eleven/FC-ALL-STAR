@@ -24,7 +24,9 @@ under another season number is read as a fresh pass.
 | a claimed mission | its points × `missionRate` / 100 |
 | a finished manager match | `matchWin` / `matchDraw` / `matchLoss` (forfeits: nothing) |
 
-Every `xpPerLevel` XP reaches the next level, up to the number of levels set.
+Every `xpPerLevel` XP reaches the next level, up to the number of levels set. The
+next level can also be bought outright for FC points: the XP still missing ×
+`skipPrice` (`skipCost`, `buyLevel`).
 
 ## Rewards
 
@@ -33,5 +35,12 @@ Each level has a free and a premium reward list (currencies, or catalogue cards 
 one cell at a time or all at once. Premium cells unlock once the premium track is
 bought with gems or FC points, or granted by an admin — and a late unlock can claim
 every premium reward already passed.
+
+## Screen
+
+Premium rewards run along the top, free along the bottom, level diamonds between.
+Levels marked `featured` are pinned at the right edge of the track until scrolled
+to. The showcase beside the track is an uploaded image, else the chosen catalogue
+card, else the first card on the premium line.
 
 Rules: this folder must not import from `src/components/`. See CLAUDE.md.

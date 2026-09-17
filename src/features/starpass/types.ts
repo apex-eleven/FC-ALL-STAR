@@ -19,6 +19,8 @@ export interface StarPassLevel {
   id: string;
   free: StarPassReward[];
   premium: StarPassReward[];
+  /** A big-reward level: pinned at the right edge of the track until scrolled to. */
+  featured: boolean;
 }
 
 export interface StarPassConfig {
@@ -34,6 +36,11 @@ export interface StarPassConfig {
   /** In-game prices for the premium track. null = not sold for that currency. */
   priceGem: number | null;
   priceFcpoint: number | null;
+  /** FC points per XP still missing, to buy the next level outright. 0 = not sold. */
+  skipPrice: number;
+  /** The card shown beside the track: a catalogue card id, or an uploaded image. */
+  showcaseCardId: string;
+  showcaseImage: string;
   levels: StarPassLevel[];
 }
 
@@ -58,6 +65,7 @@ export type StarPassError =
   | 'nothing'
   | 'owned'
   | 'not-sold'
+  | 'maxed'
   | 'insufficient-funds'
   | 'at-cap'
   | 'club-full'
