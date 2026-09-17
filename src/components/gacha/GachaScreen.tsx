@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Loader2, X } from 'lucide-react';
 import { ASSETS } from '@/assets/assetMap';
 import { currencies } from '@/data/mock/currencies';
@@ -59,6 +60,7 @@ export default function GachaScreen() {
   const [won, setWon] = useState<GachaPrize | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const timer = useRef<number | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   // Read by the refill effect, which must not fire while the reel is running.
   const spinningRef = useRef(false);
   spinningRef.current = spinning;
@@ -127,15 +129,26 @@ export default function GachaScreen() {
     // The prize is already paid and filed; the reel only shows what happened.
     const strip = filler(REEL_LENGTH);
     strip[WINNER_INDEX] = result.prize;
-    setReel(strip);
-    setWon(null);
-    setOffset(REST_OFFSET);
-    setSpinning(true);
 
-    // A frame at the start position, so the transition has something to run from.
-    window.requestAnimationFrame(() => {
-      setOffset(FRAME_LEFT - WINNER_INDEX * PITCH);
+    // Park the strip back at the rest position with the transition off, and make the
+    // browser actually lay it out there before the run starts.
+    //
+    // A transition runs between two styles the browser has computed. The second spin
+    // ends where the first one did, so without this flush the browser never sees the
+    // rest position: it compares the old stopping point with the new one, finds the
+    // same transform, and animates nothing — the reel stands still for five seconds
+    // and then the prize appears. flushSync commits the rest position; reading a
+    // layout property forces it to be computed; only then does the run begin.
+    flushSync(() => {
+      setReel(strip);
+      setWon(null);
+      setSpinning(false);
+      setOffset(REST_OFFSET);
     });
+    void stripRef.current?.getBoundingClientRect().left;
+
+    setSpinning(true);
+    setOffset(FRAME_LEFT - WINNER_INDEX * PITCH);
 
     timer.current = window.setTimeout(() => {
       setSpinning(false);
@@ -221,6 +234,7 @@ export default function GachaScreen() {
         <>
           <div className={styles.reel}>
             <div
+              ref={stripRef}
               className={styles.strip}
               style={{
                 transform: `translateX(${offset}px)`,
