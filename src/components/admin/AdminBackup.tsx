@@ -59,7 +59,7 @@ export default function AdminBackup() {
                     state === 'saved'
                       ? { tone: 'ok', text: 'ส่งขึ้นคลาวด์แล้ว · ผู้เล่นทุกคนจะเห็นตอนเปิดครั้งถัดไป' }
                       : state === 'too-large'
-                        ? { tone: 'bad', text: 'ข้อมูลใหญ่เกิน 900 KB — ลดขนาดรูปแบนเนอร์ลงก่อน' }
+                        ? { tone: 'bad', text: 'ตั้งค่าใหญ่เกินไป (เกิน ~9 MB) — ลดขนาดหรือจำนวนรูปที่อัปโหลดลงก่อน' }
                         : state === 'denied'
                           ? { tone: 'bad', text: 'ไอดีนี้ไม่ใช่แอดมินบนคลาวด์ (ต้องมี admins/{uid} ใน Firestore)' }
                           : { tone: 'bad', text: 'ส่งขึ้นคลาวด์ไม่สำเร็จ' },
@@ -88,8 +88,8 @@ export default function AdminBackup() {
           </div>
 
           <p className={styles.legend}>
-            เพดาน 900 KB มาจากลิมิตของ Firestore ที่ 1 MiB ต่อ document ·
-            รูปแบนเนอร์ถูกเก็บเป็น data URL จึงเป็นตัวที่กินที่มากที่สุด
+            ตั้งค่าถูกแบ่งเก็บหลาย document (Firestore รับได้ 1 MiB ต่อ document) รวมได้ราว 9 MB ·
+            รูปที่อัปโหลดถูกเก็บเป็น data URL จึงเป็นตัวที่กินที่มากที่สุด
           </p>
         </div>
       )}
