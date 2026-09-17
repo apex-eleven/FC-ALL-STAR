@@ -422,17 +422,17 @@
 
 /* ── History ──────────────────────────────────────────────────────────── */
 
-/* Mirrors the winners panel on the other side of the spin button. */
+/* Directly under the SPIN and KEY counters, the same width as the pair of them. */
 .history {
   position: absolute;
-  top: 778px;
-  left: 40px;
+  top: 166px;
+  right: 40px;
   z-index: var(--z-panel);
   display: flex;
   flex-direction: column;
   gap: 5px;
-  width: 300px;
-  max-height: 148px;
+  width: 278px;
+  max-height: 300px;
   padding: 9px 12px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);

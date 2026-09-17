@@ -5,11 +5,12 @@ import { ASSETS } from '@/assets/assetMap';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
 import { avatarSource } from '@/features/avatars/extraAvatars';
+import type { GachaFeedRow } from '@/features/cloud/cloudGachaFeed';
 import { formatCurrency } from '@/features/currencies/constants';
 import { RARITY_COLOR, RARITY_LABEL } from '@/features/gacha/constants';
 import { livePrizes, percentOf } from '@/features/gacha/gacha';
 import { useGacha } from '@/features/gacha/GachaContext';
-import type { GachaPrize } from '@/features/gacha/types';
+import type { GachaPrize, GachaWin } from '@/features/gacha/types';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import useRewardView from '@/components/shop/useRewardView';
 import styles from './GachaScreen.module.css';
@@ -68,6 +69,16 @@ export default function GachaScreen() {
   const [spinning, setSpinning] = useState(false);
   const [won, setWon] = useState<GachaPrize | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  /**
+   * The two lists as they looked when the spin started, held until the reel stops.
+   *
+   * The prize is paid, filed and announced the moment the button is pressed — five
+   * seconds before the strip stops. Left live, both lists would name the prize while
+   * it is still travelling, and nobody would watch the reel again.
+   */
+  const [frozen, setFrozen] = useState<{ history: GachaWin[]; feed: GachaFeedRow[] | null } | null>(
+    null,
+  );
   const timer = useRef<number | null>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   // Read by the refill effect, which must not fire while the reel is running.
@@ -75,6 +86,8 @@ export default function GachaScreen() {
   spinningRef.current = spinning;
 
   const prizes = useMemo(() => livePrizes(config), [config]);
+  const history = frozen ? frozen.history : state.history;
+  const winners = frozen ? frozen.feed : feed;
   const keys = account.wallet.key;
   const cost = config.keyCost;
 
@@ -135,7 +148,10 @@ export default function GachaScreen() {
       return;
     }
 
-    // The prize is already paid and filed; the reel only shows what happened.
+    // The prize is already paid and filed; the reel only shows what happened. Both
+    // lists are pinned to what they were a moment ago, so neither gives it away.
+    setFrozen({ history: state.history, feed });
+
     const strip = filler(REEL_LENGTH);
     strip[WINNER_INDEX] = result.prize;
 
@@ -161,6 +177,7 @@ export default function GachaScreen() {
 
     timer.current = window.setTimeout(() => {
       setSpinning(false);
+      setFrozen(null);
       setWon(result.prize);
       const prize = result.prize!;
       const shown = view(prize.reward);
@@ -279,12 +296,12 @@ export default function GachaScreen() {
       )}
 
       <aside className={styles.history} aria-label="ประวัติของที่เคยได้รับ">
-        <span className={styles.feedTitle}>ของที่เคยได้ ({state.history.length})</span>
-        {state.history.length === 0 ? (
+        <span className={styles.feedTitle}>ของที่เคยได้ ({history.length})</span>
+        {history.length === 0 ? (
           <span className={styles.feedEmpty}>ยังไม่เคยหมุน</span>
         ) : (
           <div className={styles.historyList}>
-            {state.history.map((win) => (
+            {history.map((win) => (
               <div key={win.id} className={styles.historyRow} title={RARITY_LABEL[win.rarity]}>
                 <span className={styles.feedBand} style={{ background: RARITY_COLOR[win.rarity] }} />
                 <span className={styles.historyName}>{win.name}</span>
@@ -297,11 +314,11 @@ export default function GachaScreen() {
 
       <aside className={styles.feed} aria-label="ประกาศรายชื่อคนที่ได้ไอเท็ม">
         <span className={styles.feedTitle}>รายชื่อคนที่ได้รางวัล</span>
-        {feed === null && <span className={styles.feedEmpty}>กำลังโหลด…</span>}
-        {feed !== null && feed.length === 0 && (
+        {winners === null && <span className={styles.feedEmpty}>กำลังโหลด…</span>}
+        {winners !== null && winners.length === 0 && (
           <span className={styles.feedEmpty}>ยังไม่มีใครได้รางวัลใหญ่</span>
         )}
-        {(feed ?? []).slice(0, 3).map((row, index) => (
+        {(winners ?? []).slice(0, 3).map((row, index) => (
           <div key={`${row.uid}-${row.at}-${index}`} className={styles.feedRow}>
             <span className={styles.feedBand} style={{ background: RARITY_COLOR[row.rarity] }} />
             <img className={styles.feedAvatar} src={avatarSource(row.avatarId)} alt="" />
