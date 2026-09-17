@@ -15,9 +15,10 @@ const TONES: readonly AnnouncementTone[] = ['info', 'event', 'warning'];
 
 function text(value: unknown, max: number): string {
   if (typeof value !== 'string') return '';
-  // Trailing space is trimmed but inner newlines are kept — the body is written as
-  // paragraphs and the overlay renders them.
-  return value.slice(0, max).trimEnd();
+  // Kept as typed. This runs on every keystroke in the admin tab, so trimming here
+  // would eat a space the moment it is typed; the overlay's layout hides any
+  // trailing whitespace anyway. Inner newlines are kept for paragraphs.
+  return value.slice(0, max);
 }
 
 /** '' or a timestamp the browser could actually parse. Anything else is dropped. */

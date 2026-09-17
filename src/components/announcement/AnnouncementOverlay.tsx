@@ -56,6 +56,7 @@ export default function AnnouncementOverlay() {
             point that reaches every player. */}
         <div className={styles.body}>
           {config.body
+            .trimEnd()
             .split('\n')
             .map((line, index) =>
               line.trim() === '' ? <br key={index} /> : <p key={index}>{line}</p>,
