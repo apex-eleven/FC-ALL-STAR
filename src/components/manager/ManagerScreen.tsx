@@ -26,11 +26,11 @@ import {
 import type { MatchEngine } from '@/features/manager/matchEngine';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import IconButton from '@/components/ui/IconButton';
-import LeaderboardScreen from '@/components/leaderboard/LeaderboardScreen';
 import { avatarSrc } from './avatarSrc';
 import ManagerDialog, { type ManagerDialogMode } from './ManagerDialog';
 import ManagerLiveMatch from './ManagerLiveMatch';
 import ManagerMatchOverlay from './ManagerMatchOverlay';
+import ManagerLadderScreen from './ManagerLadderScreen';
 import ManagerTrophy from './ManagerTrophy';
 import TierStars from './TierStars';
 import styles from './ManagerScreen.module.css';
@@ -57,7 +57,7 @@ function networkRtt(): number | null {
 export default function ManagerScreen() {
   const account = useAccount();
   const { back, navigate } = useNavigation();
-  const { config, state, rating, leaderboardRank, refreshOpponents, prepare, finish, forfeit } =
+  const { config, state, rating, leaderboardRank, ladder, refreshOpponents, prepare, finish, forfeit } =
     useManager();
   const [now, setNow] = useState(() => new Date());
   const [slide, setSlide] = useState(0);
@@ -386,7 +386,12 @@ export default function ManagerScreen() {
       {dialog && <ManagerDialog mode={dialog} onClose={() => setDialog(null)} />}
 
       {leaderboard && (
-        <LeaderboardScreen selfUid={account.id} onClose={() => setLeaderboard(false)} />
+        <ManagerLadderScreen
+          selfUid={account.id}
+          ladder={ladder}
+          onRefresh={refreshOpponents}
+          onClose={() => setLeaderboard(false)}
+        />
       )}
     </div>
   );

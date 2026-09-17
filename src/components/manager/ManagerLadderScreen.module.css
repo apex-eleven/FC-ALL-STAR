@@ -1,0 +1,177 @@
+/* Same panel as the OVR leaderboard (components/leaderboard), on the 2048x942 stage. */
+.overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2048px;
+  height: 942px;
+  z-index: var(--z-modal);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 16, 0.62);
+}
+
+.panel {
+  position: absolute;
+  left: 424px;
+  top: 90px;
+  display: flex;
+  flex-direction: column;
+  width: 1200px;
+  max-height: 760px;
+  padding: 20px 24px 24px;
+  border-radius: var(--radius-lg);
+  background: rgba(8, 12, 24, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-card);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.iconButton,
+.close {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0;
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.subtitle {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+.empty {
+  margin: 40px 0;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-dim);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 44px 52px 1fr 64px 300px;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rowSelf {
+  border-color: rgba(37, 214, 236, 0.6);
+  background: rgba(37, 214, 236, 0.12);
+}
+
+.rank {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.rankTop {
+  color: var(--color-gold);
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selfTag {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-cyan);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  color: #06222a;
+}
+
+.badge {
+  display: block;
+  width: 64px;
+  height: 64px;
+}
+
+.trophy {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tierName {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--color-gold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: var(--shadow-text);
+}

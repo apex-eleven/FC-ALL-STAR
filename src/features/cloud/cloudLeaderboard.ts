@@ -31,7 +31,9 @@ export async function publishLeaderboardEntry(entry: LeaderboardEntry): Promise<
   if (!db) return false;
 
   try {
-    await setDoc(doc(db, PATHS.leaderboard, entry.uid), entry);
+    // Merged, so the manager-mode rank stored on the same document survives a
+    // squad change.
+    await setDoc(doc(db, PATHS.leaderboard, entry.uid), entry, { merge: true });
     return true;
   } catch {
     // A failed publish just leaves this account's old standing in place (or absent)

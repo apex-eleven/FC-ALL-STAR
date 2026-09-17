@@ -12,10 +12,17 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 import { syncOwned } from '@/features/club/sync';
 import { fetchLeaderboard } from '@/features/cloud/cloudLeaderboard';
+import {
+  fetchManagerLadder,
+  publishManagerRank,
+  type ManagerLadderRow,
+} from '@/features/cloud/cloudManagerLadder';
+import { isCloudEnabled } from '@/features/cloud/firebase';
 import type { LeaderboardEntry } from '@/features/leaderboard/types';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { indexOwned, squadRating } from '@/features/squad/squad';
 import { FORFEIT_SCORE, defaultManager, managerId } from './constants';
+import { resolveLadder, type LadderView } from './ladder';
 import { botLineup, entryLineup, homeLineup } from './lineup';
 import {
   currentState,
@@ -52,12 +59,14 @@ interface ManagerValue {
   /** Squad OVR of the eleven on the pitch — what a match is played at. */
   rating: number;
   /**
-   * This account's place on the OVR leaderboard, counted the way the leaderboard
+   * This account's place on the manager-rank leaderboard, counted the way the ladder
    * screen numbers its rows. null when it is not on the fetched table (no cloud, not
    * published yet, or below the rows fetched).
    */
   leaderboardRank: number | null;
-  /** Re-reads the published elevens opponents are drawn from. */
+  /** Real players ranked by manager tier and stars; null until first fetched. */
+  ladder: LadderView[] | null;
+  /** Re-reads the published elevens opponents are drawn from, and the rank ladder. */
   refreshOpponents(): void;
   /** Picks the opponent, builds both elevens, and (ranked) records the kick-off. */
   prepare(ranked: boolean): PrepareResult;
@@ -86,6 +95,7 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
   const { byId, players } = usePlayers();
   const [config, setConfig] = useState<ManagerConfig>(loadConfig);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [ladderRows, setLadderRows] = useState<ManagerLadderRow[] | null>(null);
   // Re-read once a minute so the season and week roll over on an open screen.
   const [clock, setClock] = useState(() => Date.now());
 
@@ -109,9 +119,14 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
 
   const reset = useCallback(() => replace(defaultManager()), [replace]);
 
+  const refreshLadder = useCallback(() => {
+    void fetchManagerLadder().then(setLadderRows);
+  }, []);
+
   const refreshOpponents = useCallback(() => {
     void fetchLeaderboard().then(setEntries);
-  }, []);
+    refreshLadder();
+  }, [refreshLadder]);
 
   const rating = useMemo(() => {
     if (!account) return 0;
@@ -119,16 +134,50 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
     return squadRating(account.squad, owned);
   }, [account, byId]);
 
+  const ladder = useMemo(
+    () => (ladderRows ? resolveLadder(ladderRows, config, new Date(clock)) : null),
+    [ladderRows, config, clock],
+  );
+
+  const accountId = account?.id ?? null;
   const leaderboardRank = useMemo(() => {
-    if (!account) return null;
-    const index = entries.findIndex((entry) => entry.uid === account.id);
+    if (!accountId || !ladder) return null;
+    const index = ladder.findIndex((row) => row.uid === accountId);
     return index >= 0 ? index + 1 : null;
-  }, [account, entries]);
+  }, [accountId, ladder]);
 
   const state = useMemo(
     () => (account ? currentState(account.manager, config, new Date(clock)) : null),
     [account, config, clock],
   );
+
+  // Publish this account's rank whenever it changes, so other players see it on the
+  // ladder. Accounts that never touched manager mode stay off it.
+  const published = useRef('');
+  const hasManager = Boolean(account?.manager);
+  const username = account?.username ?? '';
+  const avatarId = account?.avatarId ?? '';
+  const tierId = state ? (config.tiers[state.tier]?.id ?? '') : '';
+  const lastPlayed = state?.history.find((match) => match.ranked)?.at ?? '';
+  useEffect(() => {
+    if (!accountId || !state || !hasManager || !isCloudEnabled()) return;
+    const signature = [accountId, username, avatarId, tierId, state.tier, state.stars, state.season].join('|');
+    if (published.current === signature) return;
+    published.current = signature;
+    void publishManagerRank({
+      uid: accountId,
+      username,
+      avatarId,
+      tierId,
+      tier: state.tier,
+      stars: state.stars,
+      season: state.season,
+      // When the rank was reached, so ties keep whoever got there first ahead.
+      updatedAt: lastPlayed || new Date().toISOString(),
+    }).then((ok) => {
+      if (ok) refreshLadder();
+    });
+  }, [accountId, username, avatarId, tierId, state, hasManager, lastPlayed, refreshLadder]);
 
   // The match this page is playing, so a pending one found on load can be told
   // apart from the one just kicked off.
@@ -240,12 +289,13 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
       state,
       rating,
       leaderboardRank,
+      ladder,
       refreshOpponents,
       prepare,
       finish,
       forfeit,
     }),
-    [config, replace, reset, state, rating, leaderboardRank, refreshOpponents, prepare, finish, forfeit],
+    [config, replace, reset, state, rating, leaderboardRank, ladder, refreshOpponents, prepare, finish, forfeit],
   );
 
   return <ManagerContext.Provider value={value}>{children}</ManagerContext.Provider>;
