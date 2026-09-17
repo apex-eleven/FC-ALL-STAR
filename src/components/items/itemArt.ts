@@ -28,7 +28,9 @@ export function itemArt(def: ItemDef | undefined): string {
         ? ASSETS.items.boxTicket
         : effect.currency === 'exchange'
           ? ASSETS.items.boxExchange
-          : ASSETS.items.boxFcpoint;
+          : effect.currency === 'key'
+            ? ASSETS.items.boxKey
+            : ASSETS.items.boxFcpoint;
     case 'pick':
       return ASSETS.items.pick;
     case 'premium':

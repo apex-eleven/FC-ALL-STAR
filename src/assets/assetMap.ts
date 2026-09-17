@@ -75,6 +75,7 @@ import itemPlus8 from './images/items/plus-8.png';
 import itemBoxFcpoint from './images/items/box-fcpoint.png';
 import itemBoxTicket from './images/items/box-ticket.png';
 import itemBoxExchange from './images/items/box-exchange.png';
+import itemBoxKey from './images/items/box-key.png';
 import itemPick from './images/items/pick.png';
 import itemPremium from './images/items/premium.png';
 
@@ -158,6 +159,7 @@ export const ASSETS = {
     boxFcpoint: itemBoxFcpoint,
     boxTicket: itemBoxTicket,
     boxExchange: itemBoxExchange,
+    boxKey: itemBoxKey,
     pick: itemPick,
     premium: itemPremium,
   },

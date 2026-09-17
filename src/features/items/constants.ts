@@ -97,6 +97,12 @@ export function defaultItems(): ItemsConfig {
         min: 1_000,
         max: 10_000,
       }),
+      item('it-box-key', 'กล่องสุ่มกุญแจ', 'สุ่มได้กุญแจ 1–3 ดอก สำหรับหมุนกาชาปอง', {
+        type: 'box',
+        currency: 'key',
+        min: 1,
+        max: 3,
+      }),
       item('it-pick', 'บัตรเลือกนักเตะ', 'เลือกการ์ดนักเตะ OVR 110–120 ได้ 1 ใบ', { type: 'pick', ovrMin: 110, ovrMax: 120 }),
       item('it-premium', 'บัตรเปิดพรีเมียมพาส', 'เปิดสายพิเศษของ Star Pass ซีซั่นนี้ฟรี', { type: 'premium' }),
     ],
