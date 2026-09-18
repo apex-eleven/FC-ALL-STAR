@@ -217,12 +217,12 @@
 
 /* ── Reel ─────────────────────────────────────────────────────────────── */
 
+/* One row of the reel. `top` and `height` come from the component: rows share the
+   stage, so their height depends on how many there are. */
 .reel {
   position: absolute;
-  top: 506px;
   left: 0;
   right: 0;
-  height: 260px;
   z-index: var(--z-panel);
   overflow: hidden;
   border-top: 1px solid rgba(148, 197, 255, 0.18);
@@ -232,9 +232,9 @@
 
 .strip {
   position: absolute;
-  top: 10px;
+  top: 5px;
+  bottom: 5px;
   left: 0;
-  height: 240px;
   /* The long, decelerating run the reference shows; duration is set in the component. */
   transition-property: transform;
   transition-timing-function: cubic-bezier(0.07, 0.76, 0.08, 1);
@@ -244,14 +244,14 @@
 .card {
   position: absolute;
   top: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 4px;
   width: 232px;
-  height: 240px;
-  padding: 16px 12px 0;
+  padding: 14px 12px 6px;
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -265,26 +265,91 @@
     0 0 40px rgba(56, 189, 248, 0.45);
 }
 
+/* Every size is a fixed number of pixels, not a percentage: a percentage height
+   inside a flex item with no definite height is simply ignored, and the picture then
+   runs over the name. */
 .art {
   display: grid;
   place-items: center;
+  flex: none;
   width: 100%;
   height: 132px;
 }
 
-.coinArt {
-  width: 104px;
-  height: 104px;
+.coinArt,
+.cardArt {
+  max-width: 104px;
+  max-height: 132px;
   object-fit: contain;
 }
 
 .cardArt {
-  width: 96px;
-  height: 128px;
-  object-fit: contain;
+  max-width: 88px;
+}
+
+/* ── Shorter cards, for five rows and for ten ─────────────────────────── */
+
+.cardMid {
+  gap: 2px;
+  padding: 6px 10px 4px;
+}
+
+.cardMid .art {
+  height: 40px;
+}
+
+.cardMid .coinArt,
+.cardMid .cardArt {
+  max-width: 40px;
+  max-height: 40px;
+}
+
+.cardMid .cardName {
+  font-size: 16px;
+}
+
+.cardMid .cardKind {
+  font-size: 13px;
+}
+
+/* Ten rows: one line — picture, name, amount. */
+.cardSmall {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 3px;
+}
+
+.cardSmall .art {
+  width: 34px;
+  height: 34px;
+}
+
+.cardSmall .coinArt,
+.cardSmall .cardArt {
+  max-width: 34px;
+  max-height: 34px;
+}
+
+.cardSmall .band {
+  height: 3px;
+}
+
+.cardSmall .cardName {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  text-align: left;
+}
+
+.cardSmall .cardKind {
+  flex: none;
+  font-size: 14px;
 }
 
 .cardName {
+  /* Never squeezed: in a short row the text would shrink to a sliver and clip. */
+  flex: none;
   max-width: 100%;
   font-family: var(--font-ui);
   font-size: 19px;
@@ -298,6 +363,7 @@
 }
 
 .cardKind {
+  flex: none;
   font-family: var(--font-ui);
   font-size: 16px;
   font-weight: 600;

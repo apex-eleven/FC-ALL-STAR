@@ -34,9 +34,11 @@ wallet at its cap, a club with no room — and keeps everything up to that point
 because cards are numbered from the seed and sharing one would hand two cards the
 same id.
 
-The screen runs the reel once for the whole batch, stopping on the rarest prize won,
-and lays the rest out in a panel afterwards: ten runs of the strip would be nearly a
-minute of watching.
+The screen gives every spin its own row — five rows for x5, ten for x10 — and runs
+them all at once, each stopping on its own prize. The rows share the stage, so they
+get shorter as they get more numerous (and the case art and the side panels step
+aside); the cards have three shapes to match. A panel appears afterwards only when a
+batch stopped short, to say what it paid and why it stopped.
 
 ## Prizes and odds
 

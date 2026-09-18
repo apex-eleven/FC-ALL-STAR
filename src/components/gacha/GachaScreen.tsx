@@ -30,6 +30,37 @@ const REST_OFFSET = FRAME_LEFT - 3 * PITCH;
 /** Cards in the strip, and where the winner sits — long enough to look like a spin. */
 const REEL_LENGTH = 56;
 const WINNER_INDEX = 48;
+/**
+ * Shorter strips when several rows run at once: ten rows of fifty-six cards is five
+ * hundred cards of DOM, and twenty-four is still 5,700 px of travel.
+ */
+const MULTI_LENGTH = 30;
+const MULTI_WINNER = 24;
+/** The band the rows share when there are several: under the title, above the button. */
+const ROWS_TOP = 206;
+const ROWS_BOTTOM = 782;
+/** One row keeps the reference's own geometry. */
+const SINGLE_TOP = 506;
+const SINGLE_HEIGHT = 260;
+
+interface Rows {
+  top: number;
+  height: number;
+  gap: number;
+}
+
+/** Where `count` rows sit, spread over the band and centred in it. */
+function rowLayout(count: number): Rows {
+  if (count <= 1) return { top: SINGLE_TOP, height: SINGLE_HEIGHT, gap: 0 };
+  const gap = count > 5 ? 4 : 8;
+  const height = Math.floor((ROWS_BOTTOM - ROWS_TOP - (count - 1) * gap) / count);
+  const used = height * count + (count - 1) * gap;
+  return {
+    top: ROWS_TOP + Math.floor((ROWS_BOTTOM - ROWS_TOP - used) / 2),
+    height,
+    gap,
+  };
+}
 /** Matches the CSS transition on the strip. */
 const SPIN_MS = 5200;
 /**
@@ -82,17 +113,23 @@ export default function GachaScreen() {
   const { back } = useNavigation();
   const { config, state, feed, refreshFeed, spin } = useGacha();
   const view = useRewardView();
-  const [reel, setReel] = useState<GachaPrize[]>([]);
-  const [offset, setOffset] = useState(REST_OFFSET);
+  /** One strip per row — five rows for x5, ten for x10, all running together. */
+  const [lanes, setLanes] = useState<GachaPrize[][]>([]);
+  const [offsets, setOffsets] = useState<number[]>([]);
   const [spinning, setSpinning] = useState(false);
   /** How long this run takes: the full travel, or the short wait with motion off. */
   const [runMs, setRunMs] = useState(SPIN_MS);
-  const [won, setWon] = useState<GachaPrize | null>(null);
+  /** True once the rows have stopped: the cards in the frames are the prizes. */
+  const [landed, setLanded] = useState(false);
   /** How many spins one press buys, and the prizes of the last multi-spin. */
   const [count, setCount] = useState(SPIN_COUNTS[0] ?? 1);
-  const [results, setResults] = useState<{ prizes: GachaPrize[]; asked: number; error: string } | null>(
-    null,
-  );
+  const [results, setResults] = useState<{
+    prizes: GachaPrize[];
+    asked: number;
+    error: string;
+  } | null>(null);
+  /** The rows on screen now — the chosen count, or what a stopped-short batch paid. */
+  const [shown, setShown] = useState(1);
   const [toast, setToast] = useState<Toast | null>(null);
   /**
    * The two lists as they looked when the spin started, held until the reel stops.
@@ -101,9 +138,10 @@ export default function GachaScreen() {
    * seconds before the strip stops. Left live, both lists would name the prize while
    * it is still travelling, and nobody would watch the reel again.
    */
-  const [frozen, setFrozen] = useState<{ history: GachaWin[]; feed: GachaFeedRow[] | null } | null>(
-    null,
-  );
+  const [frozen, setFrozen] = useState<{
+    history: GachaWin[];
+    feed: GachaFeedRow[] | null;
+  } | null>(null);
   const timer = useRef<number | null>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   // Read by the refill effect, which must not fire while the reel is running.
@@ -115,14 +153,19 @@ export default function GachaScreen() {
   const winners = frozen ? frozen.feed : feed;
   const keys = account.wallet.key;
   const cost = config.keyCost * count;
+  const rows = rowLayout(shown);
+  const laneWinner = shown > 1 ? MULTI_WINNER : WINNER_INDEX;
 
   useEffect(() => {
     refreshFeed();
   }, [refreshFeed]);
 
-  useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!toast) return;
@@ -148,16 +191,20 @@ export default function GachaScreen() {
   );
 
   /**
-   * The resting strip, built once and rebuilt only when the admin changes the prize
-   * list. Deliberately not rebuilt when a spin ends: the strip is left exactly where
-   * it stopped, so the card under the frame stays the one that was won.
+   * The resting rows: one strip each, rebuilt when the player changes how many spins
+   * to buy or the admin changes the prize list. Deliberately not rebuilt when a run
+   * ends — the strips are left exactly where they stopped, so the cards under the
+   * frames stay the ones that were won.
    */
   useEffect(() => {
     if (spinningRef.current || prizes.length === 0) return;
-    setReel(filler(REEL_LENGTH));
-    setOffset(REST_OFFSET);
+    const length = count > 1 ? MULTI_LENGTH : REEL_LENGTH;
+    setShown(count);
+    setLanded(false);
+    setLanes(Array.from({ length: count }, () => filler(length)));
+    setOffsets(Array.from({ length: count }, () => REST_OFFSET));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.prizes.length]);
+  }, [count, config.prizes.length]);
 
   function tell(text: string, bad: boolean, color = '#ffffff') {
     setToast({ id: Date.now(), text, bad, color });
@@ -178,11 +225,17 @@ export default function GachaScreen() {
     // lists are pinned to what they were a moment ago, so neither gives it away.
     setFrozen({ history: state.history, feed });
 
-    // One run of the reel however many spins were bought, stopping on the best of
-    // them; the rest are laid out afterwards. Ten runs would be nearly a minute of
-    // watching a strip go by.
-    const strip = filler(REEL_LENGTH);
-    strip[WINNER_INDEX] = top;
+    // One row per spin, each with its own strip and its own prize, all running at
+    // once — five rows for x5, ten for x10. A row per spin taken in turn would be
+    // nearly a minute of watching for ten.
+    const many = result.prizes.length > 1;
+    const length = many ? MULTI_LENGTH : REEL_LENGTH;
+    const winner = many ? MULTI_WINNER : WINNER_INDEX;
+    const strips = result.prizes.map((prize) => {
+      const strip = filler(length);
+      strip[winner] = prize;
+      return strip;
+    });
 
     // Park the strip back at the rest position with the transition off, and make the
     // browser actually lay it out there before the run starts.
@@ -194,10 +247,11 @@ export default function GachaScreen() {
     // and then the prize appears. flushSync commits the rest position; reading a
     // layout property forces it to be computed; only then does the run begin.
     flushSync(() => {
-      setReel(strip);
-      setWon(null);
+      setShown(result.prizes.length);
+      setLanes(strips);
+      setLanded(false);
       setSpinning(false);
-      setOffset(REST_OFFSET);
+      setOffsets(strips.map(() => REST_OFFSET));
     });
     void stripRef.current?.getBoundingClientRect().left;
 
@@ -207,47 +261,61 @@ export default function GachaScreen() {
     const travel = animates() ? SPIN_MS : STILL_MS;
     setRunMs(travel);
     setSpinning(true);
-    setOffset(FRAME_LEFT - WINNER_INDEX * PITCH);
+    setOffsets(strips.map(() => FRAME_LEFT - winner * PITCH));
 
     timer.current = window.setTimeout(() => {
       setSpinning(false);
       setFrozen(null);
-      setWon(top);
-      const shown = view(top.reward);
-      tell(`ได้รับ ${top.name.trim() || shown.label} · ${shown.count}`, false, RARITY_COLOR[top.rarity]);
-      // A single spin is told by the reel itself; a batch needs every prize shown.
-      if (result.prizes.length > 1 || result.error) {
+      setLanded(true);
+      const best = view(top.reward);
+      const name = top.name.trim() || best.label;
+      tell(
+        many
+          ? `ได้รับ ${result.prizes.length} ชิ้น · ดีสุด ${name}`
+          : `ได้รับ ${name} · ${best.count}`,
+        false,
+        RARITY_COLOR[top.rarity],
+      );
+      // The rows show every prize, so the panel is only for a batch that stopped
+      // short: what it managed to pay, and why it stopped.
+      if (result.error) {
         setResults({
           prizes: result.prizes,
           asked: count,
-          error: result.error ? (ERROR[result.error] ?? '') : '',
+          error: ERROR[result.error] ?? '',
         });
       }
       refreshFeed();
     }, travel);
   }
 
+  /**
+   * One card on a strip. Rows get shorter as they get more numerous, so the card has
+   * three shapes: the full one, a shorter one, and a single line for ten rows.
+   */
   function card(prize: GachaPrize, index: number) {
-    const shown = view(prize.reward);
-    const middle = spinning ? false : index === WINNER_INDEX && won !== null;
+    const seen = view(prize.reward);
+    const middle = !spinning && landed && index === laneWinner;
+    const size = rows.height >= 200 ? '' : rows.height >= 92 ? styles.cardMid : styles.cardSmall;
+    const name = prize.name.trim() || seen.label;
     return (
       <div
         key={`${prize.id}-${index}`}
-        className={`${styles.card} ${middle ? styles.cardWon : ''}`}
+        className={`${styles.card} ${size} ${middle ? styles.cardWon : ''}`}
         style={{ left: index * PITCH }}
-        title={`${prize.name.trim() || shown.label} · ${percentOf(config, prize).toFixed(2)}%`}
+        title={`${name} · ${percentOf(config, prize).toFixed(2)}%`}
       >
         <span className={styles.art}>
           <img
-            className={shown.isCard ? styles.cardArt : styles.coinArt}
-            src={shown.icon}
+            className={seen.isCard ? styles.cardArt : styles.coinArt}
+            src={seen.icon}
             alt=""
             draggable={false}
           />
         </span>
-        <span className={styles.cardName}>{prize.name.trim() || shown.label}</span>
+        <span className={styles.cardName}>{name}</span>
         <span className={styles.cardKind}>
-          {RARITY_LABEL[prize.rarity]} · {shown.count}
+          {size === styles.cardSmall ? seen.count : `${RARITY_LABEL[prize.rarity]} · ${seen.count}`}
         </span>
         <span className={styles.band} style={{ background: RARITY_COLOR[prize.rarity] }} />
       </div>
@@ -284,36 +352,48 @@ export default function GachaScreen() {
         </div>
       </div>
 
-      <div className={styles.case}>
-        <img
-          className={styles.caseArt}
-          src={config.caseImage || ASSETS.brand.gachaCase}
-          alt=""
-          draggable={false}
-        />
-        <span className={styles.caseTag}>FC 2.0</span>
-        <span className={styles.caseName}>{config.caseName || 'ALL-STAR CASE'}</span>
-      </div>
+      {/* The rows of a multi-spin take the whole stage, so the case steps aside. */}
+      {shown <= 1 && (
+        <div className={styles.case}>
+          <img
+            className={styles.caseArt}
+            src={config.caseImage || ASSETS.brand.gachaCase}
+            alt=""
+            draggable={false}
+          />
+          <span className={styles.caseTag}>FC 2.0</span>
+          <span className={styles.caseName}>{config.caseName || 'ALL-STAR CASE'}</span>
+        </div>
+      )}
 
       {prizes.length === 0 ? (
         <p className={styles.closed}>ยังไม่ได้ตั้งรางวัลกาชาปอง</p>
       ) : (
         <>
-          <div className={styles.reel}>
+          {lanes.map((strip, row) => (
             <div
-              ref={stripRef}
-              className={styles.strip}
+              key={row}
+              className={styles.reel}
               style={{
-                transform: `translateX(${offset}px)`,
-                transitionDuration: spinning ? `${runMs}ms` : '0ms',
+                top: rows.top + row * (rows.height + rows.gap),
+                height: rows.height,
               }}
             >
-              {reel.map((prize, index) => card(prize, index))}
+              <div
+                ref={row === 0 ? stripRef : undefined}
+                className={styles.strip}
+                style={{
+                  transform: `translateX(${offsets[row] ?? REST_OFFSET}px)`,
+                  transitionDuration: spinning ? `${runMs}ms` : '0ms',
+                }}
+              >
+                {strip.map((prize, index) => card(prize, index))}
+              </div>
+              <div className={styles.frame} aria-hidden="true" />
+              <div className={styles.fadeLeft} aria-hidden="true" />
+              <div className={styles.fadeRight} aria-hidden="true" />
             </div>
-            <div className={styles.frame} aria-hidden="true" />
-            <div className={styles.fadeLeft} aria-hidden="true" />
-            <div className={styles.fadeRight} aria-hidden="true" />
-          </div>
+          ))}
 
           <div className={styles.actions}>
             {spinning ? (
@@ -353,40 +433,51 @@ export default function GachaScreen() {
         </>
       )}
 
-      <aside className={styles.history} aria-label="ประวัติของที่เคยได้รับ">
-        <span className={styles.feedTitle}>ของที่เคยได้ ({history.length})</span>
-        {history.length === 0 ? (
-          <span className={styles.feedEmpty}>ยังไม่เคยหมุน</span>
-        ) : (
-          <div className={styles.historyList}>
-            {history.map((win) => (
-              <div key={win.id} className={styles.historyRow} title={RARITY_LABEL[win.rarity]}>
-                <span className={styles.feedBand} style={{ background: RARITY_COLOR[win.rarity] }} />
-                <span className={styles.historyName}>{win.name}</span>
-                <span className={styles.historyWhen}>{stamped(win.at)}</span>
+      {/* The side panels step aside for the rows of a multi-spin, same as the case. */}
+      {shown <= 1 && (
+        <>
+          <aside className={styles.history} aria-label="ประวัติของที่เคยได้รับ">
+            <span className={styles.feedTitle}>ของที่เคยได้ ({history.length})</span>
+            {history.length === 0 ? (
+              <span className={styles.feedEmpty}>ยังไม่เคยหมุน</span>
+            ) : (
+              <div className={styles.historyList}>
+                {history.map((win) => (
+                  <div key={win.id} className={styles.historyRow} title={RARITY_LABEL[win.rarity]}>
+                    <span
+                      className={styles.feedBand}
+                      style={{ background: RARITY_COLOR[win.rarity] }}
+                    />
+                    <span className={styles.historyName}>{win.name}</span>
+                    <span className={styles.historyWhen}>{stamped(win.at)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
+
+          <aside className={styles.feed} aria-label="ประกาศรายชื่อคนที่ได้ไอเท็ม">
+            <span className={styles.feedTitle}>รายชื่อคนที่ได้รางวัล</span>
+            {winners === null && <span className={styles.feedEmpty}>กำลังโหลด…</span>}
+            {winners !== null && winners.length === 0 && (
+              <span className={styles.feedEmpty}>ยังไม่มีใครได้รางวัลใหญ่</span>
+            )}
+            {(winners ?? []).slice(0, 3).map((row, index) => (
+              <div key={`${row.uid}-${row.at}-${index}`} className={styles.feedRow}>
+                <span
+                  className={styles.feedBand}
+                  style={{ background: RARITY_COLOR[row.rarity] }}
+                />
+                <img className={styles.feedAvatar} src={avatarSource(row.avatarId)} alt="" />
+                <span className={styles.feedText}>
+                  <b>{row.username}</b>
+                  <small>{row.prize}</small>
+                </span>
               </div>
             ))}
-          </div>
-        )}
-      </aside>
-
-      <aside className={styles.feed} aria-label="ประกาศรายชื่อคนที่ได้ไอเท็ม">
-        <span className={styles.feedTitle}>รายชื่อคนที่ได้รางวัล</span>
-        {winners === null && <span className={styles.feedEmpty}>กำลังโหลด…</span>}
-        {winners !== null && winners.length === 0 && (
-          <span className={styles.feedEmpty}>ยังไม่มีใครได้รางวัลใหญ่</span>
-        )}
-        {(winners ?? []).slice(0, 3).map((row, index) => (
-          <div key={`${row.uid}-${row.at}-${index}`} className={styles.feedRow}>
-            <span className={styles.feedBand} style={{ background: RARITY_COLOR[row.rarity] }} />
-            <img className={styles.feedAvatar} src={avatarSource(row.avatarId)} alt="" />
-            <span className={styles.feedText}>
-              <b>{row.username}</b>
-              <small>{row.prize}</small>
-            </span>
-          </div>
-        ))}
-      </aside>
+          </aside>
+        </>
+      )}
 
       {results && (
         <div className={styles.resultsBack} onClick={() => setResults(null)}>
@@ -400,7 +491,9 @@ export default function GachaScreen() {
               ได้รับทั้งหมด {results.prizes.length} ชิ้น
               {results.prizes.length < results.asked ? ` จาก ${results.asked} ครั้ง` : ''}
             </span>
-            {results.error && <span className={styles.resultsWarn}>หยุดก่อนครบ — {results.error}</span>}
+            {results.error && (
+              <span className={styles.resultsWarn}>หยุดก่อนครบ — {results.error}</span>
+            )}
             <div className={styles.resultsGrid}>
               {results.prizes.map((prize, index) => {
                 const shown = view(prize.reward);
@@ -414,7 +507,10 @@ export default function GachaScreen() {
                     />
                     <span className={styles.resultName}>{prize.name.trim() || shown.label}</span>
                     <span className={styles.resultKind}>{shown.count}</span>
-                    <span className={styles.band} style={{ background: RARITY_COLOR[prize.rarity] }} />
+                    <span
+                      className={styles.band}
+                      style={{ background: RARITY_COLOR[prize.rarity] }}
+                    />
                   </div>
                 );
               })}
