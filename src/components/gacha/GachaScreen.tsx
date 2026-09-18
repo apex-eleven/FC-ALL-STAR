@@ -64,6 +64,14 @@ function rowLayout(count: number): Rows {
 /** Matches the CSS transition on the strip. */
 const SPIN_MS = 5200;
 /**
+ * A multi-spin: every row leaves at once and they land one after another, so the
+ * prizes arrive one at a time instead of all at the same instant. The first row runs
+ * for MULTI_SPIN_MS and each row after it runs STAGGER_MS longer — ten rows take
+ * 3.8s + 9 × 0.36s ≈ 7s from the press to the last card.
+ */
+const MULTI_SPIN_MS = 3800;
+const STAGGER_MS = 360;
+/**
  * The wait when animations are switched off (settings menu, or the device's own
  * reduce-motion setting). The strip cannot travel, so waiting five seconds would be
  * five seconds of a still screen; long enough to read as "opening", no longer.
@@ -117,10 +125,11 @@ export default function GachaScreen() {
   const [lanes, setLanes] = useState<GachaPrize[][]>([]);
   const [offsets, setOffsets] = useState<number[]>([]);
   const [spinning, setSpinning] = useState(false);
-  /** How long this run takes: the full travel, or the short wait with motion off. */
+  /** How long the first row runs, and how much longer each row after it. */
   const [runMs, setRunMs] = useState(SPIN_MS);
-  /** True once the rows have stopped: the cards in the frames are the prizes. */
-  const [landed, setLanded] = useState(false);
+  const [stagger, setStagger] = useState(0);
+  /** How many rows have stopped: a row's prize lights up as that row lands. */
+  const [landed, setLanded] = useState(0);
   /** How many spins one press buys, and the prizes of the last multi-spin. */
   const [count, setCount] = useState(SPIN_COUNTS[0] ?? 1);
   const [results, setResults] = useState<{
@@ -142,7 +151,8 @@ export default function GachaScreen() {
     history: GachaWin[];
     feed: GachaFeedRow[] | null;
   } | null>(null);
-  const timer = useRef<number | null>(null);
+  // One timer per row, plus the one that ends the run.
+  const timers = useRef<number[]>([]);
   const stripRef = useRef<HTMLDivElement>(null);
   // Read by the refill effect, which must not fire while the reel is running.
   const spinningRef = useRef(false);
@@ -160,12 +170,12 @@ export default function GachaScreen() {
     refreshFeed();
   }, [refreshFeed]);
 
-  useEffect(
-    () => () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    },
-    [],
-  );
+  function clearTimers() {
+    timers.current.forEach(window.clearTimeout);
+    timers.current = [];
+  }
+
+  useEffect(() => () => clearTimers(), []);
 
   useEffect(() => {
     if (!toast) return;
@@ -200,7 +210,7 @@ export default function GachaScreen() {
     if (spinningRef.current || prizes.length === 0) return;
     const length = count > 1 ? MULTI_LENGTH : REEL_LENGTH;
     setShown(count);
-    setLanded(false);
+    setLanded(0);
     setLanes(Array.from({ length: count }, () => filler(length)));
     setOffsets(Array.from({ length: count }, () => REST_OFFSET));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,56 +256,71 @@ export default function GachaScreen() {
     // same transform, and animates nothing — the reel stands still for five seconds
     // and then the prize appears. flushSync commits the rest position; reading a
     // layout property forces it to be computed; only then does the run begin.
+    clearTimers();
     flushSync(() => {
       setShown(result.prizes.length);
       setLanes(strips);
-      setLanded(false);
+      setLanded(0);
       setSpinning(false);
       setOffsets(strips.map(() => REST_OFFSET));
     });
     void stripRef.current?.getBoundingClientRect().left;
 
     // A device with reduce-motion on (battery saver, "animation effects off") stills
-    // every transition in the app, so the strip would jump and the screen would then
-    // sit there. The wait follows what the page can actually show.
-    const travel = animates() ? SPIN_MS : STILL_MS;
+    // every transition in the app, so the strips would jump and the screen would then
+    // sit there. The wait follows what the page can actually show, and there is
+    // nothing to draw out when nothing moves — no stagger either.
+    const moving = animates();
+    const travel = moving ? (many ? MULTI_SPIN_MS : SPIN_MS) : STILL_MS;
+    const step = moving && many ? STAGGER_MS : 0;
     setRunMs(travel);
+    setStagger(step);
     setSpinning(true);
     setOffsets(strips.map(() => FRAME_LEFT - winner * PITCH));
 
-    timer.current = window.setTimeout(() => {
-      setSpinning(false);
-      setFrozen(null);
-      setLanded(true);
-      const best = view(top.reward);
-      const name = top.name.trim() || best.label;
-      tell(
-        many
-          ? `ได้รับ ${result.prizes.length} ชิ้น · ดีสุด ${name}`
-          : `ได้รับ ${name} · ${best.count}`,
-        false,
-        RARITY_COLOR[top.rarity],
+    // Each row lights its own prize as it lands, so a x10 arrives row by row.
+    strips.forEach((_, row) => {
+      timers.current.push(
+        window.setTimeout(() => setLanded((done) => Math.max(done, row + 1)), travel + row * step),
       );
-      // The rows show every prize, so the panel is only for a batch that stopped
-      // short: what it managed to pay, and why it stopped.
-      if (result.error) {
-        setResults({
-          prizes: result.prizes,
-          asked: count,
-          error: ERROR[result.error] ?? '',
-        });
-      }
-      refreshFeed();
-    }, travel);
+    });
+
+    const last = travel + step * (strips.length - 1);
+    timers.current.push(
+      window.setTimeout(() => {
+        setSpinning(false);
+        setFrozen(null);
+        const best = view(top.reward);
+        const name = top.name.trim() || best.label;
+        tell(
+          many
+            ? `ได้รับ ${result.prizes.length} ชิ้น · ดีสุด ${name}`
+            : `ได้รับ ${name} · ${best.count}`,
+          false,
+          RARITY_COLOR[top.rarity],
+        );
+        // The rows show every prize, so the panel is only for a batch that stopped
+        // short: what it managed to pay, and why it stopped.
+        if (result.error) {
+          setResults({
+            prizes: result.prizes,
+            asked: count,
+            error: ERROR[result.error] ?? '',
+          });
+        }
+        refreshFeed();
+      }, last),
+    );
   }
 
   /**
    * One card on a strip. Rows get shorter as they get more numerous, so the card has
    * three shapes: the full one, a shorter one, and a single line for ten rows.
    */
-  function card(prize: GachaPrize, index: number) {
+  function card(prize: GachaPrize, index: number, row: number) {
     const seen = view(prize.reward);
-    const middle = !spinning && landed && index === laneWinner;
+    // This row's prize lights up when this row has landed, not when the last has.
+    const middle = index === laneWinner && row < landed;
     const size = rows.height >= 200 ? '' : rows.height >= 92 ? styles.cardMid : styles.cardSmall;
     const name = prize.name.trim() || seen.label;
     return (
@@ -384,10 +409,11 @@ export default function GachaScreen() {
                 className={styles.strip}
                 style={{
                   transform: `translateX(${offsets[row] ?? REST_OFFSET}px)`,
-                  transitionDuration: spinning ? `${runMs}ms` : '0ms',
+                  // Rows leave together and land one after another.
+                  transitionDuration: spinning ? `${runMs + row * stagger}ms` : '0ms',
                 }}
               >
-                {strip.map((prize, index) => card(prize, index))}
+                {strip.map((prize, index) => card(prize, index, row))}
               </div>
               <div className={styles.frame} aria-hidden="true" />
               <div className={styles.fadeLeft} aria-hidden="true" />

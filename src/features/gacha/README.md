@@ -34,8 +34,10 @@ wallet at its cap, a club with no room — and keeps everything up to that point
 because cards are numbered from the seed and sharing one would hand two cards the
 same id.
 
-The screen gives every spin its own row — five rows for x5, ten for x10 — and runs
-them all at once, each stopping on its own prize. The rows share the stage, so they
+The screen gives every spin its own row — five rows for x5, ten for x10. They all
+leave at the same moment and land one after another, each row running a little longer
+than the one above it, so the prizes arrive one at a time instead of all at once; a
+row lights its own prize as it stops. The rows share the stage, so they
 get shorter as they get more numerous (and the case art and the side panels step
 aside); the cards have three shapes to match. A panel appears afterwards only when a
 batch stopped short, to say what it paid and why it stopped.
