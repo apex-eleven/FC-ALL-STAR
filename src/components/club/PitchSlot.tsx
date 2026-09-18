@@ -49,6 +49,7 @@ export default function PitchSlot({
             player={player}
             scale={slot.scale}
             dragging={dragging}
+            allowStill={false}
             onPointerDown={onPointerDown}
           />
         ) : (

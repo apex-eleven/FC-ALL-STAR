@@ -11,8 +11,11 @@ import styles from './SquadCard.module.css';
 /**
  * Cards drawn narrower than this show a still instead of the animated art — see
  * features/images/stills. The bench (67px) and the collection drawer (102px) are
- * under it; the pitch and the pickers are not, so the animation stays where it can
- * actually be seen. In performance mode the line moves up past the pitch as well.
+ * under it. The pitch is not supposed to be, so the animation stays where it can
+ * actually be seen — but `4-3-3-attack` scales its front three and midfield three
+ * to 102px and 109px, both under this line, so the pitch opts out with `allowStill`
+ * instead of relying on width alone. In performance mode the line moves up past the
+ * pitch as well.
  */
 const STILL_UNDER = 110;
 const STILL_UNDER_LITE = 220;
@@ -23,6 +26,16 @@ export interface SquadCardProps {
   scale?: number;
   dragging?: boolean;
   interactive?: boolean;
+  /**
+   * False lets this card freeze into a still below `STILL_UNDER`, same as any other
+   * card. The starting eleven sets this false: the front three and midfield three in
+   * `4-3-3-attack` are scaled to 102px and 109px, both under the 110px line, which is
+   * a width the collection drawer's cards (102px) also happen to land on — so width
+   * alone cannot tell a slot on the pitch from one in the drawer. Only eleven cards
+   * are ever on the pitch at once, nothing like the drawer's hundred-plus, so forcing
+   * the animation here does not reintroduce the cost the still image exists to avoid.
+   */
+  allowStill?: boolean;
   onPointerDown?(event: PointerEvent): void;
 }
 
@@ -41,13 +54,14 @@ export default function SquadCard({
   scale = 1,
   dragging = false,
   interactive = true,
+  allowStill = true,
   onPointerDown,
 }: SquadCardProps) {
   const [broken, setBroken] = useState(false);
   const plus = clampPlus(player.plus);
   const width = CARD_WIDTH * scale;
   const height = CARD_HEIGHT * scale;
-  const small = width <= (fxLevel() === 'lite' ? STILL_UNDER_LITE : STILL_UNDER);
+  const small = allowStill && width <= (fxLevel() === 'lite' ? STILL_UNDER_LITE : STILL_UNDER);
   // The prebuilt still, when the deployment has run `npm run players:thumbs`. The
   // canvas one is the fallback for art that has none — an uploaded picture, or a
   // deployment that never ran it.
