@@ -62,13 +62,22 @@ function rowLayout(count: number): Rows {
     gap,
   };
 }
-/** Matches the CSS transition on the strip. */
-const SPIN_MS = 5200;
+/**
+ * Matches the CSS transition on the strip.
+ *
+ * Seven seconds. Stretching the old 5.2s alone would not have done it: the curve it
+ * ran on covered 98% of the travel in the first 62% of the run, so a longer duration
+ * would have bought a longer freeze rather than a longer spin. The timing function
+ * was opened up in the same change — see the note on the strip in the stylesheet.
+ */
+const SPIN_MS = 7000;
 /**
  * A multi-spin: every row leaves at once and they land one after another, so the
  * prizes arrive one at a time instead of all at the same instant. The first row runs
  * for MULTI_SPIN_MS and each row after it runs STAGGER_MS longer — ten rows take
- * 3.8s + 9 × 0.36s ≈ 7s from the press to the last card.
+ * 3.8s + 9 × 0.36s ≈ 7s from the press to the last card, which is where a single
+ * spin lands too. A row of a x10 runs shorter than a x1 on purpose: ten rows at
+ * seven seconds each would be a minute of watching.
  */
 const MULTI_SPIN_MS = 3800;
 const STAGGER_MS = 360;

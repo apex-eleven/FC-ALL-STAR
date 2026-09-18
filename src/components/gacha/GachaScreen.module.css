@@ -235,9 +235,17 @@
   top: 5px;
   bottom: 5px;
   left: 0;
-  /* The long, decelerating run the reference shows; duration is set in the component. */
+  /* The long, decelerating run the reference shows; duration is set in the component.
+
+     These four numbers are also evaluated in features/sound/sfx.ts, which ticks once
+     per card crossing the frame — change them here and they have to change there.
+
+     The curve was 0.07, 0.76, 0.08, 1, which spent 98% of the travel in the first 62%
+     of the run: at 5.2s that was a 1.9s coast at the end, and at 7s it would have been
+     a 2.6s one. Opened up, the last card now crosses at about 77% and the rest is a
+     card's width of settling. */
   transition-property: transform;
-  transition-timing-function: cubic-bezier(0.07, 0.76, 0.08, 1);
+  transition-timing-function: cubic-bezier(0.2, 0.5, 0.3, 1);
   will-change: transform;
 }
 

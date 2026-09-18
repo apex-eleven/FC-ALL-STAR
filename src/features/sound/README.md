@@ -47,10 +47,11 @@ That means it evaluates the strip's own CSS timing function, so the four numbers
 reel whose sound runs on a different curve is worse than a silent one: it sounds like
 the wheel stopped before it did.
 
-Measured on the real animation, the strip covers 98% of its travel in the first 3.3s
-of a 5.2s run and creeps the last 205px — under one card — over the rest. So the
-ticking stops around 3.3s while the transition is still technically running. That is
-correct: no card crosses after it, and `land` marks the actual arrival.
+The curve ends at a stop, so the strip always finishes with about a card's width of
+settling that no tick belongs to: the ticking stops a little before the transition
+does, and `land` marks the actual arrival. How much earlier depends on the curve —
+the first one here spent 98% of the travel in the first 62% of the run, which is why
+it was opened up when the spin was lengthened to seven seconds.
 
 Because the track is scheduled ahead of time it outlives its own component, so
 `stopReel` exists and gets called when a run is cut short, when the screen closes,

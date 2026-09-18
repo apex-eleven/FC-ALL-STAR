@@ -193,7 +193,7 @@ function easing(p1x: number, p1y: number, p2x: number, p2y: number): (x: number)
   };
 }
 
-const REEL_EASE = easing(0.07, 0.76, 0.08, 1);
+const REEL_EASE = easing(0.2, 0.5, 0.3, 1);
 
 /**
  * Ticks closer together than this are dropped.
@@ -224,18 +224,38 @@ function tickAt(
   source.buffer = noise;
 
   const band = ctx.createBiquadFilter();
+  // Wide enough to have some body. At Q 5 the tick was technically there and nobody
+  // could hear it over the music: a narrow band passes very little of the noise.
   band.type = 'bandpass';
   band.frequency.value = frequency;
-  band.Q.value = 5;
+  band.Q.value = 2.6;
 
   const env = ctx.createGain();
   env.gain.setValueAtTime(gain, at);
-  env.gain.exponentialRampToValueAtTime(0.0001, at + 0.022);
+  env.gain.exponentialRampToValueAtTime(0.0001, at + 0.03);
 
   source.connect(band).connect(env).connect(target);
   source.start(at, Math.random() * 0.5, 0.03);
   source.stop(at + 0.03);
   reelNodes.push(source);
+
+  // Noise alone does not carry. Measured against the UI click, a tick built only
+  // from filtered noise peaked at 0.39 of it however far its gain was pushed — a
+  // bandpass throws most of the signal away. The click gets its level from a tone
+  // under the transient, and so does this: twenty milliseconds of pitched body is
+  // the difference between a tick you can hear over the music and one you cannot.
+  const osc = ctx.createOscillator();
+  const oscEnv = ctx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(frequency * 0.55, at);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(1, frequency * 0.34), at + 0.02);
+  oscEnv.gain.setValueAtTime(0.0001, at);
+  oscEnv.gain.exponentialRampToValueAtTime(gain * 0.7, at + 0.004);
+  oscEnv.gain.exponentialRampToValueAtTime(0.0001, at + 0.02);
+  osc.connect(oscEnv).connect(target);
+  osc.start(at);
+  osc.stop(at + 0.04);
+  reelNodes.push(osc);
 }
 
 /**
@@ -293,8 +313,12 @@ export function playReel(durationMs: number, cards: number): void {
 
     // Toward the end: lower, louder, further apart. The reel is not just slowing
     // down, it is arriving.
+    //
+    // The level sits near the UI click's own 0.22 rather than under it. These ticks
+    // play under a full screen of animation and, usually, the background music; the
+    // first pass at half this was inaudible on anything but headphones.
     const left = 1 - t / duration;
-    tickAt(ctx, master, start + t, 1500 + 1100 * left, 0.1 + 0.1 * (1 - left));
+    tickAt(ctx, master, start + t, 1500 + 1100 * left, 0.26 + 0.16 * (1 - left));
   }
 }
 
