@@ -34,6 +34,28 @@ to do it, and the one that forgets is silent for weeks before anyone notices.
 It listens on `pointerdown` rather than `click` because on touch, `click` lands up to
 100ms after the finger and the sound reads as lagging the tap.
 
+## The gachapon reel
+
+`playReel(durationMs, cards)` is the one sound that is not a single event. It
+schedules the whole tick track up front on the audio clock — one tick per card
+crossing the frame — rather than firing ticks from a timer, because a timer-driven
+version drifts with every dropped frame, and the frames get dropped exactly when the
+reel animation is at its most expensive.
+
+That means it evaluates the strip's own CSS timing function, so the four numbers in
+`sfx.ts` and the `cubic-bezier` in `GachaScreen.module.css` have to stay the same. A
+reel whose sound runs on a different curve is worse than a silent one: it sounds like
+the wheel stopped before it did.
+
+Measured on the real animation, the strip covers 98% of its travel in the first 3.3s
+of a 5.2s run and creeps the last 205px — under one card — over the rest. So the
+ticking stops around 3.3s while the transition is still technically running. That is
+correct: no card crosses after it, and `land` marks the actual arrival.
+
+Because the track is scheduled ahead of time it outlives its own component, so
+`stopReel` exists and gets called when a run is cut short, when the screen closes,
+and when the player turns the sound off mid-spin.
+
 ## Autoplay
 
 Browsers will not start audio before a gesture. Two consequences:

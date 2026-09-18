@@ -158,6 +158,147 @@ function sweep(ctx: AudioContext, target: AudioNode, options: SweepOptions) {
 }
 
 /**
+ * The CSS timing function the gachapon strip is animated with, solved for y.
+ *
+ * The ticking has to be the strip's own motion, not a guess at it: a tick when a card
+ * crosses the frame. So the curve in `GachaScreen.module.css` is evaluated here, and
+ * the two have to stay the same four numbers — a reel whose sound runs on a different
+ * curve is worse than a silent one, because it sounds like it stopped before it did.
+ *
+ * Newton's method on x, because a cubic bezier gives x and y separately in terms of a
+ * parameter, and what is known here is the time.
+ */
+function easing(p1x: number, p1y: number, p2x: number, p2y: number): (x: number) => number {
+  const cx = 3 * p1x;
+  const bx = 3 * (p2x - p1x) - cx;
+  const ax = 1 - cx - bx;
+  const cy = 3 * p1y;
+  const by = 3 * (p2y - p1y) - cy;
+  const ay = 1 - cy - by;
+
+  const atX = (t: number) => ((ax * t + bx) * t + cx) * t;
+  const atY = (t: number) => ((ay * t + by) * t + cy) * t;
+  const slope = (t: number) => (3 * ax * t + 2 * bx) * t + cx;
+
+  return (x) => {
+    let t = x;
+    for (let i = 0; i < 8; i += 1) {
+      const error = atX(t) - x;
+      if (Math.abs(error) < 1e-5) break;
+      const d = slope(t);
+      if (Math.abs(d) < 1e-6) break;
+      t -= error / d;
+    }
+    return atY(Math.min(1, Math.max(0, t)));
+  };
+}
+
+const REEL_EASE = easing(0.07, 0.76, 0.08, 1);
+
+/**
+ * Ticks closer together than this are dropped.
+ *
+ * The strip's first tenth of a second passes a dozen cards. Every one of them ticking
+ * is not a reel, it is a buzz — and no real wheel is heard card by card at full
+ * speed either. Twenty-odd a second is as fast as a tick still reads as a tick.
+ */
+const REEL_MIN_GAP = 0.042;
+
+/** A ceiling on one run, so a long reel cannot schedule hundreds of nodes. */
+const REEL_MAX_TICKS = 120;
+
+/** Everything scheduled for the run in progress, so it can be cut short. */
+let reelNodes: AudioScheduledSourceNode[] = [];
+
+/** One tick at an absolute time on the context clock. */
+function tickAt(
+  ctx: AudioContext,
+  target: AudioNode,
+  at: number,
+  frequency: number,
+  gain: number,
+): void {
+  if (!noise) return;
+
+  const source = ctx.createBufferSource();
+  source.buffer = noise;
+
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = frequency;
+  band.Q.value = 5;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(gain, at);
+  env.gain.exponentialRampToValueAtTime(0.0001, at + 0.022);
+
+  source.connect(band).connect(env).connect(target);
+  source.start(at, Math.random() * 0.5, 0.03);
+  source.stop(at + 0.03);
+  reelNodes.push(source);
+}
+
+/**
+ * Cuts a reel short. Called when a run ends or the screen closes: the whole tick
+ * track is scheduled up front, so without this a reel would keep ticking over a
+ * screen that is no longer there.
+ */
+export function stopReel(): void {
+  for (const node of reelNodes) {
+    try {
+      node.stop();
+    } catch {
+      // Already finished. Stopping a node twice throws, and there is nothing to do
+      // about a tick that has already been heard.
+    }
+  }
+  reelNodes = [];
+}
+
+/**
+ * The tick track of a spinning reel: one tick per card crossing the frame.
+ *
+ * Scheduled in one go on the audio clock rather than fired frame by frame. A tick
+ * driven from `requestAnimationFrame` drifts with every dropped frame, and the whole
+ * point of this sound is that it lines up with what the eye sees — on a phone, where
+ * frames are dropped, a timer-driven version would go out of step exactly when the
+ * animation is at its most expensive.
+ *
+ * The ticks slow as the strip does, and the last few drop in pitch and rise in level:
+ * that decelerating rattle is the part a player actually listens to.
+ */
+export function playReel(durationMs: number, cards: number): void {
+  const ctx = ensureContext();
+  if (!ctx || !master) return;
+  if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
+
+  stopReel();
+  if (durationMs <= 0 || cards <= 0) return;
+
+  const duration = durationMs / 1000;
+  const start = ctx.currentTime + 0.02;
+  const step = 1 / 240;
+
+  let passed = -1;
+  let previous = -Infinity;
+  let ticks = 0;
+
+  for (let t = 0; t <= duration && ticks < REEL_MAX_TICKS; t += step) {
+    const reached = Math.floor(REEL_EASE(t / duration) * cards);
+    if (reached === passed) continue;
+    passed = reached;
+    if (t - previous < REEL_MIN_GAP) continue;
+    previous = t;
+    ticks += 1;
+
+    // Toward the end: lower, louder, further apart. The reel is not just slowing
+    // down, it is arriving.
+    const left = 1 - t / duration;
+    tickAt(ctx, master, start + t, 1500 + 1100 * left, 0.1 + 0.1 * (1 - left));
+  }
+}
+
+/**
  * Plays a UI sound. Silently does nothing when Web Audio is unavailable or the
  * throttle window is still open.
  */
@@ -214,6 +355,22 @@ export function playSfx(id: SoundId) {
         duration: 0.3,
         gain: 0.14,
         delay: 0.16,
+      });
+      break;
+
+    // The gachapon reel stopping. A hard tick for the card dropping into the frame,
+    // then a short rising pair under it so a win reads as an arrival rather than as
+    // one more tick of the reel that just ended.
+    case 'land':
+      transient(ctx, master, 1900, 0.3);
+      tone(ctx, master, { type: 'triangle', from: 520, to: 780, duration: 0.12, gain: 0.2 });
+      tone(ctx, master, {
+        type: 'sine',
+        from: 780,
+        to: 1170,
+        duration: 0.16,
+        gain: 0.16,
+        delay: 0.07,
       });
       break;
   }

@@ -13,6 +13,7 @@ import { animates } from '@/features/motion/motion';
 import { useGacha } from '@/features/gacha/GachaContext';
 import { GACHA_RARITIES, type GachaPrize, type GachaWin } from '@/features/gacha/types';
 import { useNavigation } from '@/features/navigation/NavigationContext';
+import { useSound } from '@/features/sound/SoundContext';
 import useRewardView from '@/components/shop/useRewardView';
 import styles from './GachaScreen.module.css';
 
@@ -120,6 +121,7 @@ export default function GachaScreen() {
   const account = useAccount();
   const { back } = useNavigation();
   const { config, state, feed, refreshFeed, spin } = useGacha();
+  const { play, reel, hushReel } = useSound();
   const view = useRewardView();
   /** One strip per row — five rows for x5, ten for x10, all running together. */
   const [lanes, setLanes] = useState<GachaPrize[][]>([]);
@@ -173,6 +175,9 @@ export default function GachaScreen() {
   function clearTimers() {
     timers.current.forEach(window.clearTimeout);
     timers.current = [];
+    // The reel's ticking is scheduled for the whole run in one go, so it outlives its
+    // timers: a run cut short has to be silenced, not just left to finish.
+    hushReel();
   }
 
   useEffect(() => () => clearTimers(), []);
@@ -278,10 +283,24 @@ export default function GachaScreen() {
     setSpinning(true);
     setOffsets(strips.map(() => FRAME_LEFT - winner * PITCH));
 
+    // One tick track for the whole screen, not one per row: ten rows ticking over
+    // each other is noise, and they all leave together anyway.
+    //
+    // It follows the first row. The rows share an easing but not a duration, so a
+    // track stretched over the last row to stop would match none of them — and the
+    // rows that land after it have their own sound as they arrive.
+    if (moving) reel(travel, winner);
+
     // Each row lights its own prize as it lands, so a x10 arrives row by row.
     strips.forEach((_, row) => {
       timers.current.push(
-        window.setTimeout(() => setLanded((done) => Math.max(done, row + 1)), travel + row * step),
+        window.setTimeout(
+          () => {
+            setLanded((done) => Math.max(done, row + 1));
+            play('land');
+          },
+          travel + row * step,
+        ),
       );
     });
 

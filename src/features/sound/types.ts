@@ -2,10 +2,11 @@
  * Every sound the app can make.
  *
  * The first four are UI ticks — one per gesture. `shake` and `tear` belong to the
- * pack opening, which is the only place that asks for a sound by hand rather than
- * getting one from the click layer.
+ * pack opening and `land` to the gachapon reel: those three are asked for by hand
+ * rather than coming from the click layer. The reel's own ticking is not here,
+ * because it is a whole scheduled sequence rather than one sound — see `playReel`.
  */
-export type SoundId = 'click' | 'back' | 'toggle' | 'error' | 'shake' | 'tear';
+export type SoundId = 'click' | 'back' | 'toggle' | 'error' | 'shake' | 'tear' | 'land';
 
 export interface SoundConfig {
   /** Clicks, taps, and keyboard activation of buttons. */

@@ -17,7 +17,7 @@ import {
   setMusicVolume,
   subscribeMusicBlocked,
 } from './music';
-import { playSfx, setSfxVolume } from './sfx';
+import { playReel, playSfx, setSfxVolume, stopReel } from './sfx';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './soundConfigStore';
 import type { SoundConfig, SoundId } from './types';
 import { useUiClickSounds } from './useUiClickSounds';
@@ -29,6 +29,16 @@ interface SoundValue {
   isDefault: boolean;
   /** Fire a sound by hand, for anything that is not a button press. */
   play(id: SoundId): void;
+  /**
+   * The gachapon reel's ticking, for a run of `durationMs` past `cards` cards.
+   *
+   * Its own entry rather than a `SoundId` because it is a sequence the length of the
+   * animation, not a sound: it has to be told how long the run is and how far it
+   * travels, and it has to be stoppable.
+   */
+  reel(durationMs: number, cards: number): void;
+  /** Cuts the reel short — a run that ended early, or a screen that closed. */
+  hushReel(): void;
   /**
    * The browser has refused to start the music and is waiting for a gesture.
    *
@@ -90,16 +100,36 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     [config.uiEnabled],
   );
 
+  const reel = useCallback(
+    (durationMs: number, cards: number) => {
+      if (!config.uiEnabled) return;
+      playReel(durationMs, cards);
+    },
+    [config.uiEnabled],
+  );
+
+  // Not gated on the setting: a reel already ticking when the player turns the sound
+  // off still has to be silenced.
+  const hushReel = useCallback(() => stopReel(), []);
+
+  // The whole tick track is scheduled up front, so turning the sound off during a
+  // spin would otherwise be ignored until the reel ran out on its own.
+  useEffect(() => {
+    if (!config.uiEnabled) stopReel();
+  }, [config.uiEnabled]);
+
   const value = useMemo<SoundValue>(
     () => ({
       config,
       update,
       reset,
       play,
+      reel,
+      hushReel,
       musicBlocked,
       isDefault: JSON.stringify(config) === JSON.stringify(DEFAULT_SOUND),
     }),
-    [config, update, reset, play, musicBlocked],
+    [config, update, reset, play, reel, hushReel, musicBlocked],
   );
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
