@@ -1,9 +1,20 @@
 import { useState, type CSSProperties, type PointerEvent } from 'react';
 import type { DisplayCard } from '@/features/club/types';
+import { fxLevel } from '@/features/fx/fx';
+import { useStill } from '@/features/images/stills';
 import { plusTone } from '@/features/rankup/constants';
 import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
 import styles from './SquadCard.module.css';
+
+/**
+ * Cards drawn narrower than this show a still instead of the animated art — see
+ * features/images/stills. The bench (67px) and the collection drawer (102px) are
+ * under it; the pitch and the pickers are not, so the animation stays where it can
+ * actually be seen. In performance mode the line moves up past the pitch as well.
+ */
+const STILL_UNDER = 110;
+const STILL_UNDER_LITE = 220;
 
 export interface SquadCardProps {
   player: DisplayCard;
@@ -33,13 +44,21 @@ export default function SquadCard({
 }: SquadCardProps) {
   const [broken, setBroken] = useState(false);
   const plus = clampPlus(player.plus);
+  const width = CARD_WIDTH * scale;
+  const height = CARD_HEIGHT * scale;
+  const still = useStill(
+    player.portrait,
+    width,
+    height,
+    width <= (fxLevel() === 'lite' ? STILL_UNDER_LITE : STILL_UNDER),
+  );
 
   return (
     <div
       className={`${styles.card} ${interactive ? styles.interactive : ''} ${
         dragging ? styles.dragging : ''
       }`}
-      style={{ width: CARD_WIDTH * scale, height: CARD_HEIGHT * scale }}
+      style={{ width, height }}
       onPointerDown={onPointerDown}
       role={interactive ? 'button' : undefined}
       aria-label={`${player.name} ${ratingWithPlus(player)} ${player.position}${
@@ -55,7 +74,7 @@ export default function SquadCard({
       {player.portrait && !broken ? (
         <img
           className={styles.art}
-          src={player.portrait}
+          src={still ?? player.portrait}
           alt=""
           draggable={false}
           onError={() => setBroken(true)}

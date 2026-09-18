@@ -87,3 +87,8 @@ export function applyFx(mode: FxMode): void {
 export function fxMode(): FxMode {
   return current;
 }
+
+/** What the page is drawing right now — `auto` already resolved. */
+export function fxLevel(): FxLevel {
+  return levelOf(current);
+}
