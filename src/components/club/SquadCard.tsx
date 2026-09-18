@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type PointerEvent } from 'react';
 import type { DisplayCard } from '@/features/club/types';
 import { fxLevel } from '@/features/fx/fx';
 import { useStill } from '@/features/images/stills';
+import { playerThumbSrc } from '@/features/players/artManifest';
 import { plusTone } from '@/features/rankup/constants';
 import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
@@ -46,12 +47,15 @@ export default function SquadCard({
   const plus = clampPlus(player.plus);
   const width = CARD_WIDTH * scale;
   const height = CARD_HEIGHT * scale;
-  const still = useStill(
-    player.portrait,
-    width,
-    height,
-    width <= (fxLevel() === 'lite' ? STILL_UNDER_LITE : STILL_UNDER),
-  );
+  const small = width <= (fxLevel() === 'lite' ? STILL_UNDER_LITE : STILL_UNDER);
+  // The prebuilt still, when the deployment has run `npm run players:thumbs`. The
+  // canvas one is the fallback for art that has none — an uploaded picture, or a
+  // deployment that never ran it.
+  const [missing, setMissing] = useState<string | null>(null);
+  const thumb = small ? playerThumbSrc(player.portrait) : null;
+  const prebuilt = thumb && missing !== thumb ? thumb : null;
+  const still = useStill(player.portrait, width, height, small && !prebuilt);
+  const source = prebuilt ?? still ?? player.portrait;
 
   return (
     <div
@@ -74,10 +78,15 @@ export default function SquadCard({
       {player.portrait && !broken ? (
         <img
           className={styles.art}
-          src={still ?? player.portrait}
+          src={source}
           alt=""
           draggable={false}
-          onError={() => setBroken(true)}
+          onError={() => {
+            // A missing thumb only means this deployment has not built them: fall
+            // back to the real picture rather than to the drawn card.
+            if (prebuilt) setMissing(prebuilt);
+            else setBroken(true);
+          }}
         />
       ) : (
         <span className={styles.fallback}>

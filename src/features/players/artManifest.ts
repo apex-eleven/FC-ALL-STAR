@@ -13,6 +13,25 @@ export function playerArtUrl(artId: string | null | undefined): string | null {
   return `${PLAYER_ART_BASE}${encodeURIComponent(artId)}`;
 }
 
+/** Where `npm run players:thumbs` writes the small stills. */
+export const PLAYER_THUMB_BASE = `${PLAYER_ART_BASE}thumbs/`;
+
+/**
+ * The small still beside a card picture, or null when there cannot be one.
+ *
+ * Card art is a 45-frame 512×512 animation of about 1.3 MB. A card drawn at 100 px —
+ * the collection, the bench — asks for this instead: the first frame at 256 px, about
+ * 18 KB, written by `npm run players:thumbs`. A deployment that has never run it
+ * simply 404s here and the full picture is used, which is what happened before.
+ */
+export function playerThumbSrc(portrait: string | null | undefined): string | null {
+  if (!portrait || !portrait.startsWith(PLAYER_ART_BASE)) return null;
+  const name = portrait.slice(PLAYER_ART_BASE.length);
+  if (!name || name.startsWith('thumbs/')) return null;
+  const dot = name.lastIndexOf('.');
+  return `${PLAYER_THUMB_BASE}${dot > 0 ? name.slice(0, dot) : name}.webp`;
+}
+
 export type ArtManifestStatus = 'loading' | 'ready' | 'missing';
 
 export interface ArtManifest {
