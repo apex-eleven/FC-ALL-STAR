@@ -7,11 +7,11 @@ import { useAccount } from '@/features/auth/AuthContext';
 import { avatarSource } from '@/features/avatars/extraAvatars';
 import type { GachaFeedRow } from '@/features/cloud/cloudGachaFeed';
 import { formatCurrency } from '@/features/currencies/constants';
-import { RARITY_COLOR, RARITY_LABEL } from '@/features/gacha/constants';
+import { RARITY_COLOR, RARITY_LABEL, SPIN_COUNTS } from '@/features/gacha/constants';
 import { livePrizes, percentOf } from '@/features/gacha/gacha';
 import { animates } from '@/features/motion/motion';
 import { useGacha } from '@/features/gacha/GachaContext';
-import type { GachaPrize, GachaWin } from '@/features/gacha/types';
+import { GACHA_RARITIES, type GachaPrize, type GachaWin } from '@/features/gacha/types';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import useRewardView from '@/components/shop/useRewardView';
 import styles from './GachaScreen.module.css';
@@ -56,6 +56,17 @@ function stamped(at: string): string {
   ).padStart(2, '0')}`;
 }
 
+/** The best prize of a batch: the one the reel stops on. */
+function headline(prizes: readonly GachaPrize[]): GachaPrize | null {
+  return prizes.reduce<GachaPrize | null>(
+    (best, prize) =>
+      best === null || GACHA_RARITIES.indexOf(prize.rarity) > GACHA_RARITIES.indexOf(best.rarity)
+        ? prize
+        : best,
+    null,
+  );
+}
+
 const ERROR: Record<string, string> = {
   closed: 'กาชาปองปิดอยู่',
   empty: 'ยังไม่ได้ตั้งรางวัล ติดต่อแอดมิน',
@@ -69,7 +80,7 @@ const ERROR: Record<string, string> = {
 export default function GachaScreen() {
   const account = useAccount();
   const { back } = useNavigation();
-  const { config, state, feed, refreshFeed, spinOnce } = useGacha();
+  const { config, state, feed, refreshFeed, spin } = useGacha();
   const view = useRewardView();
   const [reel, setReel] = useState<GachaPrize[]>([]);
   const [offset, setOffset] = useState(REST_OFFSET);
@@ -77,6 +88,11 @@ export default function GachaScreen() {
   /** How long this run takes: the full travel, or the short wait with motion off. */
   const [runMs, setRunMs] = useState(SPIN_MS);
   const [won, setWon] = useState<GachaPrize | null>(null);
+  /** How many spins one press buys, and the prizes of the last multi-spin. */
+  const [count, setCount] = useState(SPIN_COUNTS[0] ?? 1);
+  const [results, setResults] = useState<{ prizes: GachaPrize[]; asked: number; error: string } | null>(
+    null,
+  );
   const [toast, setToast] = useState<Toast | null>(null);
   /**
    * The two lists as they looked when the spin started, held until the reel stops.
@@ -98,7 +114,7 @@ export default function GachaScreen() {
   const history = frozen ? frozen.history : state.history;
   const winners = frozen ? frozen.feed : feed;
   const keys = account.wallet.key;
-  const cost = config.keyCost;
+  const cost = config.keyCost * count;
 
   useEffect(() => {
     refreshFeed();
@@ -151,8 +167,9 @@ export default function GachaScreen() {
     if (spinning) return;
     // The names live in the catalogues this screen reads, so the feature is handed a
     // namer rather than reaching for them itself.
-    const result = spinOnce((reward) => view(reward).label);
-    if (!result.ok || !result.prize) {
+    const result = spin(count, (reward) => view(reward).label);
+    const top = headline(result.prizes);
+    if (!result.ok || !top) {
       tell(ERROR[result.error ?? ''] ?? 'หมุนไม่สำเร็จ', true);
       return;
     }
@@ -161,8 +178,11 @@ export default function GachaScreen() {
     // lists are pinned to what they were a moment ago, so neither gives it away.
     setFrozen({ history: state.history, feed });
 
+    // One run of the reel however many spins were bought, stopping on the best of
+    // them; the rest are laid out afterwards. Ten runs would be nearly a minute of
+    // watching a strip go by.
     const strip = filler(REEL_LENGTH);
-    strip[WINNER_INDEX] = result.prize;
+    strip[WINNER_INDEX] = top;
 
     // Park the strip back at the rest position with the transition off, and make the
     // browser actually lay it out there before the run starts.
@@ -192,10 +212,17 @@ export default function GachaScreen() {
     timer.current = window.setTimeout(() => {
       setSpinning(false);
       setFrozen(null);
-      setWon(result.prize);
-      const prize = result.prize!;
-      const shown = view(prize.reward);
-      tell(`ได้รับ ${prize.name.trim() || shown.label} · ${shown.count}`, false, RARITY_COLOR[prize.rarity]);
+      setWon(top);
+      const shown = view(top.reward);
+      tell(`ได้รับ ${top.name.trim() || shown.label} · ${shown.count}`, false, RARITY_COLOR[top.rarity]);
+      // A single spin is told by the reel itself; a batch needs every prize shown.
+      if (result.prizes.length > 1 || result.error) {
+        setResults({
+          prizes: result.prizes,
+          asked: count,
+          error: result.error ? (ERROR[result.error] ?? '') : '',
+        });
+      }
       refreshFeed();
     }, travel);
   }
@@ -295,15 +322,32 @@ export default function GachaScreen() {
                 OPENING CASE…
               </span>
             ) : (
-              <button
-                type="button"
-                className={styles.spin}
-                disabled={!config.enabled || keys < cost}
-                onClick={start}
-              >
-                <img src={currencies.key.icon} alt="" />
-                หมุน 1 ครั้ง · กุญแจ {formatCurrency(cost)}
-              </button>
+              <>
+                {SPIN_COUNTS.length > 1 && (
+                  <div className={styles.counts} role="group" aria-label="จำนวนครั้งที่หมุน">
+                    {SPIN_COUNTS.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={count === option}
+                        className={`${styles.countPick} ${count === option ? styles.countOn : ''}`}
+                        onClick={() => setCount(option)}
+                      >
+                        x{option}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={styles.spin}
+                  disabled={!config.enabled || keys < cost}
+                  onClick={start}
+                >
+                  <img src={currencies.key.icon} alt="" />
+                  หมุน {count} ครั้ง · กุญแจ {formatCurrency(cost)}
+                </button>
+              </>
             )}
           </div>
         </>
@@ -343,6 +387,44 @@ export default function GachaScreen() {
           </div>
         ))}
       </aside>
+
+      {results && (
+        <div className={styles.resultsBack} onClick={() => setResults(null)}>
+          <div
+            className={styles.results}
+            role="dialog"
+            aria-label="ผลการหมุน"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span className={styles.resultsTitle}>
+              ได้รับทั้งหมด {results.prizes.length} ชิ้น
+              {results.prizes.length < results.asked ? ` จาก ${results.asked} ครั้ง` : ''}
+            </span>
+            {results.error && <span className={styles.resultsWarn}>หยุดก่อนครบ — {results.error}</span>}
+            <div className={styles.resultsGrid}>
+              {results.prizes.map((prize, index) => {
+                const shown = view(prize.reward);
+                return (
+                  <div key={`${prize.id}-${index}`} className={styles.result}>
+                    <img
+                      className={shown.isCard ? styles.resultCardArt : styles.resultArt}
+                      src={shown.icon}
+                      alt=""
+                      draggable={false}
+                    />
+                    <span className={styles.resultName}>{prize.name.trim() || shown.label}</span>
+                    <span className={styles.resultKind}>{shown.count}</span>
+                    <span className={styles.band} style={{ background: RARITY_COLOR[prize.rarity] }} />
+                  </div>
+                );
+              })}
+            </div>
+            <button type="button" className={styles.resultsClose} onClick={() => setResults(null)}>
+              ตกลง
+            </button>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div

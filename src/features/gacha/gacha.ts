@@ -67,6 +67,73 @@ function failed(account: Account, error: GachaError): GachaSpinOutcome {
   return { ok: false, error, account, prize: null, card: null, win: null };
 }
 
+export interface BatchInput {
+  config: GachaConfig;
+  /** One roll per spin — fixed by the caller, like everything else here. */
+  rolls: readonly number[];
+  now: Date;
+  /** One win id per spin. */
+  winIds: readonly string[];
+  lookup: CardLookup;
+  stamp: ShopStamp;
+  /** One display name per spin; '' until the caller has seen the prize. */
+  labels: readonly string[];
+}
+
+export interface BatchOutcome {
+  /** At least one spin was paid. */
+  ok: boolean;
+  /** Why the run stopped early, or null when every spin went through. */
+  error: GachaError | null;
+  account: Account;
+  prizes: GachaPrize[];
+  wins: GachaWin[];
+}
+
+/**
+ * Several spins at once (หมุน 5 / 10 ครั้ง).
+ *
+ * Spins are applied one after another to the account each previous spin returned, so
+ * a batch is exactly the same as pressing the button that many times: the same keys
+ * are charged and the same prizes are paid.
+ *
+ * It stops at the first spin that cannot go through — no keys left, a wallet at its
+ * cap, a club with no room — and keeps everything up to that point rather than
+ * refusing the lot. Ten spins are worth more than the one that could not fit, and
+ * `error` says what stopped it so the screen can tell the player.
+ *
+ * Each spin gets its own stamp, derived from the batch's: cards are numbered from the
+ * stamp's seed, so sharing one would hand two cards the same id.
+ */
+export function spinMany(account: Account, input: BatchInput): BatchOutcome {
+  const { config, rolls, now, winIds, lookup, stamp, labels } = input;
+  let current = account;
+  const prizes: GachaPrize[] = [];
+  const wins: GachaWin[] = [];
+  let error: GachaError | null = null;
+
+  for (const [index, roll] of rolls.entries()) {
+    const outcome = spin(current, {
+      config,
+      roll,
+      now,
+      winId: winIds[index] ?? `${index}`,
+      lookup,
+      stamp: { seed: `${stamp.seed}-${index}`, at: stamp.at },
+      label: labels[index] ?? '',
+    });
+    if (!outcome.ok || !outcome.prize || !outcome.win) {
+      error = outcome.error;
+      break;
+    }
+    current = outcome.account;
+    prizes.push(outcome.prize);
+    wins.push(outcome.win);
+  }
+
+  return { ok: prizes.length > 0, error, account: current, prizes, wins };
+}
+
 export interface SpinInput {
   config: GachaConfig;
   roll: number;

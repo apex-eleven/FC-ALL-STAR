@@ -354,7 +354,37 @@
   right: 0;
   z-index: var(--z-panel);
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 14px;
+}
+
+/* x1 / x5 / x10, beside the button rather than inside it: the price has to stay
+   readable, and a picker that moves the button is a mis-tap waiting to happen. */
+.counts {
+  display: flex;
+  gap: 6px;
+}
+
+.countPick {
+  min-width: 62px;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 16, 32, 0.8);
+  font-family: 'Saira', var(--font-display);
+  font-size: 24px;
+  font-weight: 900;
+  color: rgba(226, 232, 240, 0.7);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.countOn {
+  border-color: rgba(56, 189, 248, 0.85);
+  background: rgba(8, 47, 73, 0.9);
+  color: #7dd3fc;
 }
 
 .spin {
@@ -576,6 +606,116 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── Multi-spin results ───────────────────────────────────────────────── */
+
+.resultsBack {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  background: rgba(3, 6, 14, 0.82);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 1180px;
+  max-height: 780px;
+  padding: 26px 30px;
+  border-radius: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: linear-gradient(180deg, rgba(14, 22, 42, 0.98) 0%, rgba(7, 11, 22, 0.98) 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+.resultsTitle {
+  font-family: 'Saira', var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+.resultsWarn {
+  font-family: var(--font-ui);
+  font-size: 19px;
+  font-weight: 600;
+  color: #fca5a5;
+}
+
+/* Five across: ten prizes are two tidy rows, five are one. */
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 208px);
+  gap: 12px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.result {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 236px;
+  padding: 14px 10px 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(23, 33, 58, 0.95) 0%, rgba(12, 18, 34, 0.95) 100%);
+}
+
+.resultArt {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+}
+
+.resultCardArt {
+  width: 88px;
+  height: 118px;
+  object-fit: contain;
+}
+
+.resultName {
+  max-width: 100%;
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultKind {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.66);
+}
+
+.resultsClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 62px;
+  padding: 0 60px;
+  border-radius: 31px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  font-family: var(--font-ui);
+  font-size: 24px;
+  font-weight: 800;
+  color: #04121f;
+  box-shadow: 0 10px 26px rgba(2, 132, 199, 0.45);
 }
 
 /* ── Toast ────────────────────────────────────────────────────────────── */

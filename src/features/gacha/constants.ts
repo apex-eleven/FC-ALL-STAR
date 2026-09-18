@@ -7,6 +7,8 @@ export const MAX_CHANCE = 100_000;
 export const MAX_KEY_COST = 999;
 export const NAME_MAX = 40;
 export const HISTORY_LIMIT = 10;
+/** How many spins one press can buy. */
+export const SPIN_COUNTS: readonly number[] = [1, 5, 10];
 /** `eventId` on cards won from the roulette — provenance only. */
 export const GACHA_EVENT_ID = 'gacha';
 /** Case art shares the 1 MiB settings document. */

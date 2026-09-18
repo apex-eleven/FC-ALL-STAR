@@ -17,7 +17,7 @@ import { usePlayers } from '@/features/players/PlayerContext';
 import { shopStamp } from '@/features/shop/shop';
 import type { ShopReward } from '@/features/shop/types';
 import { defaultGacha, gachaId } from './constants';
-import { spin, stateOf, type GachaSpinOutcome } from './gacha';
+import { spinMany, stateOf, type BatchOutcome } from './gacha';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './gachaConfigStore';
 import type { GachaConfig, GachaError, GachaPrize, GachaState, GachaWin } from './types';
 
@@ -25,10 +25,12 @@ import type { GachaConfig, GachaError, GachaPrize, GachaState, GachaWin } from '
 export type RewardName = (reward: ShopReward) => string;
 
 export interface GachaSpinResult {
+  /** At least one spin was paid. */
   ok: boolean;
+  /** Why the run stopped early, or null when every spin went through. */
   error: GachaError | null;
-  prize: GachaPrize | null;
-  win: GachaWin | null;
+  prizes: GachaPrize[];
+  wins: GachaWin[];
 }
 
 interface GachaValue {
@@ -41,12 +43,12 @@ interface GachaValue {
   feed: GachaFeedRow[] | null;
   refreshFeed(): void;
   /**
-   * Charges the keys, pays one prize, and files the win.
+   * Charges the keys, pays the prizes, and files the wins — `count` spins in one go.
    *
    * `describe` names a reward — the caller's job, because the names live in the
    * catalogues the screen already reads (`useRewardView`), not in this feature.
    */
-  spinOnce(describe: RewardName): GachaSpinResult;
+  spin(count: number, describe: RewardName): GachaSpinResult;
 }
 
 const GachaContext = createContext<GachaValue | null>(null);
@@ -77,45 +79,55 @@ export function GachaProvider({ children }: { children: ReactNode }) {
     void fetchGachaFeed().then(setFeed);
   }, []);
 
-  const spinOnce = useCallback(
-    (describe: RewardName): GachaSpinResult => {
-      if (!account) return { ok: false, error: 'closed', prize: null, win: null };
-      // Roll, clock, id and stamp are fixed here: `updateAccount` may run its mutator
-      // twice, and both runs have to land on the same prize and file the same win.
-      const roll = Math.random();
+  const spin = useCallback(
+    (count: number, describe: RewardName): GachaSpinResult => {
+      if (!account) return { ok: false, error: 'closed', prizes: [], wins: [] };
+      // Rolls, clock, ids and stamp are fixed here: `updateAccount` may run its mutator
+      // twice, and both runs have to land on the same prizes and file the same wins.
+      const rolls = Array.from({ length: Math.max(1, Math.floor(count)) }, () => Math.random());
       const now = new Date();
-      const winId = gachaId('win');
+      const winIds = rolls.map(() => gachaId('win'));
       const stamp = shopStamp();
-      const run = (target: Account): GachaSpinOutcome => {
-        const chosen = { config, roll, now, winId, lookup: byId, stamp, label: '' };
-        // The label needs the prize, so the prize is rolled first and named second.
-        const preview = spin(target, chosen);
-        if (!preview.ok || !preview.prize) return preview;
-        return spin(target, { ...chosen, label: describe(preview.prize.reward) });
+      const run = (target: Account): BatchOutcome => {
+        const chosen = { config, rolls, now, winIds, lookup: byId, stamp, labels: [] as string[] };
+        // A label needs its prize, so the prizes are rolled first and named second.
+        const preview = spinMany(target, chosen);
+        if (!preview.ok) return preview;
+        return spinMany(target, {
+          ...chosen,
+          labels: preview.prizes.map((prize) => describe(prize.reward)),
+        });
       };
 
       const preview = run(account);
-      if (!preview.ok) return { ok: false, error: preview.error, prize: null, win: null };
+      if (!preview.ok) return { ok: false, error: preview.error, prizes: [], wins: [] };
 
       updateAccount((current) => {
         const outcome = run(current);
         return outcome.ok ? outcome.account : current;
       });
 
-      if (isCloudEnabled() && preview.prize?.announce && preview.win) {
-        void publishGachaWin({
-          uid: account.id,
-          username: displayNameOf(account),
-          avatarId: account.avatarId,
-          prize: preview.win.name,
-          rarity: preview.win.rarity,
-          at: preview.win.at,
-        }).then((sent) => {
-          if (sent) refreshFeed();
-        });
+      if (isCloudEnabled()) {
+        const announced = preview.wins.filter((_, index) => preview.prizes[index]?.announce);
+        if (announced.length > 0) {
+          void Promise.all(
+            announced.map((win) =>
+              publishGachaWin({
+                uid: account.id,
+                username: displayNameOf(account),
+                avatarId: account.avatarId,
+                prize: win.name,
+                rarity: win.rarity,
+                at: win.at,
+              }),
+            ),
+          ).then((sent) => {
+            if (sent.some(Boolean)) refreshFeed();
+          });
+        }
       }
 
-      return { ok: true, error: null, prize: preview.prize, win: preview.win };
+      return { ok: true, error: preview.error, prizes: preview.prizes, wins: preview.wins };
     },
     [account, config, byId, updateAccount, refreshFeed],
   );
@@ -123,8 +135,8 @@ export function GachaProvider({ children }: { children: ReactNode }) {
   const state = useMemo(() => stateOf(account?.gacha), [account?.gacha]);
 
   const value = useMemo<GachaValue>(
-    () => ({ config, replace, reset, state, feed, refreshFeed, spinOnce }),
-    [config, replace, reset, state, feed, refreshFeed, spinOnce],
+    () => ({ config, replace, reset, state, feed, refreshFeed, spin }),
+    [config, replace, reset, state, feed, refreshFeed, spin],
   );
 
   return <GachaContext.Provider value={value}>{children}</GachaContext.Provider>;

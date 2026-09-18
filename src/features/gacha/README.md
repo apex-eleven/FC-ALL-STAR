@@ -24,6 +24,20 @@ The roll, the clock, the win id and the payout stamp are fixed by the caller bef
 same prize and file the same win. The prize's display name is resolved by the caller
 too: the names live in the catalogues the screen reads, not here.
 
+## Several at once
+
+หมุน 5 / 10 ครั้ง is `spinMany`: the same spin applied to the account each previous
+one returned, so a batch charges and pays exactly what pressing the button that many
+times would. It stops at the first spin that cannot go through — no keys left, a
+wallet at its cap, a club with no room — and keeps everything up to that point, with
+`error` saying what stopped it. Each spin gets its own stamp derived from the batch's,
+because cards are numbered from the seed and sharing one would hand two cards the
+same id.
+
+The screen runs the reel once for the whole batch, stopping on the rarest prize won,
+and lays the rest out in a panel afterwards: ten runs of the strip would be nearly a
+minute of watching.
+
 ## Prizes and odds
 
 A prize is one reward line in the shop's shape — any currency, a catalogue card at
