@@ -75,8 +75,18 @@
   background: radial-gradient(ellipse at 50% 46%, transparent 46%, rgba(12, 6, 24, 0.45) 100%);
 }
 
+/* A full-screen blur costs a phone more than every panel put together, and the sharp
+   key art behind it already sets the palette. */
+:global(:root[data-fx='lite']) .wash {
+  display: none;
+}
+
 /* Used while the account is loading or the auth screen is up. */
 .dimmed .background,
 .dimmed .wash {
   filter: blur(var(--wash-blur)) brightness(0.34) saturate(0.8);
+}
+
+:global(:root[data-fx='lite']) .dimmed .background {
+  filter: brightness(0.34) saturate(0.8);
 }

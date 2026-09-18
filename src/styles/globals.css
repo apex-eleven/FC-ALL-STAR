@@ -105,3 +105,22 @@ button {
   transition-duration: 1ms !important;
   animation-duration: 1ms !important;
 }
+
+/*
+ * Performance mode — the player's choice, in the settings menu (features/fx).
+ *
+ * `backdrop-filter` is the single most expensive thing this app asks a phone to do:
+ * every blurred panel is a second pass over everything behind it, and the club screen
+ * alone has nine of them. It is dropped wholesale here — it only ever adds depth, so
+ * nothing is lost but the depth. The panels underneath it are already 78–94% opaque.
+ *
+ * Costly `filter` declarations are turned off next to where they are written instead,
+ * because `filter` also carries meaning elsewhere (a locked avatar is greyed out) and
+ * a blanket rule here would unlock it.
+ */
+:root[data-fx='lite'] *,
+:root[data-fx='lite'] *::before,
+:root[data-fx='lite'] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}

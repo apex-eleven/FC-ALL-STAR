@@ -36,6 +36,11 @@
   pointer-events: none;
 }
 
+/* One shadow is cheap; a hundred and forty of them on a phone are not. */
+:global(:root[data-fx='lite']) .art {
+  filter: none;
+}
+
 /* Drawn when a card has no artwork, or its file has gone missing. */
 .fallback {
   display: flex;

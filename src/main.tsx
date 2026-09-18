@@ -19,6 +19,7 @@ import { ManagerProvider } from '@/features/manager/ManagerContext';
 import { WalkoutProvider } from '@/features/walkout/WalkoutContext';
 import { SoundProvider } from '@/features/sound/SoundContext';
 import { NavigationProvider } from '@/features/navigation/NavigationContext';
+import { applyFx, loadFx } from '@/features/fx/fx';
 import { applyMotion, loadMotion } from '@/features/motion/motion';
 import { restoreConfigFromRepo } from '@/features/backup/backup';
 import { pullConfigFromCloud } from '@/features/cloud/cloudConfig';
@@ -84,8 +85,10 @@ function render() {
   );
 }
 
-// Before anything renders: this attribute decides whether the first screen animates.
+// Before anything renders: these two attributes decide whether the first screen
+// animates and how much it spends on looks.
 applyMotion(loadMotion());
+applyFx(loadFx());
 
 /**
  * Fills an empty browser from public/config/admin.json, then renders.

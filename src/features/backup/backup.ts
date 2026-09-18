@@ -45,6 +45,8 @@ const PERSONAL_KEYS = [
   // How much this device animates. One player's phone on battery saver must not
   // decide how the game looks for everybody else.
   `${STORAGE_PREFIX}motion:v1`,
+  // And how much it spends on blurs and shadows — a phone's answer, not the game's.
+  `${STORAGE_PREFIX}fx:v1`,
 ];
 
 /** Keys holding account data — excluded from anything written into public/. */

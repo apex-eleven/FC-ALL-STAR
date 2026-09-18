@@ -4,6 +4,7 @@ import { displayNameOf } from '@/features/auth/constants';
 import { requiredXPForLevel } from '@/features/profile/leveling';
 import { useSound } from '@/features/sound/SoundContext';
 import { MUSIC_TRACKS, resolveTrack } from '@/features/sound/tracks';
+import { applyFx, fxMode, saveFx, FX_LABEL, FX_MODES, type FxMode } from '@/features/fx/fx';
 import {
   applyMotion,
   motionMode,
@@ -31,12 +32,19 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
   const { config, update, play, musicBlocked } = useSound();
   const { isFullscreen, supported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen();
   const [motion, setMotion] = useState<MotionMode>(motionMode);
+  const [fx, setFx] = useState<FxMode>(fxMode);
   const currentTrack = resolveTrack(config.musicTrackId);
 
   function chooseMotion(mode: MotionMode) {
     applyMotion(mode);
     saveMotion(mode);
     setMotion(mode);
+  }
+
+  function chooseFx(mode: FxMode) {
+    applyFx(mode);
+    saveFx(mode);
+    setFx(mode);
   }
 
   useEffect(() => {
@@ -98,6 +106,30 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
           </div>
           <span className={styles.hint}>
             &quot;ตามเครื่อง&quot; = ปิดอนิเมชั่นตามที่ตั้งไว้ในเครื่อง เช่น โหมดประหยัดแบต หรือ ลดการเคลื่อนไหว
+          </span>
+
+          {/* Blurred panels and card shadows are what make the club screen crawl on a
+              phone. "ลื่นสุด" drops them; "อัตโนมัติ" drops them on touch devices. */}
+          <div className={styles.stack}>
+            <span className={styles.rowLabel}>ประสิทธิภาพ (ความลื่น)</span>
+            <div className={styles.choices}>
+              {FX_MODES.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  data-sound="toggle"
+                  aria-pressed={fx === mode}
+                  className={`${styles.choice} ${fx === mode ? styles.choiceOn : ''}`}
+                  onClick={() => chooseFx(mode)}
+                >
+                  {FX_LABEL[mode]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className={styles.hint}>
+            &quot;ลื่นสุด&quot; = ปิดเอฟเฟกต์ฝ้าหลังกล่องและเงาการ์ด ช่วยหน้าทีมและหน้าคลังการ์ดในมือถือมาก ·
+            &quot;อัตโนมัติ&quot; = เปิดให้ลื่นเองบนมือถือ
           </span>
         </div>
 
