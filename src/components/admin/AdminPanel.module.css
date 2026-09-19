@@ -74,34 +74,42 @@
   color: #ffb9bd;
 }
 
+/* One dropdown rather than a strip of buttons: there are twenty tabs now, and as a
+   row they were down to a few pixels each with the labels clipped. */
 .tabs {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 18px;
-  padding: 5px;
+  padding: 7px 10px;
   border-radius: var(--radius-md);
   background: rgba(6, 4, 14, 0.55);
 }
 
-.tab {
+.tabsLabel {
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.tabSelect {
   flex: 1;
-  padding: 10px 0;
+  min-width: 0;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--color-muted);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  color: var(--color-text);
+  cursor: pointer;
 }
 
-.tab:hover {
-  color: var(--color-text);
-}
-
-.tabActive,
-.tabActive:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--color-text);
+.tabSelect option {
+  color: #111111;
 }
 
 .body {

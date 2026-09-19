@@ -30,6 +30,7 @@ import AdminMissions from './AdminMissions';
 import AdminStarPass from './AdminStarPass';
 import AdminItems from './AdminItems';
 import AdminGacha from './AdminGacha';
+import AdminRedeem from './AdminRedeem';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
 
@@ -58,6 +59,7 @@ type Tab =
   | 'starpass'
   | 'items'
   | 'gacha'
+  | 'redeem'
   | 'announcement'
   | 'walkout'
   | 'backup';
@@ -80,6 +82,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'starpass', label: 'Star Pass' },
   { id: 'items', label: 'ไอเท็ม' },
   { id: 'gacha', label: 'กาชาปอง' },
+  { id: 'redeem', label: 'แลกโค้ด' },
   { id: 'announcement', label: 'ประกาศ' },
   { id: 'walkout', label: 'Walkout' },
   { id: 'backup', label: 'สำรองข้อมูล' },
@@ -229,20 +232,21 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           ใครก็แก้ค่าเงินเองผ่าน DevTools ได้ ต้องย้ายไปเซิร์ฟเวอร์ก่อนถึงจะบังคับได้จริง
         </p>
 
-        <div className={styles.tabs} role="tablist">
-          {TABS.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              role="tab"
-              aria-selected={tab === item.id}
-              className={`${styles.tab} ${tab === item.id ? styles.tabActive : ''}`}
-              onClick={() => setTab(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <label className={styles.tabs}>
+          <span className={styles.tabsLabel}>เมนู</span>
+          <select
+            className={styles.tabSelect}
+            value={tab}
+            aria-label="เมนูแผงควบคุม"
+            onChange={(event) => setTab(event.target.value as Tab)}
+          >
+            {TABS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {tab === 'avatars' && <AdminAvatars />}
         {tab === 'banners' && <AdminBanners />}
@@ -260,6 +264,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'starpass' && <AdminStarPass />}
         {tab === 'items' && <AdminItems />}
         {tab === 'gacha' && <AdminGacha />}
+        {tab === 'redeem' && <AdminRedeem />}
         {tab === 'announcement' && <AdminAnnouncement />}
         {tab === 'walkout' && <AdminWalkout />}
         {tab === 'backup' && <AdminBackup />}

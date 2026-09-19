@@ -41,6 +41,7 @@ const ROUTE_LABEL: Record<string, string> = {
   starpass: 'Star Pass',
   bag: 'กระเป๋า',
   gacha: 'กาชาปอง',
+  redeem: 'แลกโค้ด',
 };
 
 const TONES: readonly AnnouncementTone[] = ['info', 'event', 'warning'];

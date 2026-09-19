@@ -48,7 +48,9 @@ export type WalletReason =
   /** Opened from an item in the bag (a random box). */
   | 'item'
   /** A gachapon spin: the key spent, or a prize won. */
-  | 'gacha';
+  | 'gacha'
+  /** Rewards from a code typed into the แลกโค้ด screen. */
+  | 'redeem';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

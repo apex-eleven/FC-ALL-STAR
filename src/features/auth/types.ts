@@ -11,6 +11,7 @@ import type { MissionProgress } from '@/features/missions/types';
 import type { StarPassProgress } from '@/features/starpass/types';
 import type { Inventory } from '@/features/items/types';
 import type { GachaState } from '@/features/gacha/types';
+import type { RedeemProgress } from '@/features/redeem/types';
 
 export type Role = 'player' | 'admin';
 
@@ -72,6 +73,8 @@ export interface Account extends Entity {
   displayName?: string;
   /** Gachapon spins and the last few wins. Absent until the first spin. */
   gacha?: GachaState;
+  /** Redeem codes this account has used, keyed by code id. Absent until the first one. */
+  redeem?: RedeemProgress;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

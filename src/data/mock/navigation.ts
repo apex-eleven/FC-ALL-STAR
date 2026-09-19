@@ -10,8 +10,8 @@ export const railItems: RailItem[] = [
     badge: { variant: 'gift' },
   },
   {
-    id: 'rail-highlight',
-    label: 'ไฮไลต์',
+    id: 'rail-redeem',
+    label: 'แลกโค้ด',
     artwork: ASSETS.brand.navHighlight,
   },
   {
