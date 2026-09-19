@@ -104,6 +104,29 @@ export interface SideStats {
 
 export type MatchPhase = 'play' | 'halftime' | 'fulltime';
 
+/**
+ * ลูกที่กำลังเดินทาง — ชั้น 3 มิติอ่านตัวนี้ไปคำนวณความสูงของบอลและสั่งท่าทาง
+ *
+ * เอนจินไม่ได้เก็บก้อนนี้ไว้ตรง ๆ (มันเก็บเป็น velocity กับ state) ตัวนี้จึงถูก
+ * ประกอบขึ้นที่นี่ทุกครั้งที่บอลออกจากเท้า แล้วคงตัวเดิมไว้จนกว่าจะถึงปลายทาง
+ * — สำคัญมากว่าต้องเป็น**วัตถุก้อนเดิม**ตลอดการเดินทางหนึ่งครั้ง
+ * เพราะ ActionWatcher เทียบด้วย reference ไม่ได้เทียบค่าข้างใน
+ */
+export interface BallFlight {
+  kind: 'pass' | 'shot';
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  elapsed: number;
+  duration: number;
+  side: Side;
+  /** Pass: who ends up with it. Shot: the shooter. */
+  receiverId: string;
+  shooterId: string;
+  outcome: 'complete' | 'intercepted' | 'goal' | 'save' | 'miss';
+}
+
 export interface MatchSetup {
   home: LineupSpot[];
   away: LineupSpot[];
@@ -253,10 +276,11 @@ export class MatchEngine {
   events: MatchEvent[] = [];
   /** Who scored, for the result screen. */
   scorers: { side: Side; name: string; minute: number }[] = [];
-  ball: { x: number; y: number; ownerId: string | null } = {
+  ball: { x: number; y: number; ownerId: string | null; flight: BallFlight | null } = {
     x: PITCH_LENGTH / 2,
     y: PITCH_WIDTH / 2,
     ownerId: null,
+    flight: null,
   };
   /** Set on a goal until the restart, for the screen's goal flash. */
   goalFlash: Side | null = null;
@@ -275,6 +299,10 @@ export class MatchEngine {
   private eventId = 0;
   /** นาทีที่ AI ฝั่งตรงข้ามทบทวนแทคติกครั้งล่าสุด */
   private lastThink = -1;
+  /** เวลาเดินทางของบอลเมื่อเฟรมก่อน — ใช้จับว่า "ลูกใหม่ออกจากเท้าแล้ว" */
+  private lastTravel = -1;
+  /** สกอร์และจำนวนเซฟตอนที่ลูกนี้ออกจากเท้า — ใช้สรุปผลตอนบอลถึงปลายทาง */
+  private flightMark = { goals: 0, saves: 0 };
 
   constructor(setup: MatchSetup) {
     this.duration = setup.duration;
@@ -450,6 +478,7 @@ export class MatchEngine {
     this.ball.x = this.core.ball.position.x;
     this.ball.y = this.core.ball.position.y;
     this.ball.ownerId = this.core.ball.owner;
+    this.syncFlight();
 
     for (const side of ['home', 'away'] as const) {
       const from = this.core.stats[side];
@@ -460,6 +489,100 @@ export class MatchEngine {
       to.tackles = from.tackles;
       to.possession = from.possessionSeconds;
     }
+  }
+
+  /**
+   * ประกอบ (หรือปิด) ก้อน flight ของลูกบอล
+   *
+   * เอนจินตัวนี้ไม่ได้ทอยผลลูกยิงล่วงหน้าเหมือนตัวเดิม — มันตัดสินตอนบอลถึงประตูจริง ๆ
+   * ตอนออกจากเท้าจึงเดาไว้ก่อนจากทิศทาง (เข้ากรอบ = 'save' ผู้รักษาประตูจะได้พุ่ง)
+   * แล้ว**แก้ค่าให้ตรงความจริงตอนบอลถึงปลายทาง** ก่อนจะปล่อยให้ flight เป็น null
+   * ท่าดีใจหลังทำประตูจึงขึ้นถูกจังหวะ ไม่ได้ขึ้นจากการเดา
+   */
+  private syncFlight(): void {
+    const ball = this.core.ball;
+    const flying = ball.state === 'TRAVELLING' || ball.state === 'SHOT';
+
+    if (!flying) {
+      const ended = this.ball.flight;
+      if (ended) {
+        const goals = this.core.score.home + this.core.score.away;
+        const saves = this.core.stats.home.saves + this.core.stats.away.saves;
+        ended.outcome =
+          goals > this.flightMark.goals
+            ? 'goal'
+            : saves > this.flightMark.saves
+              ? 'save'
+              : ended.kind === 'pass'
+                ? this.core.ball.owner === ended.receiverId
+                  ? 'complete'
+                  : 'intercepted'
+                : 'miss';
+        this.ball.flight = null;
+      }
+      this.lastTravel = -1;
+      return;
+    }
+
+    // ลูกใหม่ออกจากเท้าเมื่อเฟรมก่อนบอลยังไม่ลอย หรือเวลาเดินทางถูกรีเซ็ต
+    const fresh = this.lastTravel < 0 || ball.travelElapsed < this.lastTravel;
+    this.lastTravel = ball.travelElapsed;
+
+    if (fresh) {
+      const kind: 'pass' | 'shot' = ball.state === 'SHOT' ? 'shot' : 'pass';
+      const shooter = this.agents.get(ball.lastTouchId ?? '');
+      const side: Side = shooter?.side ?? 'home';
+      const from = ball.passOrigin ?? ball.position;
+      const target =
+        kind === 'shot' ? this.goalAim(side, ball) : this.receiverSpot(ball.intendedReceiverId);
+      const reach = Math.hypot(target.x - from.x, target.y - from.y);
+      const posts = { left: PITCH_WIDTH / 2 - 3.66, right: PITCH_WIDTH / 2 + 3.66 };
+
+      this.flightMark = {
+        goals: this.core.score.home + this.core.score.away,
+        saves: this.core.stats.home.saves + this.core.stats.away.saves,
+      };
+
+      this.ball.flight = {
+        kind,
+        fromX: from.x,
+        fromY: from.y,
+        toX: target.x,
+        toY: target.y,
+        elapsed: ball.travelElapsed,
+        duration: Math.max(0.08, reach / Math.max(ball.speed, 1)),
+        side,
+        receiverId: ball.intendedReceiverId ?? '',
+        shooterId: ball.lastTouchId ?? '',
+        // เข้ากรอบ = เดาว่าผู้รักษาประตูจะได้ลุ้น (แก้เป็นค่าจริงตอนจบการเดินทาง)
+        outcome:
+          kind === 'shot'
+            ? target.y >= posts.left && target.y <= posts.right
+              ? 'save'
+              : 'miss'
+            : 'complete',
+      };
+      return;
+    }
+
+    if (this.ball.flight) this.ball.flight.elapsed = ball.travelElapsed;
+  }
+
+  /** จุดที่ลูกยิงลูกนี้พุ่งไปชนเส้นประตูของอีกฝ่าย (ลากเส้นตรงตามทิศที่บอลออกไป) */
+  private goalAim(side: Side, ball: { position: { x: number; y: number }; velocity: { x: number; y: number } }) {
+    const line = side === 'home' ? PITCH_LENGTH : 0;
+    const dx = ball.velocity.x;
+    if (Math.abs(dx) < 0.001) return { x: line, y: ball.position.y };
+    const steps = (line - ball.position.x) / dx;
+    return { x: line, y: ball.position.y + ball.velocity.y * steps };
+  }
+
+  /** ตำแหน่งของคนที่ตั้งใจส่งบอลไปหา (ไม่มีตัวรับก็เล็งไปตามทิศบอล) */
+  private receiverSpot(receiverId: string | null) {
+    const agent = receiverId ? this.agents.get(receiverId) : undefined;
+    if (agent) return { x: agent.position2d.x, y: agent.position2d.y };
+    const ball = this.core.ball;
+    return { x: ball.position.x + ball.velocity.x, y: ball.position.y + ball.velocity.y };
   }
 
   /** กล่องข้อมูลของนักเตะหนึ่งคนสำหรับหน้าจอ สร้างครั้งเดียวต่อคน แล้วใช้ซ้ำ */
