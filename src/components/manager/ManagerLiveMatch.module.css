@@ -649,3 +649,26 @@
   display: flex;
   gap: 14px;
 }
+
+/* ---- full-screen 3D layout ----
+   The 2D renderer stays exactly as it is and is hidden instead of removed, so the
+   development switch flips between the two without either knowing about the other.
+   The pitch box carries its size inline, which is why these override it. */
+.screen3d .scoreboard,
+.screen3d .panel,
+.screen3d .lines,
+.screen3d .goal,
+.screen3d .token,
+.screen3d .ball {
+  display: none;
+}
+
+.screen3d .pitch {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}

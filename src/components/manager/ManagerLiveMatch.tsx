@@ -13,6 +13,8 @@ import {
 } from '@/features/manager/matchEngine';
 import { avatarSrc } from './avatarSrc';
 import MatchSubsDialog from './MatchSubsDialog';
+import Match3DStage from './match3d/Match3DStage';
+import Match3DHud from './match3d/Match3DHud';
 import styles from './ManagerLiveMatch.module.css';
 
 export interface ManagerLiveMatchProps {
@@ -31,6 +33,13 @@ const INTRO_MS = 2200;
 const UI_MS = 200;
 /** Half time moves on by itself after this, in case nobody presses the button. */
 const HALFTIME_AUTO_MS = 15_000;
+
+/**
+ * Development switch for the 3D coordinate proof. `true` lays the 3D view over the
+ * 2D pitch; the panel, the clock, and every control keep working either way. Set it
+ * to `false` — or delete this line and the block that reads it — to go back to 2D.
+ */
+const ENABLE_MANAGER_3D = true;
 
 const TACTICS: { id: Tactic; label: string }[] = [
   { id: 'attack', label: 'บุก' },
@@ -185,7 +194,12 @@ export default function ManagerLiveMatch({ live, onFinished, onForfeit }: Manage
   };
 
   return (
-    <div className={styles.screen} role="dialog" aria-modal="true" aria-label="แมตช์สด">
+    <div
+      className={`${styles.screen} ${ENABLE_MANAGER_3D ? styles.screen3d : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="แมตช์สด"
+    >
       <div className={styles.backdrop} />
 
       {/* ---- scoreboard ---- */}
@@ -245,6 +259,10 @@ export default function ManagerLiveMatch({ live, onFinished, onForfeit }: Manage
           </div>
         ))}
         <div ref={ballRef} className={styles.ball} />
+
+        {/* Development only: the same engine, drawn again in 3D. Sits above the 2D
+            tokens but below the goal flash, the intro, and the half-time card. */}
+        {ENABLE_MANAGER_3D && <Match3DStage engine={engine} />}
 
         {engine.goalFlash && (
           <div className={`${styles.goalFlash} ${engine.goalFlash === 'home' ? styles.flashHome : styles.flashAway}`}>
@@ -388,6 +406,24 @@ export default function ManagerLiveMatch({ live, onFinished, onForfeit }: Manage
           </ul>
         </div>
       </aside>
+
+      {ENABLE_MANAGER_3D && (
+        <Match3DHud
+          engine={engine}
+          homeAvatar={avatarSrc(account.avatarId)}
+          awayAvatar={avatarSrc(live.opponent.avatarId)}
+          speed={speed}
+          paused={paused}
+          onSpeed={setSpeed}
+          onPause={() => setPaused((value) => !value)}
+          onTactic={(tactic) => {
+            engine.setTactic('home', tactic);
+            rerender();
+          }}
+          onSubs={() => setSubsOpen(true)}
+          onLeave={() => setLeaving(true)}
+        />
+      )}
 
       {subsOpen && (
         <MatchSubsDialog
