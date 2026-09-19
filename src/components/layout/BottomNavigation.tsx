@@ -1,12 +1,13 @@
 import {
   ChevronsUp,
   Crosshair,
-  ShieldHalf,
   ShoppingCart,
+  Trophy,
   UserPlus,
   Video,
 } from 'lucide-react';
 import { bottomNavItems } from '@/data/mock/navigation';
+import { useCup } from '@/features/cup/CupContext';
 import { useMissions } from '@/features/missions/MissionContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { useRankUp } from '@/features/rankup/RankUpContext';
@@ -17,7 +18,7 @@ import styles from './BottomNavigation.module.css';
 /** Placeholder glyphs. Swap for real icon assets in this map only. */
 const ICONS: Record<BottomNavIcon, typeof Crosshair> = {
   missions: Crosshair,
-  league: ShieldHalf,
+  cup: Trophy,
   contracts: UserPlus,
   rankup: ChevronsUp,
   store: ShoppingCart,
@@ -28,6 +29,7 @@ export default function BottomNavigation() {
   const { config: rankup } = useRankUp();
   const { config: transfer } = useTransfer();
   const { config: missions } = useMissions();
+  const { config: cup } = useCup();
 
   /**
    * Which tabs actually go somewhere.
@@ -37,7 +39,7 @@ export default function BottomNavigation() {
    */
   const targets: Partial<Record<BottomNavIcon, () => void>> = {
     ...(missions.enabled ? { missions: () => navigate('missions') } : {}),
-    league: () => navigate('league'),
+    ...(cup.enabled ? { cup: () => navigate('cup') } : {}),
     ...(rankup.enabled ? { rankup: () => navigate('rankup') } : {}),
     ...(transfer.enabled ? { contracts: () => navigate('transfer') } : {}),
     store: () => navigate('shop'),

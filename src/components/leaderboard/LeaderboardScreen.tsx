@@ -16,7 +16,7 @@ export interface LeaderboardScreenProps {
   onClose(): void;
 }
 
-/** Same idea as the league table: clubs have no crests, so every row wears an avatar. */
+/** Same idea as a cup bracket: clubs have no crests, so every row wears an avatar. */
 function avatarSrc(avatarId: string): string {
   return avatarSource(avatarId);
 }
@@ -26,9 +26,9 @@ function avatarSrc(avatarId: string): string {
  * yet) opens this instead: real accounts, ranked by OVR, with their actual starting
  * eleven on view.
  *
- * A separate table from the daily league (`features/league`) on purpose — this one
+ * A separate table from the cups (`features/cup`) on purpose — this one
  * never resets and only ever reflects the strongest eleven an account has fielded
- * lately, whether or not they played a league fixture today.
+ * lately, whether or not they have entered a cup today.
  */
 export default function LeaderboardScreen({ selfUid, onClose }: LeaderboardScreenProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);

@@ -1,8 +1,8 @@
 import { avatarCatalogue } from '@/data/mock/avatars';
 import type { Account } from '@/features/auth/types';
 import { appendEntry, credit } from '@/features/currencies/wallet';
-import { RIVAL_NAMES } from '@/features/league/constants';
-import { playMatch, scoreFor, seeded } from '@/features/league/season';
+import { RIVAL_NAMES } from '@/features/sim/constants';
+import { playMatch, scoreFor, seeded } from '@/features/sim/seeded';
 import type { LeaderboardEntry } from '@/features/leaderboard/types';
 import { HISTORY_LIMIT } from './constants';
 import type {

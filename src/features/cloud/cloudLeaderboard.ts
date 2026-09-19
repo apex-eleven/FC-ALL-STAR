@@ -5,7 +5,7 @@ import { PATHS, cloudDb, isCloudEnabled } from './firebase';
 /**
  * The OVR leaderboard, shared between real players.
  *
- * Unlike `cloudLeague`, this collection is not scoped to a season: one document per
+ * Not scoped to a season or a window: one document per
  * account, at `leaderboard/{uid}`, replaced whenever that account's starting eleven
  * changes. There is no reset and no rotation — it is a running answer to "who has
  * the strongest eleven right now", not a ladder that plays out over a day.

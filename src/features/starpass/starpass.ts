@@ -1,7 +1,7 @@
 import type { Account } from '@/features/auth/types';
 import type { OwnedPlayer } from '@/features/club/types';
 import { appendEntry, debit } from '@/features/currencies/wallet';
-import type { MatchOutcome } from '@/features/league/types';
+import type { MatchOutcome } from '@/features/sim/types';
 import { deliverRewards, type CardLookup, type ShopStamp } from '@/features/shop/shop';
 import { MAX_TOTAL_XP, STARPASS_EVENT_ID } from './constants';
 import type {

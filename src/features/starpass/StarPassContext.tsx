@@ -10,7 +10,7 @@ import {
 import type { Account } from '@/features/auth/types';
 import { useAuth } from '@/features/auth/AuthContext';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
-import type { MatchOutcome } from '@/features/league/types';
+import type { MatchOutcome } from '@/features/sim/types';
 import { seasonEnd, seasonIndex } from '@/features/manager/manager';
 import { loadConfig as loadManagerConfig } from '@/features/manager/managerConfigStore';
 import type { ManagerConfig } from '@/features/manager/types';

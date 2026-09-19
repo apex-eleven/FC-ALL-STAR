@@ -40,7 +40,7 @@ export interface TransferConfig {
 }
 
 /**
- * The per-account half. Lives on the account, like `league`.
+ * The per-account half. Lives on the account, like `cup`.
  *
  * `watch` holds catalogue ids — a watched card is one for sale, not one owned.
  * `locked` holds owned-card ids — a lock protects a specific copy from being sold.

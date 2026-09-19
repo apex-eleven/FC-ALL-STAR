@@ -3,13 +3,13 @@
  *
  * Two different problems, deliberately solved two different ways:
  *
- * **Admin data** — the card catalogue, draft and store setup, league tuning, news
+ * **Admin data** — the card catalogue, draft and store setup, cup tuning, news
  * banners, walkout timings. No secrets, and it is the work that hurts most to lose.
  * Mirrored into `public/config/admin.json` under the dev server, restored
  * automatically when a fresh browser has nothing, and committed with the repo so it
  * follows the project to a new machine.
  *
- * **Accounts** — usernames, password hashes, wallets, clubs, squads, league standing.
+ * **Accounts** — usernames, password hashes, wallets, clubs, squads, cup runs.
  * These never go into `public/`: that folder is served to anyone who opens the site,
  * and publishing password hashes because it was convenient would be indefensible.
  * They travel through an export file the operator saves wherever they want.

@@ -1,7 +1,7 @@
 import type { Account } from '@/features/auth/types';
 import type { OwnedIndex } from '@/features/squad/types';
 import { cardToPlayer } from '@/features/draft/pool';
-import { seeded } from '@/features/league/season';
+import { seeded } from '@/features/sim/seeded';
 import type { LeaderboardEntry } from '@/features/leaderboard/types';
 import type { PlayerCard } from '@/features/players/types';
 import { ratingWithPlus } from '@/features/rankup/plus';

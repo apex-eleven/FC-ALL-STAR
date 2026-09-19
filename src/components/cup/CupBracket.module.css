@@ -1,0 +1,170 @@
+/*
+  The bracket board: one column per round, plus a trophy column at the end.
+
+  Ties are centred in their column rather than stacked from the top, so each round
+  lines up with the pair below it and the board reads as a funnel without any
+  connecting lines to draw.
+*/
+
+.board {
+  display: flex;
+  align-items: stretch;
+  gap: 22px;
+  min-height: 100%;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 232px;
+  flex: 1;
+}
+
+.roundName {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-dim);
+  text-transform: uppercase;
+}
+
+.ties {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.tie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* The account's own line through the board. */
+.tieMine {
+  border-color: rgba(217, 164, 65, 0.55);
+  background: rgba(217, 164, 65, 0.1);
+}
+
+/* The one about to be played. */
+.tieNext {
+  border-color: rgba(43, 224, 140, 0.8);
+  background: rgba(43, 224, 140, 0.12);
+  box-shadow: 0 0 0 1px rgba(43, 224, 140, 0.3);
+}
+
+.side {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(8, 10, 24, 0.55);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+}
+
+.sideWaiting {
+  grid-template-columns: 1fr;
+  color: var(--color-dim);
+  font-style: italic;
+}
+
+.sideYou {
+  background: rgba(43, 224, 140, 0.16);
+  font-weight: 800;
+}
+
+/* Beaten sides stay on the board — a bracket with the losers removed is a list. */
+.sideOut {
+  opacity: 0.42;
+}
+
+.sideThrough {
+  box-shadow: inset 2px 0 0 var(--color-green);
+}
+
+.face {
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovr {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--color-gold);
+}
+
+.goals {
+  min-width: 18px;
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 900;
+}
+
+/* Inline, not floating: absolutely positioned it sat over the row above and
+   covered that side's OVR. */
+.youTag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-green);
+  color: #06210f;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  vertical-align: 1px;
+}
+
+.pens {
+  padding: 2px 8px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.trophy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 92px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--color-dim);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  text-align: center;
+}
+
+.trophyYours {
+  background: linear-gradient(180deg, rgba(244, 210, 131, 0.3) 0%, rgba(217, 164, 65, 0.22) 100%);
+  border: 1px solid var(--color-gold);
+  color: #ffe6ae;
+}

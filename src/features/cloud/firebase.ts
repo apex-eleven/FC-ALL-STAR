@@ -101,7 +101,6 @@ export const PATHS = {
   admins: 'admins',
   config: 'config',
   configDoc: 'admin',
-  league: 'league',
-  leagueEntries: 'entries',
   leaderboard: 'leaderboard',
+  gachaFeed: 'gachaFeed',
 } as const;

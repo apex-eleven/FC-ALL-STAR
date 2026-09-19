@@ -30,7 +30,7 @@ export const railItems: RailItem[] = [
 /** Fixed bottom bar, left to right. */
 export const bottomNavItems: BottomNavItem[] = [
   { id: 'nav-missions', label: 'ภารกิจ', icon: 'missions' },
-  { id: 'nav-league', label: 'ลีก', icon: 'league' },
+  { id: 'nav-cup', label: 'ฟุตบอลถ้วย', icon: 'cup' },
   { id: 'nav-contracts', label: 'การเซ็นสัญญา', icon: 'contracts' },
   { id: 'nav-rankup', label: 'ตีบวกการ์ด', icon: 'rankup' },
   { id: 'nav-store', label: 'ร้านค้า', icon: 'store', active: true },

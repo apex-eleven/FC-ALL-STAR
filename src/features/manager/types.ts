@@ -1,5 +1,5 @@
 import type { CurrencyKind } from '@/features/currencies/types';
-import type { MatchOutcome } from '@/features/league/types';
+import type { MatchOutcome } from '@/features/sim/types';
 
 /**
  * Manager mode (เมเนเจอร์โหมด): ranked one-off matches against other real players'

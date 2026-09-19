@@ -1,7 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
 export interface BrandGlyphProps {
-  /** File name inside `public/brand/`, e.g. `league_star.png`. */
+  /** File name inside `public/brand/`, e.g. `cup_star.png`. */
   file: string;
   /** Rendered instead when the file is not there — usually a lucide icon. */
   children: ReactNode;
@@ -14,7 +14,7 @@ export interface BrandGlyphProps {
  * Drop-in artwork with a *rendered* fallback rather than a second image.
  *
  * `ArtImage` falls back to another file, which is right for icons that ship in the
- * bundle. These do not: the league art is dropped into `public/brand/` by hand, and
+ * bundle. These do not: the cup art is dropped into `public/brand/` by hand, and
  * until it is there the screen should draw its own glyph instead of a broken image.
  *
  * Layering the two — art on top, glyph behind — was the obvious alternative and is

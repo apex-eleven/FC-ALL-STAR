@@ -82,9 +82,9 @@ export default function ShopScreen() {
         src="/brand/shop_background.jpg?v=1"
         alt=""
         onError={(event) => {
-          // Falls back to the league's stadium photo, then to the painted gradient.
+          // Falls back to the cup's stadium photo, then to the painted gradient.
           const image = event.currentTarget;
-          if (image.src.includes('shop_background')) image.src = '/brand/league_background.jpg';
+          if (image.src.includes('shop_background')) image.src = '/brand/cup_background.jpg';
           else image.style.display = 'none';
         }}
       />

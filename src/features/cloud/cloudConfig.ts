@@ -12,7 +12,7 @@ import { PATHS, cloudDb, isCloudEnabled } from './firebase';
  * Game settings, shared by everyone through Firestore.
  *
  * This is the difference between "the admin edits their own browser" and "the admin
- * edits the game". The card catalogue, packs, draft rates, league tuning, banners,
+ * edits the game". The card catalogue, packs, draft rates, cup tuning, banners,
  * item art and the rest live under `config/`, every client reads them at startup,
  * and the rules let only an admin write them.
  *

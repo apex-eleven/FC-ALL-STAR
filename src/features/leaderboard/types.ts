@@ -22,8 +22,8 @@ export interface LeaderboardCard {
  *
  * Published by the owner whenever their starting eleven changes — see
  * `ClubScreen`'s publish effect — and read by everyone else. Independent of the
- * daily league table: this one never resets and only ever reflects the strongest
- * eleven an account has fielded lately, not whether they played a league fixture
+ * cup brackets: this one never resets and only ever reflects the strongest
+ * eleven an account has fielded lately, not whether they entered a cup
  * today.
  */
 export interface LeaderboardEntry {

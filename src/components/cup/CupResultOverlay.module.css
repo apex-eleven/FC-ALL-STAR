@@ -1,0 +1,158 @@
+/* The receipt for one round. Covers the whole stage so nothing behind it is
+   clickable while the result is being read. */
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-header);
+  display: grid;
+  place-items: center;
+  background: rgba(3, 4, 12, 0.78);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 520px;
+  padding: 34px 40px 28px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(170deg, rgba(24, 28, 62, 0.98) 0%, rgba(10, 12, 28, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.cardGold {
+  border-color: var(--color-gold);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(217, 164, 65, 0.5),
+    0 0 60px rgba(217, 164, 65, 0.25);
+}
+
+.cardOut {
+  border-color: rgba(229, 52, 63, 0.45);
+}
+
+.close {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-muted);
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+}
+
+.crown {
+  color: var(--color-gold);
+  filter: drop-shadow(0 4px 18px rgba(217, 164, 65, 0.6));
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text-strong);
+}
+
+.score {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.scoreTeam {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score strong {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--color-gold);
+}
+
+.pens {
+  margin: -6px 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.rewards {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: rgba(43, 224, 140, 0.12);
+  border: 1px solid rgba(43, 224, 140, 0.35);
+}
+
+.rewards h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #9df7c9;
+  text-transform: uppercase;
+}
+
+.rewards ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rewards li {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.footnote {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.ok {
+  margin-top: 4px;
+  padding: 12px 46px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-play);
+  color: #08210f;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 900;
+}

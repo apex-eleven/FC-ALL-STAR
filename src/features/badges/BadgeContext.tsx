@@ -29,7 +29,7 @@ const BadgeContext = createContext<BadgeValue | null>(null);
 /**
  * Holds the crest config and hands out the rating that includes it.
  *
- * Sits above the league and manager providers, which grade the squad too: one
+ * Sits above the cup and manager providers, which grade the squad too: one
  * function, one number, so the home tile, the club panel and the match engine
  * cannot disagree about how strong the team is.
  */

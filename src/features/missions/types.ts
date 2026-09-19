@@ -21,8 +21,9 @@ export type MissionMetric =
   | 'draft-pull'
   | 'rankup-try'
   | 'rankup-success'
-  | 'league-play'
-  | 'league-win'
+  | 'cup-play'
+  | 'cup-win'
+  | 'cup-goal'
   | 'transfer-buy'
   | 'transfer-sell'
   | 'shop-buy';

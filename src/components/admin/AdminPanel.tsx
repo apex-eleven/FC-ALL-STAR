@@ -18,7 +18,7 @@ import { pushConfigToCloud } from '@/features/cloud/cloudConfig';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import AdminBackup from './AdminBackup';
 import AdminClub from './AdminClub';
-import AdminLeague from './AdminLeague';
+import AdminCup from './AdminCup';
 import AdminAnnouncement from './AdminAnnouncement';
 import AdminPlayers from './AdminPlayers';
 import AdminRankUp from './AdminRankUp';
@@ -54,7 +54,7 @@ type Tab =
   | 'store'
   | 'drafts'
   | 'rates'
-  | 'league'
+  | 'cup'
   | 'rankup'
   | 'transfer'
   | 'shop'
@@ -80,7 +80,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'store', label: 'ร้านค้าแพ็ค' },
   { id: 'drafts', label: 'ดราฟต์' },
   { id: 'rates', label: 'อัตราสุ่ม' },
-  { id: 'league', label: 'ลีก' },
+  { id: 'cup', label: 'ฟุตบอลถ้วย' },
   { id: 'rankup', label: 'ตีบวกการ์ด' },
   { id: 'transfer', label: 'เซ็นสัญญา' },
   { id: 'shop', label: 'ร้านค้าไอเท็ม' },
@@ -265,7 +265,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'store' && <AdminStore />}
         {tab === 'drafts' && <AdminDrafts />}
         {tab === 'rates' && <AdminDraftRates />}
-        {tab === 'league' && <AdminLeague />}
+        {tab === 'cup' && <AdminCup />}
         {tab === 'rankup' && <AdminRankUp />}
         {tab === 'transfer' && <AdminTransfer />}
         {tab === 'shop' && <AdminShop />}

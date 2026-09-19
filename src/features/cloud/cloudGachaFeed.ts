@@ -1,7 +1,7 @@
 import { addDoc, collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import type { GachaRarity } from '@/features/gacha/types';
 import { GACHA_RARITIES } from '@/features/gacha/types';
-import { cloudDb, isCloudEnabled } from './firebase';
+import { PATHS, cloudDb, isCloudEnabled } from './firebase';
 
 /**
  * The public winners feed: "who just won what".
@@ -12,7 +12,7 @@ import { cloudDb, isCloudEnabled } from './firebase';
  * author nothing but a line in a list.
  */
 
-export const GACHA_FEED_PATH = 'gachaFeed';
+export const GACHA_FEED_PATH = PATHS.gachaFeed;
 const FEED_LIMIT = 20;
 
 export interface GachaFeedRow {

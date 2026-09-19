@@ -1,0 +1,390 @@
+/*
+  ฟุตบอลถ้วย on the 2048x942 stage.
+
+  Three bands rather than the league's two columns: the competition tabs and the
+  window clock on top, the bracket filling the middle with a settings panel beside
+  it, and one action bar along the bottom. A bracket is wide and shallow, which is
+  the opposite shape to the table this replaced, so the layout is not inherited
+  from it.
+*/
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: 22px 26px 20px;
+  overflow: hidden;
+}
+
+/*
+  Stadium photo over the painted gradient.
+
+  Layered, never swapped: with no cup_background.jpg in public/brand/ the image
+  layer simply fails to paint and the gradient below shows through, so the screen is
+  never a white hole waiting for an asset.
+*/
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(100, 80, 220, 0.34) 0%, transparent 46%),
+    radial-gradient(circle at 80% 6%, rgba(217, 164, 65, 0.24) 0%, transparent 42%),
+    linear-gradient(180deg, #0a0820 0%, #0b1026 55%, #05060f 100%);
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 40%;
+}
+
+/* The pitch is bright and the panels carry small text; without a scrim the bracket
+   is unreadable against the grass. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(4, 6, 18, 0.6) 0%,
+    rgba(4, 6, 18, 0.68) 55%,
+    rgba(2, 3, 12, 0.9) 100%
+  );
+}
+
+.back,
+.home {
+  position: absolute;
+  top: 24px;
+  z-index: var(--z-header);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+}
+
+.back {
+  left: 26px;
+}
+
+.home {
+  right: 26px;
+}
+
+.back:hover,
+.home:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+/* ---- header ----------------------------------------------------------- */
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 72px;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(14, 16, 34, 0.72);
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabOn {
+  color: #0a0714;
+  border-color: rgba(217, 164, 65, 0.9);
+  background: linear-gradient(180deg, #f4d283 0%, var(--color-gold) 100%);
+}
+
+.tabShut {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(229, 52, 63, 0.9);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.clock {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: rgba(220, 230, 255, 0.78);
+  text-shadow: var(--shadow-text);
+}
+
+.wallet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px 7px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 12, 28, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+/* ---- body ------------------------------------------------------------- */
+
+.body {
+  position: relative;
+  display: grid;
+  grid-template-columns: 412px 1fr;
+  gap: 18px;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(20, 24, 52, 0.94) 0%, rgba(10, 12, 28, 0.94) 100%);
+  border: 1px solid rgba(217, 164, 65, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  overflow-y: auto;
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text);
+}
+
+.panelNote {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.stats > div {
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.stats dt {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-dim);
+}
+
+.stats dd {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--color-gold);
+}
+
+.prizes h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.prizes ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prizes li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+}
+
+/* A band already paid this run. Dimmed rather than removed — the ladder is what
+   the player is climbing, and a rung that vanishes once climbed loses the shape. */
+.prizeDone {
+  border-left: 3px solid var(--color-green);
+  opacity: 0.55;
+}
+
+.prizeWhen {
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.prizeWhat {
+  color: var(--color-muted);
+  text-align: right;
+}
+
+.ahead {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(43, 224, 140, 0.14);
+  border: 1px solid rgba(43, 224, 140, 0.4);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: #9df7c9;
+}
+
+.board {
+  position: relative;
+  min-height: 0;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: rgba(8, 10, 24, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: auto;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  color: var(--color-dim);
+}
+
+.empty p {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: var(--color-muted);
+}
+
+.empty span {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+}
+
+/* ---- actions ---------------------------------------------------------- */
+
+.actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.nextUp {
+  margin-right: auto;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text);
+}
+
+.primary,
+.ghost {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 34px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 900;
+}
+
+.primary {
+  background: var(--gradient-play);
+  color: #08210f;
+  box-shadow: 0 8px 22px rgba(43, 224, 140, 0.32);
+}
+
+.primary:disabled {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-dim);
+  box-shadow: none;
+}
+
+.ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+}
+
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  transform: translateX(-50%);
+  z-index: var(--z-header);
+  padding: 11px 24px;
+  border-radius: var(--radius-pill);
+  background: rgba(8, 10, 24, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
+}

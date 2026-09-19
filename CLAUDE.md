@@ -195,8 +195,11 @@ validates against them.
 
 ## Out of scope
 
-player data · squad · club · league · contracts ·
-transfers · marketplace · missions · events · star pass · settings · gameplay
+contracts · marketplace · events · settings · gameplay
 
 `src/features/<name>/` exists for each of these as an empty, documented slot. Do not
 implement them yet.
+
+(The rest of that list — player data, squad, club, transfers, missions, star pass —
+has since been built. The daily league was built and then replaced by
+`features/cup/`; its README says why.)
