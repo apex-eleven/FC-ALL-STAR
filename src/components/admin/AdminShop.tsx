@@ -4,6 +4,8 @@ import { useAuth } from '@/features/auth/AuthContext';
 import type { Account } from '@/features/auth/types';
 import { formatCurrency } from '@/features/currencies/constants';
 import type { CurrencyKind } from '@/features/currencies/types';
+import { MAX_ITEM_COUNT } from '@/features/items/constants';
+import { useItems } from '@/features/items/ItemsContext';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { MAX_PLUS } from '@/features/rankup/constants';
 import {
@@ -98,6 +100,8 @@ function move<T>(list: readonly T[], index: number, delta: number): T[] {
 
 /** Shown in the reward "ได้รับ" dropdown next to the currencies. */
 const CARD_OPTION_LABEL = 'การ์ดนักเตะ';
+/** Shown in the reward "ได้รับ" dropdown for a bag item (see features/items). */
+const ITEM_OPTION_LABEL = 'ไอเท็ม (ของในกระเป๋า)';
 /** The card dropdown lists at most this many matches; search narrows it. */
 const CARD_OPTIONS_MAX = 200;
 /** +0 … +8, the rank-up range. */
@@ -125,6 +129,7 @@ export default function AdminShop() {
   const { config, replace, reset, grant } = useShop();
   const { listAccounts } = useAuth();
   const { players } = usePlayers();
+  const { config: itemsConfig } = useItems();
   const view = useRewardView();
   const label = (entry: ShopItem) => itemLabel(entry, view);
   // Search text for each card reward row, keyed by editor and row.
@@ -273,15 +278,49 @@ export default function AdminShop() {
     );
   }
 
-  /** Keeps the amount when switching between currencies; a card starts at one copy. */
+  /**
+   * Keeps the amount when switching between currencies; a card or an item starts at
+   * one copy. Switching to a kind with nothing to pick (empty catalogue) is a no-op.
+   */
   function withKind(reward: ShopReward, kind: string): ShopReward {
     if (kind === 'card') {
       if (reward.kind === 'card') return reward;
       const first = cardsByRating[0];
       return first ? { kind: 'card', cardId: first.id, amount: 1, plus: 0 } : reward;
     }
-    const amount = reward.kind === 'card' ? 100 : reward.amount;
+    if (kind === 'item') {
+      if (reward.kind === 'item') return reward;
+      const first = itemsConfig.items[0];
+      return first ? { kind: 'item', itemId: first.id, amount: 1 } : reward;
+    }
+    const amount = reward.kind === 'card' || reward.kind === 'item' ? 100 : reward.amount;
     return { kind: kind as CurrencyKind, amount };
+  }
+
+  /** Which bag item a reward line hands out, under the kind and amount row. */
+  function itemPicker(
+    reward: Extract<ShopReward, { kind: 'item' }>,
+    onPick: (itemId: string) => void,
+  ) {
+    const known = itemsConfig.items.some((entry) => entry.id === reward.itemId);
+    return (
+      <div className={styles.itemPick}>
+        <select
+          className={styles.input}
+          value={reward.itemId}
+          onChange={(event) => onPick(event.target.value)}
+        >
+          {!known && <option value={reward.itemId}>(ไอเท็มนี้ถูกลบแล้ว — เลือกใหม่)</option>}
+          {itemsConfig.items.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.name}
+              {entry.enabled ? '' : ' (ปิดอยู่)'}
+            </option>
+          ))}
+        </select>
+        {known && <img className={styles.itemThumb} src={view(reward).icon} alt="" />}
+      </div>
+    );
   }
 
   function cardPicker(
@@ -368,11 +407,21 @@ export default function AdminShop() {
                   {CARD_OPTION_LABEL}
                   {cardsByRating.length === 0 ? ' (คลังการ์ดว่าง)' : ''}
                 </option>
+                <option value="item" disabled={itemsConfig.items.length === 0}>
+                  {ITEM_OPTION_LABEL}
+                  {itemsConfig.items.length === 0 ? ' (ยังไม่มีไอเท็ม)' : ''}
+                </option>
               </select>
               <input
                 className={styles.input}
                 inputMode="numeric"
-                title={reward.kind === 'card' ? `จำนวนใบ (สูงสุด ${MAX_CARD_COPIES})` : 'จำนวน'}
+                title={
+                  reward.kind === 'card'
+                    ? `จำนวนใบ (สูงสุด ${MAX_CARD_COPIES})`
+                    : reward.kind === 'item'
+                      ? 'จำนวนชิ้น'
+                      : 'จำนวน'
+                }
                 value={reward.amount}
                 onChange={(event) => {
                   const amount = whole(event.target.value);
@@ -380,7 +429,9 @@ export default function AdminShop() {
                     index,
                     reward.kind === 'card'
                       ? { ...reward, amount: Math.min(MAX_CARD_COPIES, amount) }
-                      : { ...reward, amount },
+                      : reward.kind === 'item'
+                        ? { ...reward, amount: Math.min(MAX_ITEM_COUNT, amount) }
+                        : { ...reward, amount },
                   );
                 }}
               />
@@ -396,6 +447,8 @@ export default function AdminShop() {
               cardPicker(`${title}-${index}`, reward, (changes) =>
                 replaceAt(index, { ...reward, ...changes }),
               )}
+            {reward.kind === 'item' &&
+              itemPicker(reward, (itemId) => replaceAt(index, { ...reward, itemId }))}
           </div>
         ))}
         <button
