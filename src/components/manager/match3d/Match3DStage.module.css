@@ -1,0 +1,59 @@
+/*
+  The 3D view fills whatever box it is given — the pitch box while the 2D renderer
+  is still in charge, the whole stage in the full-screen layout.
+
+  The stage is drawn at 2048x942 and scaled down with a CSS transform, so three
+  measures the canvas at its post-transform size and writes that back as the
+  element's CSS size — which the transform then shrinks a second time. Forcing the
+  element to fill its box undoes that: the drawing buffer stays matched to real
+  screen pixels, so nothing is rendered larger than it is shown.
+*/
+.wrap {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+  Taken out of flow as well as filled: three writes a pixel size onto the element
+  from what it measured, and an in-flow canvas carrying that size can push its own
+  container around, which feeds straight back into the next measurement.
+*/
+.wrap canvas {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/*
+  The carrier's name. Placed in percentages of this box, because the projection it
+  comes from is in clip space and the stage's scale must not enter into it.
+*/
+.name {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: var(--shadow-text);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Temporary development read-out; not part of the reference layout. */
+.debug {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #c6f23a;
+  font: 600 15px/1.45 monospace;
+  white-space: pre;
+  pointer-events: none;
+}

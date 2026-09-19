@@ -1,0 +1,227 @@
+/*
+  Overlay for the full-screen 3D match, laid out on the 2048x942 stage after the
+  reference shot: score bar hard against the top left, the clock chip tucked under
+  its right half, and the CUSTOM menu with the substitution and leave buttons in the
+  top right corner.
+*/
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hud button {
+  pointer-events: auto;
+}
+
+/* ---- score ---- */
+.score {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 76px;
+  padding: 0 26px 0 18px;
+  border-bottom-right-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.crest {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.team {
+  min-width: 128px;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: var(--shadow-text);
+}
+
+.goals {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 20px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.goals b {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.goals i {
+  font-style: normal;
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* Sits under the bar, aligned with the score the way the reference has it. */
+.clock {
+  position: absolute;
+  left: 150px;
+  top: 76px;
+  min-width: 190px;
+  padding: 5px 0 7px;
+  border-bottom-left-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+  background: #1faa4b;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+/* ---- top right ---- */
+.controls {
+  position: absolute;
+  right: 24px;
+  top: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.custom {
+  position: relative;
+}
+
+.customButton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 68px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #ffffff;
+}
+
+.customButton span {
+  min-width: 150px;
+  text-align: left;
+}
+
+.customOpen {
+  border-color: #43e0c8;
+}
+
+.caretUp {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 78px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 420px;
+  padding: 18px 20px 20px;
+  border-radius: var(--radius-md);
+  background: rgba(12, 16, 24, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.menuTitle {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 700;
+  color: #a4a9b0;
+}
+
+.tactics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.tactic {
+  height: 60px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 700;
+  color: #d6d9de;
+}
+
+.tacticOn {
+  background: linear-gradient(180deg, #43e0c8 0%, #1fa892 100%);
+  border-color: #6ff0da;
+  color: #06201c;
+}
+
+.tactic:disabled {
+  opacity: 0.45;
+}
+
+.speeds {
+  display: flex;
+  gap: 10px;
+}
+
+.chip {
+  display: grid;
+  place-items: center;
+  min-width: 78px;
+  height: 54px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: #d6d9de;
+}
+
+.chipOn {
+  background: rgba(198, 242, 58, 0.18);
+  border-color: #c6f23a;
+  color: #ffffff;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.icon:disabled {
+  opacity: 0.4;
+}
+
+.leave {
+  background: rgba(229, 52, 63, 0.3);
+  border-color: rgba(255, 91, 91, 0.6);
+}
