@@ -1,6 +1,6 @@
 import type { OwnedPlayer } from '@/features/club/types';
 import { ratingWithPlus } from '@/features/rankup/plus';
-import { BENCH_SIZE, DEFAULT_FORMATION, FORMATIONS, STARTER_COUNT } from './constants';
+import { BADGE_SLOTS, BENCH_SIZE, DEFAULT_FORMATION, FORMATIONS, STARTER_COUNT } from './constants';
 import { effectiveRating } from './rating';
 import type {
   Formation,
@@ -22,6 +22,7 @@ export function emptySquad(): Squad {
     formation: DEFAULT_FORMATION,
     starters: Object.fromEntries(formation.slots.map((slot) => [slot.id, null])),
     bench: Array.from({ length: BENCH_SIZE }, () => null),
+    badges: Array.from({ length: BADGE_SLOTS }, () => null),
   };
 }
 
@@ -62,7 +63,18 @@ export function normalizeSquad(value: unknown, owned: OwnedIndex): Squad {
   const benchSource = Array.isArray(source.bench) ? source.bench : [];
   const bench = Array.from({ length: BENCH_SIZE }, (_, index) => take(benchSource[index]));
 
-  return { formation, starters, bench };
+  // Crest ids are checked against the crest config where they are read, not here —
+  // this repair only knows about cards. A crest in two slots keeps the first.
+  const badgeSource = Array.isArray(source.badges) ? source.badges : [];
+  const seenBadges = new Set<string>();
+  const badges = Array.from({ length: BADGE_SLOTS }, (_, index) => {
+    const id = badgeSource[index];
+    if (typeof id !== 'string' || id === '' || seenBadges.has(id)) return null;
+    seenBadges.add(id);
+    return id.slice(0, 40);
+  });
+
+  return { formation, starters, bench, badges };
 }
 
 /**

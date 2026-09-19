@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthContext';
 import { AvatarProvider } from '@/features/avatars/AvatarContext';
 import { NewsProvider } from '@/features/news/NewsContext';
 import { PlayerProvider } from '@/features/players/PlayerContext';
+import { BadgeProvider } from '@/features/badges/BadgeContext';
 import { MissionProvider } from '@/features/missions/MissionContext';
 import { StarPassProvider } from '@/features/starpass/StarPassContext';
 import { ItemsProvider } from '@/features/items/ItemsContext';
@@ -38,7 +39,8 @@ const root = createRoot(container);
 // by the provider, so anything mounted outside it would be silent.
 //
 // Players sits above drafts because a draft's pool is a list of card ids that the
-// catalogue resolves — the packs cannot be built without it. Star Pass and missions
+// catalogue resolves — the packs cannot be built without it. Crests sit right under
+// it: they add to the team rating that the league and manager mode read. Star Pass and missions
 // sit right under it (card rewards resolve there too) and above everything that
 // counts toward them; missions give Star Pass XP, so the pass is outermost. Items
 // sit between: the premium ticket needs the pass, manager mode needs the shield. The
@@ -53,40 +55,42 @@ function render() {
           <AvatarProvider>
             <NewsProvider>
               <PlayerProvider>
-                <StarPassProvider>
-                  <GachaProvider>
-                    <RedeemProvider>
-                      <InboxProvider>
-                        <DailyLoginProvider>
-                          <ItemsProvider>
-                            <MissionProvider>
-                              <DraftProvider>
-                                <LeagueProvider>
-                                  <WalkoutProvider>
-                                    <RankUpProvider>
-                                      <TransferProvider>
-                                        <ShopProvider>
-                                          <ManagerProvider>
-                                            <NavigationProvider>
-                                              <AnnouncementProvider>
-                                                <CloudConfigSync />
-                                                <App />
-                                              </AnnouncementProvider>
-                                            </NavigationProvider>
-                                          </ManagerProvider>
-                                        </ShopProvider>
-                                      </TransferProvider>
-                                    </RankUpProvider>
-                                  </WalkoutProvider>
-                                </LeagueProvider>
-                              </DraftProvider>
-                            </MissionProvider>
-                          </ItemsProvider>
-                        </DailyLoginProvider>
-                      </InboxProvider>
-                    </RedeemProvider>
-                  </GachaProvider>
-                </StarPassProvider>
+                <BadgeProvider>
+                  <StarPassProvider>
+                    <GachaProvider>
+                      <RedeemProvider>
+                        <InboxProvider>
+                          <DailyLoginProvider>
+                            <ItemsProvider>
+                              <MissionProvider>
+                                <DraftProvider>
+                                  <LeagueProvider>
+                                    <WalkoutProvider>
+                                      <RankUpProvider>
+                                        <TransferProvider>
+                                          <ShopProvider>
+                                            <ManagerProvider>
+                                              <NavigationProvider>
+                                                <AnnouncementProvider>
+                                                  <CloudConfigSync />
+                                                  <App />
+                                                </AnnouncementProvider>
+                                              </NavigationProvider>
+                                            </ManagerProvider>
+                                          </ShopProvider>
+                                        </TransferProvider>
+                                      </RankUpProvider>
+                                    </WalkoutProvider>
+                                  </LeagueProvider>
+                                </DraftProvider>
+                              </MissionProvider>
+                            </ItemsProvider>
+                          </DailyLoginProvider>
+                        </InboxProvider>
+                      </RedeemProvider>
+                    </GachaProvider>
+                  </StarPassProvider>
+                </BadgeProvider>
               </PlayerProvider>
             </NewsProvider>
           </AvatarProvider>

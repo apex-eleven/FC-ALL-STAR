@@ -2,6 +2,8 @@ import type { Formation, FormationId } from './types';
 
 export const BENCH_SIZE = 7;
 export const STARTER_COUNT = 11;
+/** Crest slots under the OVR shield — see features/badges. */
+export const BADGE_SLOTS = 3;
 
 /**
  * Slot coordinates, derived from the stadium backdrop rather than chosen.

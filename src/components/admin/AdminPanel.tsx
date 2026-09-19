@@ -33,6 +33,7 @@ import AdminGacha from './AdminGacha';
 import AdminRedeem from './AdminRedeem';
 import AdminInbox from './AdminInbox';
 import AdminDailyLogin from './AdminDailyLogin';
+import AdminBadges from './AdminBadges';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
 
@@ -49,6 +50,7 @@ type Tab =
   | 'banners'
   | 'players'
   | 'club'
+  | 'badges'
   | 'store'
   | 'drafts'
   | 'rates'
@@ -74,6 +76,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'banners', label: 'แบนเนอร์ข่าว' },
   { id: 'players', label: 'การ์ดนักเตะ' },
   { id: 'club', label: 'การ์ดของผู้เล่น' },
+  { id: 'badges', label: 'ตราทีม' },
   { id: 'store', label: 'ร้านค้าแพ็ค' },
   { id: 'drafts', label: 'ดราฟต์' },
   { id: 'rates', label: 'อัตราสุ่ม' },
@@ -258,6 +261,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'banners' && <AdminBanners />}
         {tab === 'players' && <AdminPlayers />}
         {tab === 'club' && <AdminClub />}
+        {tab === 'badges' && <AdminBadges />}
         {tab === 'store' && <AdminStore />}
         {tab === 'drafts' && <AdminDrafts />}
         {tab === 'rates' && <AdminDraftRates />}

@@ -10,7 +10,8 @@ import {
 import { useAuth } from '@/features/auth/AuthContext';
 import { displayNameOf } from '@/features/auth/constants';
 import { appendEntry, credit } from '@/features/currencies/wallet';
-import { indexOwned, squadRating } from '@/features/squad/squad';
+import { indexOwned } from '@/features/squad/squad';
+import { useBadges } from '@/features/badges/BadgeContext';
 import { syncOwned } from '@/features/club/sync';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { useMissions } from '@/features/missions/MissionContext';
@@ -108,11 +109,12 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     [realStars, state.rivals],
   );
 
+  const { ratingOf } = useBadges();
   const rating = useMemo(() => {
     if (!account) return 0;
     const owned = indexOwned(syncOwned(account.club.players, byId));
-    return squadRating(account.squad, owned);
-  }, [account, byId]);
+    return ratingOf(account.squad, owned);
+  }, [account, byId, ratingOf]);
 
   /**
    * Catches the league up with the clock, and pays out if the day rolled over.

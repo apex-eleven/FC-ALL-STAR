@@ -37,9 +37,27 @@
 /* The reference pairs a club crest with the OVR badge. The crest is dropped here, so
    the badge is centred on its own rather than left sitting off to one side. */
 .ovrRow {
+  position: relative;
   display: grid;
   place-items: center;
   padding: 22px 0 18px;
+}
+
+/* Crest bonus, pinned to the shield's right shoulder. */
+.bonus {
+  position: absolute;
+  top: 30px;
+  left: calc(50% + 58px);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #ffe27a 0%, #d9a441 100%);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+  color: #2a1a00;
+  box-shadow: var(--shadow-badge);
+  white-space: nowrap;
 }
 
 
@@ -85,9 +103,10 @@
   gap: 30px;
 }
 
-/* Three empty crest slots, reserved. Drawn as outlines rather than hidden so the
-   panel's proportions already match what it will look like once they are filled. */
+/* Three crest slots. Empty ones are dashed outlines so the panel's proportions do
+   not change as crests go in and out. */
 .badge {
+  position: relative;
   display: grid;
   place-items: center;
   width: 74px;
@@ -102,6 +121,67 @@
 .badge:hover {
   border-color: rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.1);
+}
+
+.badge:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* A pinned crest that is not yet earning: solid frame, art greyed. */
+.badgeSet {
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(6, 4, 14, 0.6);
+  color: var(--color-muted);
+}
+
+.badgeSet .badgeArt,
+.badgeSet .badgeGlyph {
+  filter: grayscale(1) brightness(0.7);
+}
+
+/* Active: gold frame, full colour, soft glow. */
+.badgeActive {
+  border-color: var(--color-gold);
+  background: rgba(217, 164, 65, 0.16);
+  box-shadow: 0 0 18px rgba(217, 164, 65, 0.4);
+  color: var(--color-text);
+}
+
+.badgeActive .badgeArt,
+.badgeActive .badgeGlyph {
+  filter: none;
+}
+
+.badgeArt {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.badgeGlyph {
+  color: var(--color-gold);
+}
+
+.badgeCount {
+  position: absolute;
+  right: -6px;
+  bottom: -8px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(6, 4, 14, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.badgeActive .badgeCount {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
 }
 
 .actions {

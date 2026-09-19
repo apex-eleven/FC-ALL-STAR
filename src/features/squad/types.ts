@@ -37,6 +37,12 @@ export interface Squad {
   starters: Record<string, string | null>;
   /** Fixed length; see BENCH_SIZE. */
   bench: (string | null)[];
+  /**
+   * Equipped team crests by badge id, fixed length BADGE_SLOTS. Ids point at admin
+   * config (features/badges) and are resolved on read — a crest the admin has since
+   * deleted reads as an empty slot.
+   */
+  badges: (string | null)[];
 }
 
 /** Where a card currently sits, used when a drag swaps two cards. */

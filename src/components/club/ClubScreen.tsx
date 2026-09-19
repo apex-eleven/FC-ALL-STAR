@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, Home } from 'lucide-react';
 import { ASSETS } from '@/assets/assetMap';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
+import { equip } from '@/features/badges/badges';
+import { useBadges } from '@/features/badges/BadgeContext';
 import { displayNameOf } from '@/features/auth/constants';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { usePlayers } from '@/features/players/PlayerContext';
@@ -20,13 +22,13 @@ import {
   placeInSlot,
   placeOnBench,
   removeFromSquad,
-  squadRating,
   squadValue,
 } from '@/features/squad/squad';
 import type { FormationSlot, PlacementCheck } from '@/features/squad/types';
 import { useCardDrag, type DropTarget } from '@/hooks/useCardDrag';
 import { CARD_WIDTH } from '@/features/squad/constants';
 import IconButton from '@/components/ui/IconButton';
+import BadgePicker from './BadgePicker';
 import ClubPanel from './ClubPanel';
 import PitchSlot from './PitchSlot';
 import BenchStrip from './BenchStrip';
@@ -53,9 +55,12 @@ export default function ClubScreen() {
   const { navigate, back } = useNavigation();
 
   const { byId } = usePlayers();
+  const { config: badgeConfig, ratingOf, bonusOf, slotsOf } = useBadges();
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
+  // Which crest slot is open, or null.
+  const [badgeSlot, setBadgeSlot] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   // A drag that ends on the slot it started from still fires a click. Without this
   // the picker would open every time a card was put back where it came from.
@@ -163,8 +168,11 @@ export default function ClubScreen() {
 
   // The eleven actually on the pitch, not the best eleven owned: a card benched or
   // stuck on the bench doesn't count, and one played out of position is docked by
-  // the same penalty `effectiveRating` shows on its own card.
-  const rating = useMemo(() => squadRating(squad, owned), [squad, owned]);
+  // the same penalty `effectiveRating` shows on its own card. Active crests add
+  // their bonus on top — the same number the home tile shows.
+  const rating = useMemo(() => ratingOf(squad, owned), [ratingOf, squad, owned]);
+  const bonus = useMemo(() => bonusOf(squad, owned), [bonusOf, squad, owned]);
+  const badgeSlots = useMemo(() => slotsOf(squad, owned), [slotsOf, squad, owned]);
   const value = squadValue(squad, owned);
 
   /**
@@ -237,6 +245,9 @@ export default function ClubScreen() {
       <ClubPanel
         name="ทีมของฉัน"
         rating={rating}
+        bonus={bonus}
+        badgeSlots={badgeSlots}
+        badgesEnabled={badgeConfig.enabled}
         formationName={formation.name}
         value={value}
         collectionOpen={collectionOpen}
@@ -249,6 +260,7 @@ export default function ClubScreen() {
         }
         onToggleCollection={() => setCollectionOpen((open) => !open)}
         onOpenLeaderboard={() => setLeaderboardOpen(true)}
+        onBadgeClick={(index) => setBadgeSlot(index)}
       />
 
       {formation.slots.map((slot) => {
@@ -344,6 +356,20 @@ export default function ClubScreen() {
         )}
 
       {toast && <div className={styles.toast}>{toast}</div>}
+
+      {badgeSlot !== null && (
+        <BadgePicker
+          slot={badgeSlot}
+          squad={squad}
+          owned={owned}
+          onPick={(badgeId) => {
+            const slot = badgeSlot;
+            updateAccount((current) => ({ ...current, squad: equip(current.squad, slot, badgeId) }));
+            setBadgeSlot(null);
+          }}
+          onClose={() => setBadgeSlot(null)}
+        />
+      )}
 
       {leaderboardOpen && (
         <LeaderboardScreen selfUid={account.id} onClose={() => setLeaderboardOpen(false)} />

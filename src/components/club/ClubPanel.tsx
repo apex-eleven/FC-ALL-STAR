@@ -1,5 +1,6 @@
-import { ChevronDown, Plus, RefreshCw, Trophy, Users } from 'lucide-react';
+import { ChevronDown, Plus, RefreshCw, Shield, Trophy, Users } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
+import type { BadgeStatus } from '@/features/badges/types';
 import { formatCurrency } from '@/features/currencies/constants';
 import ArtImage from '@/components/ui/ArtImage';
 import OvrBadge from '@/components/ui/OvrBadge';
@@ -8,6 +9,12 @@ import styles from './ClubPanel.module.css';
 export interface ClubPanelProps {
   name: string;
   rating: number;
+  /** OVR the active crests add — drawn beside the shield when above zero. */
+  bonus: number;
+  /** The three crest slots. null = empty. */
+  badgeSlots: (BadgeStatus | null)[];
+  /** Off when the admin has switched crests off; the slots then stay inert. */
+  badgesEnabled: boolean;
   formationName: string;
   value: number;
   collectionOpen: boolean;
@@ -15,11 +22,15 @@ export interface ClubPanelProps {
   onAutoBuild(): void;
   onToggleCollection(): void;
   onOpenLeaderboard(): void;
+  onBadgeClick(index: number): void;
 }
 
 export default function ClubPanel({
   name,
   rating,
+  bonus,
+  badgeSlots,
+  badgesEnabled,
   formationName,
   value,
   collectionOpen,
@@ -27,6 +38,7 @@ export default function ClubPanel({
   onAutoBuild,
   onToggleCollection,
   onOpenLeaderboard,
+  onBadgeClick,
 }: ClubPanelProps) {
   return (
     <>
@@ -38,6 +50,11 @@ export default function ClubPanel({
 
         <div className={styles.ovrRow}>
           <OvrBadge rating={rating} size={132} labelSize={17} valueSize={48} />
+          {bonus > 0 && (
+            <span className={styles.bonus} title="โบนัสจากตราทีม">
+              +{bonus}
+            </span>
+          )}
         </div>
 
         <div className={styles.divider} />
@@ -55,17 +72,40 @@ export default function ClubPanel({
         </div>
 
         <div className={styles.badges}>
-          {[0, 1, 2].map((index) => (
-            <button
-              type="button"
-              key={index}
-              className={styles.badge}
-              title="ช่องตราทีม — ยังไม่เปิดใช้งาน"
-              aria-label={`ช่องตราทีมที่ ${index + 1}`}
-            >
-              <Plus size={22} strokeWidth={2.6} />
-            </button>
-          ))}
+          {badgeSlots.map((status, index) => {
+            const badge = status?.badge ?? null;
+            const label = badge
+              ? `${badge.name || 'ตราทีม'} · ${status!.have}/${status!.need}${status!.active ? ` · +${badge.bonus}` : ''}`
+              : badgesEnabled
+                ? `ช่องตราทีมที่ ${index + 1} — กดเพื่อเลือก`
+                : 'ช่องตราทีม — ปิดอยู่';
+            return (
+              <button
+                type="button"
+                key={index}
+                className={`${styles.badge} ${badge ? styles.badgeSet : ''} ${status?.active ? styles.badgeActive : ''}`}
+                title={label}
+                aria-label={label}
+                disabled={!badgesEnabled}
+                onClick={() => onBadgeClick(index)}
+              >
+                {badge ? (
+                  <>
+                    {badge.image ? (
+                      <img className={styles.badgeArt} src={badge.image} alt="" draggable={false} />
+                    ) : (
+                      <Shield className={styles.badgeGlyph} size={30} strokeWidth={2.2} />
+                    )}
+                    <span className={styles.badgeCount}>
+                      {status!.have}/{status!.need}
+                    </span>
+                  </>
+                ) : (
+                  <Plus size={22} strokeWidth={2.6} />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

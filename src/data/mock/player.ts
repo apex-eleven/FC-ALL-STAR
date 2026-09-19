@@ -21,5 +21,6 @@ export const referenceAccount: Account = {
     formation: '4-3-3-attack',
     starters: {},
     bench: [null, null, null, null, null, null, null],
+    badges: [null, null, null],
   },
 };

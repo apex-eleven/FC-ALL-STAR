@@ -26,7 +26,8 @@ import { useStarPass } from '@/features/starpass/StarPassContext';
 import { useItems } from '@/features/items/ItemsContext';
 import { adjust } from '@/features/items/inventory';
 import { heldShield } from '@/features/items/items';
-import { indexOwned, squadRating } from '@/features/squad/squad';
+import { indexOwned } from '@/features/squad/squad';
+import { useBadges } from '@/features/badges/BadgeContext';
 import { FORFEIT_SCORE, defaultManager, managerId } from './constants';
 import { resolveLadder, type LadderView } from './ladder';
 import { botLineup, entryLineup, homeLineup } from './lineup';
@@ -137,11 +138,12 @@ export function ManagerProvider({ children }: { children: ReactNode }) {
     refreshLadder();
   }, [refreshLadder]);
 
+  const { ratingOf } = useBadges();
   const rating = useMemo(() => {
     if (!account) return 0;
     const owned = indexOwned(syncOwned(account.club.players, byId));
-    return squadRating(account.squad, owned);
-  }, [account, byId]);
+    return ratingOf(account.squad, owned);
+  }, [account, byId, ratingOf]);
 
   const ladder = useMemo(
     () => (ladderRows ? resolveLadder(ladderRows, config, new Date(clock)) : null),
