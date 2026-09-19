@@ -1,0 +1,287 @@
+/* Fills whatever holds it: the inbox tab (1410 wide) or the home popup (1100). */
+.wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.progress strong {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--color-yellow);
+}
+
+.streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 154, 46, 0.18);
+  border: 1px solid rgba(255, 154, 46, 0.45);
+  color: #ffb45c;
+}
+
+.reset {
+  margin-left: auto;
+  font-size: 18px;
+  color: var(--color-dim);
+}
+
+.closed {
+  margin: 60px 0;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 26px;
+  color: var(--color-muted);
+}
+
+/* ---- tiles --------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 14px;
+  flex: none;
+}
+
+.gridMonth {
+  gap: 10px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 150px;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.gridMonth .tile {
+  min-height: 118px;
+  gap: 3px;
+  padding: 8px 6px;
+}
+
+.today {
+  border-color: var(--color-yellow);
+  background: linear-gradient(180deg, rgba(228, 240, 75, 0.26) 0%, rgba(228, 240, 75, 0.06) 100%);
+  box-shadow: 0 0 28px rgba(228, 240, 75, 0.28);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.claimed {
+  opacity: 0.55;
+}
+
+.big {
+  border-color: rgba(217, 164, 65, 0.7);
+  background: linear-gradient(180deg, rgba(217, 164, 65, 0.28) 0%, rgba(217, 164, 65, 0.06) 100%);
+}
+
+.big.today {
+  border-color: var(--color-yellow);
+}
+
+.day {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-muted);
+  text-shadow: var(--shadow-text);
+}
+
+.gridMonth .day {
+  font-size: 14px;
+}
+
+.icon {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+}
+
+.gridMonth .icon {
+  width: 42px;
+  height: 42px;
+}
+
+/* A portrait fills more of the tile than a coin. */
+.card {
+  width: 54px;
+  height: 64px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: var(--radius-xs);
+}
+
+.gridMonth .card {
+  width: 38px;
+  height: 46px;
+}
+
+.iconGlyph {
+  color: var(--color-dim);
+}
+
+.amount {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text);
+}
+
+.gridMonth .amount {
+  font-size: 16px;
+}
+
+.more {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(43, 224, 140, 0.16);
+  color: var(--color-green);
+}
+
+/* ---- foot ---------------------------------------------------------- */
+
+.foot {
+  display: flex;
+  justify-content: center;
+  flex: none;
+  padding-top: 10px;
+}
+
+.claim {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 66px;
+  padding: 0 46px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-cta);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: var(--shadow-cta);
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.claim:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.claim:disabled {
+  opacity: 0.4;
+  transform: none;
+  filter: none;
+  cursor: not-allowed;
+}
+
+.doneNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 66px;
+  padding: 0 34px;
+  border-radius: var(--radius-pill);
+  background: rgba(43, 224, 140, 0.16);
+  border: 1px solid rgba(43, 224, 140, 0.45);
+  font-family: var(--font-ui);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-green);
+}
+
+/* ---- toast --------------------------------------------------------- */
+
+.toast {
+  position: absolute;
+  bottom: 84px;
+  left: 50%;
+  z-index: var(--z-badge);
+  max-width: 95%;
+  padding: 14px 30px;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 40, 24, 0.95);
+  border: 2px solid var(--color-green);
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  animation: toastIn 200ms ease-out;
+}
+
+.toastBad {
+  background: rgba(48, 10, 14, 0.95);
+  border-color: var(--color-red);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

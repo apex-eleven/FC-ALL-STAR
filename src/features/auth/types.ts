@@ -12,6 +12,8 @@ import type { StarPassProgress } from '@/features/starpass/types';
 import type { Inventory } from '@/features/items/types';
 import type { GachaState } from '@/features/gacha/types';
 import type { RedeemProgress } from '@/features/redeem/types';
+import type { InboxProgress } from '@/features/notifications/types';
+import type { DailyLoginProgress } from '@/features/dailylogin/types';
 
 export type Role = 'player' | 'admin';
 
@@ -75,6 +77,10 @@ export interface Account extends Entity {
   gacha?: GachaState;
   /** Redeem codes this account has used, keyed by code id. Absent until the first one. */
   redeem?: RedeemProgress;
+  /** Mails opened, collected and deleted. Absent until the first mail is opened. */
+  inbox?: InboxProgress;
+  /** Daily login calendar: this run's claimed days and the streak. Absent until the first claim. */
+  login?: DailyLoginProgress;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

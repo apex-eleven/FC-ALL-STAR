@@ -31,6 +31,8 @@ import AdminStarPass from './AdminStarPass';
 import AdminItems from './AdminItems';
 import AdminGacha from './AdminGacha';
 import AdminRedeem from './AdminRedeem';
+import AdminInbox from './AdminInbox';
+import AdminDailyLogin from './AdminDailyLogin';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
 
@@ -60,6 +62,8 @@ type Tab =
   | 'items'
   | 'gacha'
   | 'redeem'
+  | 'inbox'
+  | 'dailylogin'
   | 'announcement'
   | 'walkout'
   | 'backup';
@@ -83,6 +87,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'items', label: 'ไอเท็ม' },
   { id: 'gacha', label: 'กาชาปอง' },
   { id: 'redeem', label: 'แลกโค้ด' },
+  { id: 'inbox', label: 'กล่องจดหมาย' },
+  { id: 'dailylogin', label: 'เข้าเกมรายวัน' },
   { id: 'announcement', label: 'ประกาศ' },
   { id: 'walkout', label: 'Walkout' },
   { id: 'backup', label: 'สำรองข้อมูล' },
@@ -265,6 +271,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'items' && <AdminItems />}
         {tab === 'gacha' && <AdminGacha />}
         {tab === 'redeem' && <AdminRedeem />}
+        {tab === 'inbox' && <AdminInbox />}
+        {tab === 'dailylogin' && <AdminDailyLogin />}
         {tab === 'announcement' && <AdminAnnouncement />}
         {tab === 'walkout' && <AdminWalkout />}
         {tab === 'backup' && <AdminBackup />}

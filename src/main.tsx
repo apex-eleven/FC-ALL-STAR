@@ -10,6 +10,8 @@ import { StarPassProvider } from '@/features/starpass/StarPassContext';
 import { ItemsProvider } from '@/features/items/ItemsContext';
 import { GachaProvider } from '@/features/gacha/GachaContext';
 import { RedeemProvider } from '@/features/redeem/RedeemContext';
+import { InboxProvider } from '@/features/notifications/InboxContext';
+import { DailyLoginProvider } from '@/features/dailylogin/DailyLoginContext';
 import { DraftProvider } from '@/features/draft/DraftContext';
 import { LeagueProvider } from '@/features/league/LeagueContext';
 import { AnnouncementProvider } from '@/features/announcement/AnnouncementContext';
@@ -41,7 +43,8 @@ const root = createRoot(container);
 // counts toward them; missions give Star Pass XP, so the pass is outermost. Items
 // sit between: the premium ticket needs the pass, manager mode needs the shield. The
 // gachapon sits with them: its prizes are paid through the same reward path, and
-// redeem codes sit beside it for exactly the same reason.
+// redeem codes, the inbox and the login calendar sit beside it for exactly the same
+// reason.
 function render() {
   root.render(
     <StrictMode>
@@ -53,30 +56,34 @@ function render() {
                 <StarPassProvider>
                   <GachaProvider>
                     <RedeemProvider>
-                      <ItemsProvider>
-                        <MissionProvider>
-                          <DraftProvider>
-                            <LeagueProvider>
-                              <WalkoutProvider>
-                                <RankUpProvider>
-                                  <TransferProvider>
-                                    <ShopProvider>
-                                      <ManagerProvider>
-                                        <NavigationProvider>
-                                          <AnnouncementProvider>
-                                            <CloudConfigSync />
-                                            <App />
-                                          </AnnouncementProvider>
-                                        </NavigationProvider>
-                                      </ManagerProvider>
-                                    </ShopProvider>
-                                  </TransferProvider>
-                                </RankUpProvider>
-                              </WalkoutProvider>
-                            </LeagueProvider>
-                          </DraftProvider>
-                        </MissionProvider>
-                      </ItemsProvider>
+                      <InboxProvider>
+                        <DailyLoginProvider>
+                          <ItemsProvider>
+                            <MissionProvider>
+                              <DraftProvider>
+                                <LeagueProvider>
+                                  <WalkoutProvider>
+                                    <RankUpProvider>
+                                      <TransferProvider>
+                                        <ShopProvider>
+                                          <ManagerProvider>
+                                            <NavigationProvider>
+                                              <AnnouncementProvider>
+                                                <CloudConfigSync />
+                                                <App />
+                                              </AnnouncementProvider>
+                                            </NavigationProvider>
+                                          </ManagerProvider>
+                                        </ShopProvider>
+                                      </TransferProvider>
+                                    </RankUpProvider>
+                                  </WalkoutProvider>
+                                </LeagueProvider>
+                              </DraftProvider>
+                            </MissionProvider>
+                          </ItemsProvider>
+                        </DailyLoginProvider>
+                      </InboxProvider>
                     </RedeemProvider>
                   </GachaProvider>
                 </StarPassProvider>

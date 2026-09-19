@@ -5,8 +5,26 @@
  * or admin config needs something to check it against, and a second hand-written
  * list would drift the first time a screen is added.
  */
-export const ROUTE_IDS = ['home', 'draft', 'club', 'league', 'rankup', 'transfer', 'shop', 'manager', 'missions', 'starpass', 'bag', 'gacha', 'redeem'] as const;
+export const ROUTE_IDS = ['home', 'draft', 'club', 'league', 'rankup', 'transfer', 'shop', 'manager', 'missions', 'starpass', 'bag', 'gacha', 'redeem', 'inbox'] as const;
 
 export type RouteId = (typeof ROUTE_IDS)[number];
 
 export const DEFAULT_ROUTE: RouteId = 'home';
+
+/** Player-facing names, for admin dropdowns that point at a screen. */
+export const ROUTE_LABEL: Record<RouteId, string> = {
+  home: 'หน้าหลัก',
+  draft: 'เปิดแพ็ค',
+  club: 'สโมสร',
+  league: 'ลีก',
+  rankup: 'ตีบวกการ์ด',
+  transfer: 'การเซ็นสัญญา',
+  shop: 'ร้านค้า',
+  manager: 'เมเนเจอร์โหมด',
+  missions: 'ภารกิจ',
+  starpass: 'Star Pass',
+  bag: 'กระเป๋า',
+  gacha: 'กาชาปอง',
+  redeem: 'แลกโค้ด',
+  inbox: 'กล่องจดหมาย',
+};

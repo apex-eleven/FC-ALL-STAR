@@ -12,7 +12,7 @@ import {
   TONE_LABEL,
 } from '@/features/announcement/constants';
 import type { AnnouncementAction, AnnouncementTone } from '@/features/announcement/types';
-import { ROUTE_IDS } from '@/features/navigation/routes';
+import { ROUTE_IDS, ROUTE_LABEL } from '@/features/navigation/routes';
 import { encodeUploadedImage, type UploadedImageError } from '@/lib/imageEncoding';
 import styles from './AdminAnnouncement.module.css';
 
@@ -26,22 +26,6 @@ const UPLOAD_ERROR: Record<UploadedImageError, string> = {
 const SAVE_ERROR: Record<'quota' | 'unavailable', string> = {
   quota: 'พื้นที่เก็บข้อมูลเต็ม',
   unavailable: 'เบราว์เซอร์บล็อกการบันทึก',
-};
-
-const ROUTE_LABEL: Record<string, string> = {
-  home: 'หน้าหลัก',
-  draft: 'เปิดแพ็ค',
-  club: 'สโมสร',
-  league: 'ลีก',
-  rankup: 'ตีบวกการ์ด',
-  transfer: 'การเซ็นสัญญา',
-  shop: 'ร้านค้า',
-  manager: 'เมเนเจอร์โหมด',
-  missions: 'ภารกิจ',
-  starpass: 'Star Pass',
-  bag: 'กระเป๋า',
-  gacha: 'กาชาปอง',
-  redeem: 'แลกโค้ด',
 };
 
 const TONES: readonly AnnouncementTone[] = ['info', 'event', 'warning'];

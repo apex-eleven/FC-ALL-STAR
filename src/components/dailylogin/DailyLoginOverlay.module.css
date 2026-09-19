@@ -1,0 +1,91 @@
+/* On the stage, not the viewport: unlike the announcement this is home-screen
+   chrome, and it sizes in design pixels with everything around it. */
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 2, 10, 0.7);
+  backdrop-filter: blur(4px);
+  border: none;
+  cursor: default;
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 1180px;
+  max-height: 860px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(170deg, rgba(22, 18, 38, 0.98) 0%, rgba(9, 6, 16, 0.99) 100%);
+  border: 2px solid rgba(228, 240, 75, 0.5);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65), 0 0 60px rgba(228, 240, 75, 0.18);
+  overflow: hidden;
+  animation: rise 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(20px) scale(0.97);
+    opacity: 0;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+  padding: 24px 30px 12px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(228, 240, 75, 0.2);
+  color: var(--color-yellow);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--color-text);
+  text-shadow: var(--shadow-text);
+}
+
+.close {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--color-muted);
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--color-text);
+}
+
+.body {
+  min-height: 0;
+  padding: 6px 30px 28px;
+}

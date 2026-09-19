@@ -16,6 +16,7 @@ import StarPassScreen from '@/components/starpass/StarPassScreen';
 import BagScreen from '@/components/items/BagScreen';
 import GachaScreen from '@/components/gacha/GachaScreen';
 import RedeemScreen from '@/components/redeem/RedeemScreen';
+import InboxScreen from '@/components/inbox/InboxScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
@@ -119,6 +120,12 @@ export default function App() {
     screen = (
       <Stage>
         <RedeemScreen />
+      </Stage>
+    );
+  } else if (route === 'inbox') {
+    screen = (
+      <Stage>
+        <InboxScreen />
       </Stage>
     );
   } else if (route === 'club') {

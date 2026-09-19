@@ -14,6 +14,7 @@ export interface CurrencyBarProps {
   kinds?: readonly CurrencyKind[];
   mailBadge?: BadgeInfo;
   onAdd?: (kind: CurrencyKind) => void;
+  onMail?: () => void;
   onSettings?: () => void;
 }
 
@@ -22,6 +23,7 @@ export default function CurrencyBar({
   kinds = HOME_CURRENCIES,
   mailBadge,
   onAdd,
+  onMail,
   onSettings,
 }: CurrencyBarProps) {
   return (
@@ -41,7 +43,7 @@ export default function CurrencyBar({
         </IconButton>
 
         <span className={styles.action}>
-          <IconButton label="Messages" size={46}>
+          <IconButton label="กล่องจดหมาย" size={46} onClick={onMail}>
             <Mail size={40} strokeWidth={2} />
           </IconButton>
           {mailBadge && <NotificationBadge badge={mailBadge} />}

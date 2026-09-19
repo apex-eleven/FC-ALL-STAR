@@ -23,6 +23,8 @@ import { normalizeProgress as normalizeStarPass } from '@/features/starpass/star
 import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
 import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigStore';
 import { normalizeProgress as normalizeRedeem } from '@/features/redeem/redeemConfigStore';
+import { normalizeProgress as normalizeInbox } from '@/features/notifications/inboxConfigStore';
+import { normalizeProgress as normalizeLogin } from '@/features/dailylogin/dailyloginConfigStore';
 import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/leveling';
 import {
   ADMIN_SIGNUP_CODE,
@@ -125,6 +127,8 @@ function toPublic(stored: StoredAccount): Account {
     ...(account.inventory === undefined ? {} : { inventory: normalizeInventory(account.inventory) }),
     ...(account.gacha === undefined ? {} : { gacha: normalizeGacha(account.gacha) }),
     ...(account.redeem === undefined ? {} : { redeem: normalizeRedeem(account.redeem) }),
+    ...(account.inbox === undefined ? {} : { inbox: normalizeInbox(account.inbox) }),
+    ...(account.login === undefined ? {} : { login: normalizeLogin(account.login) }),
     ...(normalizeDisplayName(account.displayName) === undefined
       ? {}
       : { displayName: normalizeDisplayName(account.displayName) }),

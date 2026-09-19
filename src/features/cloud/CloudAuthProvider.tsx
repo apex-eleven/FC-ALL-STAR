@@ -30,6 +30,8 @@ import { normalizeProgress as normalizeStarPass } from '@/features/starpass/star
 import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
 import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigStore';
 import { normalizeProgress as normalizeRedeem } from '@/features/redeem/redeemConfigStore';
+import { normalizeProgress as normalizeInbox } from '@/features/notifications/inboxConfigStore';
+import { normalizeProgress as normalizeLogin } from '@/features/dailylogin/dailyloginConfigStore';
 import { isItemAvatarId } from '@/features/avatars/extraAvatars';
 import {
   ADMIN_SIGNUP_CODE,
@@ -101,6 +103,8 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
     inventory: data.inventory === undefined ? undefined : normalizeInventory(data.inventory),
     gacha: data.gacha === undefined ? undefined : normalizeGacha(data.gacha),
     redeem: data.redeem === undefined ? undefined : normalizeRedeem(data.redeem),
+    inbox: data.inbox === undefined ? undefined : normalizeInbox(data.inbox),
+    login: data.login === undefined ? undefined : normalizeLogin(data.login),
     displayName: normalizeDisplayName(data.displayName),
   };
 }

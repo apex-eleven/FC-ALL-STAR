@@ -3,6 +3,7 @@ import { newsButtonLabel } from '@/data/mock/home';
 import { useAccount, useIsAdmin } from '@/features/auth/AuthContext';
 import { displayNameOf } from '@/features/auth/constants';
 import { useItems } from '@/features/items/ItemsContext';
+import { useInbox } from '@/features/notifications/InboxContext';
 import { resolveDisplayAvatar } from '@/features/avatars/unlocks';
 import { requiredXPForLevel } from '@/features/profile/leveling';
 import PlayerProfile from '@/components/profile/PlayerProfile';
@@ -11,6 +12,7 @@ import styles from './TopBar.module.css';
 
 export interface TopBarProps {
   onAvatarClick?: () => void;
+  onMailClick?: () => void;
   onSettingsClick?: () => void;
   /** Passed only for admin accounts; turns the ADMIN chip into a button. */
   onAdminClick?: () => void;
@@ -18,6 +20,7 @@ export interface TopBarProps {
 
 export default function TopBar({
   onAvatarClick,
+  onMailClick,
   onSettingsClick,
   onAdminClick,
 }: TopBarProps) {
@@ -27,6 +30,8 @@ export default function TopBar({
   // anyone can register must not be what unlocks the panel.
   const isAdmin = useIsAdmin();
   const { avatars } = useItems();
+  // Unread mail plus mail with attachments waiting — the only number the badge shows.
+  const { attention } = useInbox();
 
   // Falls back to the default if an admin has since raised the requirement above
   // this player's level. The stored choice is kept, so lowering it restores them.
@@ -62,6 +67,8 @@ export default function TopBar({
       <div className={styles.right}>
         <CurrencyBar
           balances={account.wallet}
+          mailBadge={attention > 0 ? { variant: 'count', count: attention } : undefined}
+          onMail={onMailClick}
           onSettings={onSettingsClick}
         />
       </div>
