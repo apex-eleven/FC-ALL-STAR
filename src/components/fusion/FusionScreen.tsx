@@ -176,18 +176,17 @@ export default function FusionScreen() {
     return (
       <div className={styles.screen}>
         <header className={styles.head}>
-          <div>
-            <h1 className={styles.title}>{config.title}</h1>
-            <p className={styles.subtitle}>
-              {decided ? 'เก็บใบที่เลือกเรียบร้อย' : `เลือกได้ใบเดียวจาก ${shown.length} ใบ`}
-            </p>
-          </div>
-          {kept ? (
-            <button type="button" className={styles.close} onClick={backToBench}>
-              <X size={22} strokeWidth={2.4} />
-            </button>
-          ) : null}
+          <h1 className={styles.title}>{config.title}</h1>
+          <p className={styles.subtitle}>
+            {decided ? 'เก็บใบที่เลือกเรียบร้อย' : `เลือกได้ใบเดียวจาก ${shown.length} ใบ`}
+          </p>
         </header>
+
+        {kept ? (
+          <button type="button" className={styles.close} onClick={backToBench}>
+            <X size={26} strokeWidth={2.4} />
+          </button>
+        ) : null}
 
         {error ? <p className={styles.error}>{ERROR_TEXT[error]}</p> : null}
 
@@ -251,14 +250,13 @@ export default function FusionScreen() {
   return (
     <div className={styles.screen}>
       <header className={styles.head}>
-        <div>
-          <h1 className={styles.title}>{config.title}</h1>
-          <p className={styles.subtitle}>{config.subtitle}</p>
-        </div>
-        <button type="button" className={styles.close} onClick={() => navigate('home')}>
-          <X size={22} strokeWidth={2.4} />
-        </button>
+        <h1 className={styles.title}>{config.title}</h1>
+        <p className={styles.subtitle}>{config.subtitle}</p>
       </header>
+
+      <button type="button" className={styles.close} onClick={() => navigate('home')}>
+        <X size={26} strokeWidth={2.4} />
+      </button>
 
       <div className={styles.status}>
         <span className={styles.counter}>
