@@ -231,45 +231,33 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 28px;
+  gap: 52px;
   height: 100%;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
 }
 
 /*
- * One plinth: rank pill straddling the top edge, card art, then the name.
+ * One entry: rank pill, card, name — no frame around them.
  *
- * The name gets its own row under the art rather than sharing the middle — art that
- * grows for first place was cropping the name off, which is the one line on here
- * that has to stay readable.
+ * The pill sits in normal flow above the card rather than floating over it, so it
+ * can never cover the art however large first place's card gets.
  */
 .step {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  width: 296px;
-  height: 158px;
-  padding: 24px 16px 12px;
-  border: 1px solid color-mix(in srgb, var(--rank-tone) 45%, transparent);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(20, 28, 50, 0.92), rgba(10, 15, 30, 0.92));
+  gap: 8px;
+  max-width: 320px;
 }
 
 .rank {
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 4px 14px;
   border: 1px solid var(--rank-tone);
   border-radius: 999px;
-  background: #0a1020;
+  background: rgba(10, 16, 32, 0.85);
   color: var(--rank-tone);
   font-size: 15px;
   font-weight: 800;
@@ -289,34 +277,17 @@
   --rank-tone: #e0a45c;
 }
 
-/*
- * First place: taller, wider, gold, corners cut. The clip is what makes it read as a
- * different object rather than the same plinth at a larger size.
- */
-.place1 {
-  width: 348px;
-  height: 192px;
-  border: 2px solid #f0c85a;
-  background: linear-gradient(180deg, rgba(74, 56, 16, 0.95), rgba(26, 19, 6, 0.95));
-  box-shadow: 0 0 0 1px rgba(240, 200, 90, 0.4), 0 16px 40px rgba(240, 200, 90, 0.2);
-  clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px),
-    calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
-}
-
-/* Clipped corners cut an overhanging pill off, so it sits inside on first place. */
-.place1 .rank {
-  top: 10px;
-}
-
 .stepArt {
-  height: 62px;
+  height: 76px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
 }
 
+/* First place is bigger and lit from behind, which is all it needs without a frame. */
 .place1 .stepArt {
-  height: 82px;
+  height: 108px;
+  filter: drop-shadow(0 0 18px rgba(240, 200, 90, 0.45));
 }
 
 .stepName {
@@ -330,16 +301,8 @@
 }
 
 .place1 .stepName {
-  font-size: 19px;
-}
-
-.stepRarity {
-  padding: 2px 13px;
-  border-radius: 999px;
-  background: var(--tone);
-  color: #0b0f16;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 20px;
+  color: #f4cf6a;
 }
 
 /* ── the bench ───────────────────────────────────────── */
