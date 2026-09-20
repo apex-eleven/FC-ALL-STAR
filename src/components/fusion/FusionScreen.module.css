@@ -265,38 +265,15 @@
     calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
 }
 
-.place {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #e5343f;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.stepFirst .place {
-  top: 8px;
-  width: 36px;
-  height: 36px;
-  font-size: 19px;
-}
-
 .stepArt {
-  width: 62px;
-  height: 62px;
+  width: 70px;
+  height: 70px;
   object-fit: contain;
 }
 
 .stepFirst .stepArt {
-  width: 84px;
-  height: 84px;
+  width: 96px;
+  height: 96px;
 }
 
 .stepName {
@@ -637,7 +614,8 @@
 
 .slot {
   position: relative;
-  width: 232px;
+  /* Set per hand by the screen: the cards shrink so any `draws` count still fits. */
+  width: var(--card-w, 232px);
   height: 330px;
   padding: 0;
   border: none;
@@ -678,6 +656,7 @@
 .face {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -706,6 +685,15 @@
 .slotMissed .faceFront {
   opacity: 0.42;
   box-shadow: none;
+}
+
+/* Uploaded back art fills the whole face — it is the card, not a picture on one. */
+.backArt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .mark {

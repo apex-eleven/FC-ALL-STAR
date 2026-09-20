@@ -210,3 +210,12 @@
   font-weight: 700;
   color: var(--color-dim);
 }
+
+/* Portrait, so the preview reads as the back of a card rather than a tile. */
+.backPreview {
+  width: 46px;
+  height: 66px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
+}

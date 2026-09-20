@@ -106,6 +106,7 @@ export function normalizeConfig(value: unknown): FusionConfig {
     title: text(source.title, NAME_MAX, fallback.title) || fallback.title,
     subtitle: text(source.subtitle, NAME_MAX, fallback.subtitle),
     icon: image(source.icon),
+    cardBack: image(source.cardBack),
     materials: int(source.materials, MIN_MATERIALS, MAX_MATERIALS, fallback.materials),
     draws: int(source.draws, MIN_DRAWS, MAX_DRAWS, fallback.draws),
     materialIds: ids(source.materialIds),

@@ -60,6 +60,15 @@ export interface FusionConfig {
    * can be swapped from the panel without touching the deploy.
    */
   icon: string;
+  /**
+   * Artwork on the back of a dealt card, as an uploaded data URL. '' draws the
+   * built-in question mark.
+   *
+   * Config rather than a file in public/, like the rail icon: the back of the card
+   * is the thing a player stares at while deciding, so it is the part most likely to
+   * be reskinned for an event — and that should be an upload, not a deploy.
+   */
+  cardBack: string;
   /** How many owned cards one fusion eats. */
   materials: number;
   /** How many prizes are dealt face down for the player to choose from. */

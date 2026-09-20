@@ -253,7 +253,19 @@ export default function FusionScreen() {
 
         {error ? <p className={styles.error}>{ERROR_TEXT[error]}</p> : null}
 
-        <div className={styles.hand}>
+        {/*
+          The hand has to fit the stage whatever `draws` is set to, so the card width
+          is worked out from the count rather than fixed — eight cards at full size
+          run off both edges of the stage.
+        */}
+        <div
+          className={styles.hand}
+          style={
+            {
+              '--card-w': `${Math.min(232, Math.floor((1936 - 26 * (shown.length - 1)) / shown.length))}px`,
+            } as React.CSSProperties
+          }
+        >
           {shown.map((pick, index) => {
             const mine = turned === index;
             const detail = view(pick.reward);
@@ -277,7 +289,11 @@ export default function FusionScreen() {
               >
                 <span className={styles.inner}>
                   <span className={`${styles.face} ${styles.faceBack}`}>
-                    <span className={styles.mark}>?</span>
+                    {config.cardBack ? (
+                      <img className={styles.backArt} src={config.cardBack} alt="" />
+                    ) : (
+                      <span className={styles.mark}>?</span>
+                    )}
                   </span>
                   <span className={`${styles.face} ${styles.faceFront}`}>
                     <img className={styles.slotArt} src={detail.icon} alt="" />
@@ -372,7 +388,6 @@ export default function FusionScreen() {
                   className={`${styles.step} ${place === 1 ? styles.stepFirst : ''}`}
                   style={{ '--tone': RARITY_COLOR[prize.rarity] } as React.CSSProperties}
                 >
-                  <span className={styles.place}>{place}</span>
                   <img className={styles.stepArt} src={detail.icon} alt="" />
                   <span className={styles.stepName}>{prize.name.trim() || detail.label}</span>
                   <span className={styles.stepRarity}>{RARITY_LABEL[prize.rarity]}</span>

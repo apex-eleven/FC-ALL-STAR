@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
+  CARD_BACK_IMAGE,
   ICON_IMAGE,
   MAX_DRAWS,
   MAX_MATERIALS,
@@ -110,6 +111,20 @@ export default function AdminFusion() {
       ? current.filter((id) => id !== cardId)
       : [...current, cardId];
     patch({ [field]: next } as Partial<FusionConfig>);
+  }
+
+  async function uploadCardBack(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    const encoded = await encodeUploadedImage(file, CARD_BACK_IMAGE);
+    setBusy(false);
+    if (!encoded.ok || !encoded.dataUrl) {
+      setStatus({ tone: 'bad', text: UPLOAD_ERROR[encoded.error ?? 'encode-failed'] });
+      return;
+    }
+    patch({ cardBack: encoded.dataUrl }, `เปลี่ยนรูปหลังการ์ดแล้ว (${Math.round(encoded.bytes / 1000)} KB)`);
   }
 
   async function uploadIcon(event: ChangeEvent<HTMLInputElement>) {
@@ -265,6 +280,33 @@ export default function AdminFusion() {
               )}
             </div>
             <p className={styles.hint}>รูปวงกลมโปร่งใส 256×256 px ให้ผลดีที่สุด</p>
+          </div>
+
+          <div className={styles.field}>
+            <span className={styles.label}>รูปหลังการ์ด</span>
+            <div className={styles.iconRow}>
+              {config.cardBack ? (
+                <img className={styles.backPreview} src={config.cardBack} alt="" />
+              ) : (
+                <span className={styles.iconEmpty}>ใช้เครื่องหมายคำถาม</span>
+              )}
+              <label className={styles.upload}>
+                {busy ? 'กำลังแปลงรูป…' : 'อัปโหลดรูป'}
+                <input type="file" accept="image/*" hidden disabled={busy} onChange={uploadCardBack} />
+              </label>
+              {config.cardBack && (
+                <button
+                  type="button"
+                  className={styles.clear}
+                  onClick={() => patch({ cardBack: '' }, 'กลับไปใช้เครื่องหมายคำถาม')}
+                >
+                  เอารูปออก
+                </button>
+              )}
+            </div>
+            <p className={styles.hint}>
+              นี่คือรูปที่ผู้เล่นเห็นตอนการ์ดยังคว่ำอยู่ · แนวตั้งสัดส่วนราว 232×330 ให้ผลดีที่สุด
+            </p>
           </div>
 
           <button

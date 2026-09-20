@@ -23,6 +23,9 @@ export const FUSION_EVENT_ID = 'fusion';
 /** Rail icon shares the 1 MiB settings document, so it is kept small. */
 export const ICON_IMAGE = { maxWidth: 320, maxHeight: 320, maxBytes: 60_000 };
 
+/** Card back art. Drawn at 232x330 on the stage, so this is roughly 2x for sharpness. */
+export const CARD_BACK_IMAGE = { maxWidth: 480, maxHeight: 680, maxBytes: 120_000 };
+
 export const RARITY_LABEL: Record<FusionRarity, string> = {
   common: 'ทั่วไป',
   rare: 'หายาก',
@@ -70,6 +73,7 @@ export function defaultFusion(): FusionConfig {
     title: 'ผสมการ์ด',
     subtitle: 'ลุ้นการ์ด +0 ถึง +8',
     icon: '',
+    cardBack: '',
     materials: 3,
     draws: 5,
     materialIds: [],
