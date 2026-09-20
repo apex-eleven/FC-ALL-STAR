@@ -4,6 +4,7 @@ import {
   ArrowUpDown,
   Layers,
   Lock,
+  Medal,
   LockOpen,
   ShieldCheck,
   Sparkles,
@@ -385,9 +386,13 @@ export default function FusionScreen() {
               return (
                 <div
                   key={prize.id}
-                  className={`${styles.step} ${place === 1 ? styles.stepFirst : ''}`}
+                  className={`${styles.step} ${styles[`place${place}`]}`}
                   style={{ '--tone': RARITY_COLOR[prize.rarity] } as React.CSSProperties}
                 >
+                  <span className={styles.rank}>
+                    <Medal size={16} strokeWidth={2.4} />
+                    อันดับ {place}
+                  </span>
                   <img className={styles.stepArt} src={detail.icon} alt="" />
                   <span className={styles.stepName}>{prize.name.trim() || detail.label}</span>
                   <span className={styles.stepRarity}>{RARITY_LABEL[prize.rarity]}</span>
