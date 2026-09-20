@@ -1,0 +1,777 @@
+/*
+ * Laid out on the 2048x942 design stage, like every other screen.
+ *
+ * The stage is a fixed-size box that `Stage` scales to fit the window and clips with
+ * `overflow: hidden`. A screen inside it therefore has to be `position: absolute;
+ * inset: 0` with every size in stage pixels — `vw` and `%` here would measure the
+ * browser window instead of the stage.
+ *
+ * The backdrop is a scrim rather than a solid fill, so the stage's own key art shows
+ * through behind the panels the way the reference does. Anything that can outgrow
+ * the stage gets its own fixed-height scroll box; the page itself never grows.
+ *
+ * Layout: back 40,36 · crest+title 120,32 · close 1944,36 · status 56..1560 y120 h84 ·
+ * fuse 1588..1992 y120 h84 · showcase 56..1560 y228 h210 · bench 56..1560 y452..900 ·
+ * side rail 1588..1992 y228..900.
+ */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 1100px 520px at 50% -6%, rgba(56, 132, 255, 0.28) 0%, transparent 68%),
+    radial-gradient(ellipse 900px 460px at 8% 96%, rgba(126, 58, 242, 0.22) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(6, 10, 26, 0.86) 0%, rgba(4, 7, 18, 0.9) 46%, rgba(3, 5, 12, 0.94) 100%);
+  color: #e8edf5;
+  user-select: none;
+}
+
+/* ── header ──────────────────────────────────────────── */
+
+.back,
+.close {
+  position: absolute;
+  top: 34px;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgba(120, 170, 255, 0.34);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(20, 34, 62, 0.92), rgba(9, 15, 32, 0.92));
+  color: #dbe7ff;
+  cursor: pointer;
+}
+
+.back {
+  left: 36px;
+}
+
+.close {
+  right: 36px;
+  border-color: rgba(160, 180, 220, 0.3);
+}
+
+.back:hover,
+.close:hover {
+  border-color: rgba(215, 255, 62, 0.6);
+  color: #d7ff3e;
+}
+
+.head {
+  position: absolute;
+  left: 124px;
+  top: 30px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* The little shield beside the title, as the reference draws it. */
+.crest {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border: 1px solid rgba(240, 200, 90, 0.55);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(92, 70, 18, 0.95), rgba(42, 31, 8, 0.95));
+  color: #f4cf6a;
+}
+
+.title {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 19px;
+  color: #9db0cc;
+}
+
+/* ── status bar and the fuse button ──────────────────── */
+
+.status {
+  position: absolute;
+  left: 56px;
+  top: 120px;
+  width: 1504px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 22px;
+  border: 1px solid rgba(120, 170, 255, 0.24);
+  border-radius: 20px;
+  background: linear-gradient(90deg, rgba(16, 26, 50, 0.9), rgba(10, 16, 34, 0.78));
+}
+
+.statusIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(215, 255, 62, 0.14);
+  color: #d7ff3e;
+}
+
+.counter {
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.counterNow {
+  color: #d7ff3e;
+  font-size: 27px;
+}
+
+.fuse {
+  position: absolute;
+  right: 56px;
+  top: 120px;
+  width: 404px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid rgba(240, 200, 90, 0.5);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(38, 52, 92, 0.95), rgba(14, 22, 44, 0.95));
+  color: #f2f6ff;
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fuse:enabled:hover {
+  border-color: #d7ff3e;
+  color: #d7ff3e;
+}
+
+.fuse:disabled {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(232, 237, 245, 0.42);
+  cursor: not-allowed;
+}
+
+.error {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 216px;
+  z-index: 3;
+  margin: 0;
+  padding: 10px 18px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 12px;
+  background: rgba(60, 12, 14, 0.94);
+  color: #fca5a5;
+  font-size: 17px;
+}
+
+/* ── showcase: the three biggest prizes, 2 – 1 – 3 ───── */
+
+.showcase {
+  position: absolute;
+  left: 56px;
+  top: 228px;
+  width: 1504px;
+  height: 210px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 0 26px;
+  border: 1px solid rgba(240, 200, 90, 0.28);
+  border-radius: 22px;
+  background: linear-gradient(90deg, rgba(30, 24, 48, 0.92), rgba(12, 16, 34, 0.86));
+}
+
+.showcaseHead {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 268px;
+}
+
+.showcaseIcon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(240, 200, 90, 0.55);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(92, 70, 18, 0.95), rgba(42, 31, 8, 0.95));
+  color: #f4cf6a;
+}
+
+.showcaseTitle {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  color: #f4cf6a;
+}
+
+.showcaseNote {
+  display: block;
+  margin-top: 2px;
+  font-size: 16px;
+  color: #9db0cc;
+}
+
+/* Bottom-aligned, so first place is taller rather than only wider. */
+.podium {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  height: 100%;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 300px;
+  height: 148px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(24, 33, 58, 0.92), rgba(11, 16, 32, 0.92));
+}
+
+/*
+ * First place: taller, wider, gold, and with the corners cut like the reference's
+ * centre plinth. The clip is what makes it read as a different object rather than
+ * the same card at a larger size.
+ */
+.stepFirst {
+  width: 352px;
+  height: 178px;
+  border: 2px solid #f0c85a;
+  background: linear-gradient(180deg, rgba(74, 56, 16, 0.95), rgba(28, 20, 6, 0.95));
+  box-shadow: 0 0 0 1px rgba(240, 200, 90, 0.45), 0 16px 40px rgba(240, 200, 90, 0.22);
+  clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px),
+    calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
+}
+
+.stepArt {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.stepFirst .stepArt {
+  width: 96px;
+  height: 96px;
+}
+
+.stepName {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.stepFirst .stepName {
+  font-size: 20px;
+}
+
+.stepRarity {
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: var(--tone);
+  color: #0b0f16;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* ── the bench ───────────────────────────────────────── */
+
+.body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 228px;
+  bottom: 42px;
+}
+
+.bodyBelow .bench {
+  top: 224px;
+}
+
+.bench {
+  position: absolute;
+  left: 56px;
+  top: 0;
+  width: 1504px;
+  bottom: 0;
+  display: flex;
+  border: 1px solid rgba(120, 170, 255, 0.22);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(12, 18, 38, 0.88), rgba(7, 11, 24, 0.88));
+  overflow: hidden;
+}
+
+/* Left rail of filters, matching the reference's vertical tab strip. */
+.tabs {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 138px;
+  padding: 16px 10px;
+  border-right: 1px solid rgba(120, 170, 255, 0.16);
+  background: rgba(6, 10, 22, 0.5);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 6px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: none;
+  color: #8fa3c0;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: #dbe7ff;
+}
+
+.tabOn {
+  border-color: rgba(240, 200, 90, 0.5);
+  background: linear-gradient(180deg, rgba(70, 54, 16, 0.85), rgba(30, 23, 8, 0.85));
+  color: #f4cf6a;
+}
+
+.benchMain {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 14px 16px 16px;
+}
+
+.benchHead {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.benchIcon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(120, 170, 255, 0.16);
+  color: #9cc4ff;
+}
+
+.benchTitle {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(120, 170, 255, 0.26);
+  border-radius: 999px;
+  color: #9db0cc;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.sortSelect {
+  border: none;
+  background: none;
+  color: #e8edf5;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sortSelect option {
+  background: #0b1224;
+  color: #e8edf5;
+}
+
+.grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 112px);
+  grid-auto-rows: 150px;
+  gap: 12px;
+  justify-content: space-between;
+  align-content: start;
+  min-height: 0;
+  padding-right: 8px;
+  overflow-y: auto;
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 150px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+}
+
+.cellPicked {
+  border-color: #d7ff3e;
+  background: rgba(215, 255, 62, 0.12);
+}
+
+/* Blocked cards stay readable so the reason badge can still be read. */
+.cellBlocked {
+  opacity: 0.42;
+}
+
+.cardButton {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.cardButton:disabled {
+  cursor: not-allowed;
+}
+
+.badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(8, 12, 18, 0.9);
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.lock {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(8, 12, 18, 0.88);
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.lockOn {
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: 40px auto;
+  color: #93a4bd;
+  font-size: 18px;
+}
+
+/* ── side rail: history and the winners feed ─────────── */
+
+.side {
+  position: absolute;
+  right: 56px;
+  top: 0;
+  width: 404px;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 50%;
+  min-height: 0;
+  padding: 16px 20px;
+  border: 1px solid rgba(120, 170, 255, 0.22);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(12, 18, 38, 0.9), rgba(7, 11, 24, 0.9));
+}
+
+.panelTitle {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #cfe0ff;
+}
+
+.panelEmpty,
+.panelFoot {
+  margin: 0;
+  font-size: 16px;
+  color: #93a4bd;
+}
+
+.panelFoot {
+  margin-top: 12px;
+  color: #d7ff3e;
+  font-weight: 700;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.rowWho {
+  flex: 0 0 auto;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+  font-weight: 700;
+  color: #dbe7ff;
+}
+
+/* The prize name is the part worth reading, so it takes the room that is left. */
+.rowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cbd5e1;
+}
+
+.rowTime {
+  flex: 0 0 auto;
+  color: #6b7a91;
+  font-size: 15px;
+}
+
+/* ── the dealt hand ──────────────────────────────────── */
+
+.hand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 250px;
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+}
+
+.slot {
+  position: relative;
+  width: 232px;
+  height: 330px;
+  padding: 0;
+  border: none;
+  background: none;
+  perspective: 1200px;
+  cursor: pointer;
+}
+
+.slot:disabled {
+  cursor: default;
+}
+
+/*
+ * The turn is on .inner, not .slot — .slot keeps its own hover lift, and stacking a
+ * rotateY on the same element would fight it.
+ *
+ * `--delay` is set per card by the screen: the chosen one turns at once and the rest
+ * follow in order, so the eye is told which card is the answer before the others move.
+ */
+.inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 520ms cubic-bezier(0.2, 0.8, 0.25, 1);
+  transition-delay: var(--delay, 0ms);
+}
+
+.slotFlipped .inner {
+  transform: rotateY(180deg);
+}
+
+.slot:hover:not(:disabled) .inner {
+  transform: translateY(-10px);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 22px 16px;
+  border-radius: 22px;
+  /* Chrome still needs the prefix for the back face to stay hidden mid-turn. */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.faceBack {
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, rgba(20, 28, 42, 0.95), rgba(10, 14, 22, 0.95));
+}
+
+.faceFront {
+  border: 2px solid var(--tone, rgba(255, 255, 255, 0.18));
+  background: linear-gradient(180deg, rgba(24, 33, 48, 0.97), rgba(12, 17, 26, 0.97));
+  box-shadow: 0 0 0 1px var(--tone), 0 22px 46px rgba(0, 0, 0, 0.5);
+  transform: rotateY(180deg);
+}
+
+/* The ones that were not taken sit back so the kept card reads as the result. */
+.slotMissed .faceFront {
+  opacity: 0.42;
+  box-shadow: none;
+}
+
+.mark {
+  font-size: 84px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.slotArt {
+  width: 116px;
+  height: 116px;
+  object-fit: contain;
+}
+
+.slotName {
+  font-size: 19px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.slotCount {
+  font-size: 17px;
+  color: #93a4bd;
+}
+
+.slotRarity {
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: var(--tone);
+  color: #0b0f16;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.mineTag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #d7ff3e;
+  color: #10160f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 640px;
+  margin: 0;
+  text-align: center;
+  color: #93a4bd;
+  font-size: 19px;
+}
+
+.result {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 630px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.resultLine {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.again {
+  padding: 14px 44px;
+  border: none;
+  border-radius: 999px;
+  background: #d7ff3e;
+  color: #10160f;
+  font-size: 19px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Motion off: no turn, no delay — the face just swaps. */
+@media (prefers-reduced-motion: reduce) {
+  .inner {
+    transition: none;
+    transition-delay: 0ms;
+  }
+}
