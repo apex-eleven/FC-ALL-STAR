@@ -5,7 +5,7 @@ import type { OwnedPlayer } from '@/features/club/types';
 import { RARITY_COLOR, RARITY_LABEL } from '@/features/fusion/constants';
 import { useFusion } from '@/features/fusion/FusionContext';
 import { livePrizes, materialBlock, type MaterialBlock } from '@/features/fusion/fusion';
-import type { FusionError, FusionPick } from '@/features/fusion/types';
+import { FUSION_RARITIES, type FusionError, type FusionPick } from '@/features/fusion/types';
 import { animates } from '@/features/motion/motion';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { ratingWithPlus } from '@/features/rankup/plus';
@@ -116,6 +116,23 @@ export default function FusionScreen() {
   }, [account, config]);
 
   const poolEmpty = livePrizes(config).length === 0;
+
+  /**
+   * รางวัลใหญ่สุดสามอันดับ เรียงไว้บนแท่นเป็น 2 – 1 – 3
+   *
+   * จัดอันดับจากความหายากก่อน เท่ากันแล้วค่อยดูว่าใบไหนออกยากกว่า — ไม่ได้ใช้มูลค่า
+   * เพราะรางวัลมีทั้งเงิน ไอเท็ม และการ์ด ซึ่งเทียบมูลค่ากันตรง ๆ ไม่ได้
+   */
+  const showcase = useMemo(() => {
+    const rank = (rarity: (typeof FUSION_RARITIES)[number]) => FUSION_RARITIES.indexOf(rarity);
+    const top = [...livePrizes(config)]
+      .sort((a, b) => rank(b.rarity) - rank(a.rarity) || a.chance - b.chance)
+      .slice(0, 3);
+    // ที่ 2 ซ้าย ที่ 1 กลาง ที่ 3 ขวา — แท่นรับรางวัลอ่านจากกลางออกข้าง
+    return [1, 0, 2].flatMap((index) =>
+      top[index] ? [{ prize: top[index]!, place: index + 1 }] : [],
+    );
+  }, [config]);
 
   const toggle = (card: OwnedPlayer, block: MaterialBlock) => {
     if (block !== null) return;
@@ -275,7 +292,30 @@ export default function FusionScreen() {
       {poolEmpty ? <p className={styles.error}>{ERROR_TEXT.empty}</p> : null}
       {error ? <p className={styles.error}>{ERROR_TEXT[error]}</p> : null}
 
-      <div className={styles.body}>
+      {showcase.length > 0 ? (
+        <div className={styles.showcase}>
+          <span className={styles.showcaseTitle}>รางวัลใหญ่ที่สุด</span>
+          <div className={styles.podium}>
+            {showcase.map(({ prize, place }) => {
+              const detail = view(prize.reward);
+              return (
+                <div
+                  key={prize.id}
+                  className={`${styles.step} ${place === 1 ? styles.stepFirst : ''}`}
+                  style={{ '--tone': RARITY_COLOR[prize.rarity] } as React.CSSProperties}
+                >
+                  <span className={styles.place}>{place}</span>
+                  <img className={styles.stepArt} src={detail.icon} alt="" />
+                  <span className={styles.stepName}>{prize.name.trim() || detail.label}</span>
+                  <span className={styles.stepRarity}>{RARITY_LABEL[prize.rarity]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <div className={`${styles.body} ${showcase.length > 0 ? styles.bodyBelow : ''}`}>
         <div className={styles.grid}>
           {bench.map(({ card, block }) => {
             const picked = chosen.includes(card.id);
