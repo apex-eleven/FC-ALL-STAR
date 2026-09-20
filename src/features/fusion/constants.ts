@@ -52,8 +52,9 @@ function prize(
   chance: number,
   rarity: FusionRarity,
   reward: FusionPrize['reward'],
+  announce = false,
 ): FusionPrize {
-  return { id, enabled: true, name: '', reward, chance, rarity };
+  return { id, enabled: true, name: '', reward, chance, rarity, announce };
 }
 
 /**
@@ -79,8 +80,8 @@ export function defaultFusion(): FusionConfig {
       prize('fu-ticket', 18, 'rare', { kind: 'ticket', amount: 2 }),
       prize('fu-box', 12, 'rare', { kind: 'item', itemId: 'it-box-fcpoint', amount: 1 }),
       prize('fu-pack', 7, 'epic', { kind: 'item', itemId: 'it-pack', amount: 1 }),
-      prize('fu-plus7', 2, 'legend', { kind: 'item', itemId: 'it-plus-7', amount: 1 }),
-      prize('fu-plus8', 1, 'mythic', { kind: 'item', itemId: 'it-plus-8', amount: 1 }),
+      prize('fu-plus7', 2, 'legend', { kind: 'item', itemId: 'it-plus-7', amount: 1 }, true),
+      prize('fu-plus8', 1, 'mythic', { kind: 'item', itemId: 'it-plus-8', amount: 1 }, true),
     ],
   };
 }

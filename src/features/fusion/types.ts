@@ -35,6 +35,8 @@ export interface FusionPrize {
   /** Relative chance, as the admin types it (a percentage when the list sums to 100). */
   chance: number;
   rarity: FusionRarity;
+  /** Shout this one to the whole game's winners feed when a player keeps it. */
+  announce: boolean;
 }
 
 export interface FusionConfig {
@@ -77,6 +79,8 @@ export interface FusionPick {
   rarity: FusionRarity;
   /** The reward exactly as it was rolled, paid out untouched when this one is chosen. */
   reward: ShopReward;
+  /** Copied from the prize when dealt, so the feed does not re-read a changed config. */
+  announce: boolean;
 }
 
 /**

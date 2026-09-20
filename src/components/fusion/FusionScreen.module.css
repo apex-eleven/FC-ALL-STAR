@@ -178,47 +178,87 @@
 
 .slot {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   min-height: 210px;
-  padding: 16px 12px;
-  border: 2px solid var(--tone, rgba(255, 255, 255, 0.18));
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(20, 28, 42, 0.95), rgba(10, 14, 22, 0.95));
-  color: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  perspective: 1100px;
   cursor: pointer;
-  transition: transform 160ms ease, opacity 160ms ease;
-}
-
-.slot:hover:not(:disabled) {
-  transform: translateY(-6px);
-}
-
-.slotOpen {
-  box-shadow: 0 0 0 2px var(--tone), 0 18px 40px rgba(0, 0, 0, 0.5);
-}
-
-/* The four that were not chosen dim rather than vanish, so the choice stays readable. */
-.slotFaded {
-  opacity: 0.3;
 }
 
 .slot:disabled {
   cursor: default;
 }
 
-.slotBack {
+/*
+ * The flip is on .inner, not .slot — .slot keeps its own hover lift, and stacking
+ * a rotateY on the same element would fight it.
+ *
+ * `--delay` is set per card by the screen: the chosen one turns at once, the rest
+ * follow in order, so the eye is told which card is the answer before the others
+ * start moving.
+ */
+.inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 210px;
+  transform-style: preserve-3d;
+  transition: transform 520ms cubic-bezier(0.2, 0.8, 0.25, 1);
+  transition-delay: var(--delay, 0ms);
+}
+
+.slotFlipped .inner {
+  transform: rotateY(180deg);
+}
+
+.slot:hover:not(:disabled) .inner {
+  transform: translateY(-6px);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border-radius: 18px;
+  /* Chrome still needs the prefix for the back face to stay hidden mid-turn. */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.faceBack {
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, rgba(20, 28, 42, 0.95), rgba(10, 14, 22, 0.95));
+}
+
+.faceFront {
+  border: 2px solid var(--tone, rgba(255, 255, 255, 0.18));
+  background: linear-gradient(180deg, rgba(24, 33, 48, 0.97), rgba(12, 17, 26, 0.97));
+  box-shadow: 0 0 0 1px var(--tone), 0 18px 40px rgba(0, 0, 0, 0.45);
+  transform: rotateY(180deg);
+}
+
+/* The four that were not taken sit back so the kept card reads as the result. */
+.slotMissed .faceFront {
+  opacity: 0.42;
+  box-shadow: none;
+}
+
+.mark {
   font-size: 56px;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.22);
 }
 
 .slotArt {
-  width: 84px;
-  height: 84px;
+  width: 78px;
+  height: 78px;
   object-fit: contain;
 }
 
@@ -240,6 +280,26 @@
   color: #0b0f16;
   font-size: 11px;
   font-weight: 800;
+}
+
+.mineTag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #d7ff3e;
+  color: #10160f;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Motion off: no turn, no delay — the face just swaps. */
+@media (prefers-reduced-motion: reduce) {
+  .inner {
+    transition: none;
+    transition-delay: 0ms;
+  }
 }
 
 .hint {
@@ -271,4 +331,98 @@
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
+}
+
+/* ── bench layout: cards on the left, the two lists on the right ── */
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel {
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(14, 20, 30, 0.72);
+}
+
+.panelTitle {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.panelEmpty,
+.panelFoot {
+  margin: 0;
+  font-size: 13px;
+  color: #93a4bd;
+}
+
+.panelFoot {
+  margin-top: 10px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.rowWho {
+  flex: 0 0 auto;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+/* The prize name is the part worth reading, so it takes the room that is left. */
+.rowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cbd5e1;
+}
+
+.rowTime {
+  flex: 0 0 auto;
+  color: #6b7a91;
+  font-size: 12px;
 }

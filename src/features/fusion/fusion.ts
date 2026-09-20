@@ -197,6 +197,7 @@ export function deal(account: Account, input: DealInput): DealOutcome {
       name: prizeName(prize, label(prize)),
       rarity: prize.rarity,
       reward: prize.reward,
+      announce: prize.announce,
     });
   }
 

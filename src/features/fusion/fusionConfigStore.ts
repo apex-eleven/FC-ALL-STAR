@@ -96,6 +96,7 @@ export function normalizeConfig(value: unknown): FusionConfig {
       reward: line,
       chance: int(entry.chance, 0, MAX_CHANCE, 0),
       rarity: rarity(entry.rarity),
+      announce: bool(entry.announce, false),
     });
   }
 
@@ -143,6 +144,7 @@ function pick(value: unknown): FusionPick | null {
     name: text(source.name, NAME_MAX),
     rarity: rarity(source.rarity),
     reward: line,
+    announce: bool(source.announce, false),
   };
 }
 

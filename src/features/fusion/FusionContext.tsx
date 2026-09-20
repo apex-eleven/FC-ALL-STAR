@@ -9,7 +9,14 @@ import {
 } from 'react';
 import type { Account } from '@/features/auth/types';
 import { useAuth } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
+import {
+  fetchGachaFeed,
+  publishGachaWin,
+  type GachaFeedRow,
+} from '@/features/cloud/cloudGachaFeed';
+import { isCloudEnabled } from '@/features/cloud/firebase';
 import { usePlayers } from '@/features/players/PlayerContext';
 import { shopStamp } from '@/features/shop/shop';
 import type { ShopReward } from '@/features/shop/types';
@@ -49,6 +56,15 @@ interface FusionValue {
   fuse(chosen: readonly string[], describe: RewardName): DealResult;
   /** Turns one card of the hand over and keeps it. The rest are torn up. */
   take(index: number): ClaimResult;
+  /**
+   * Newest wins from every player; null until the first fetch.
+   *
+   * The same `gachaFeed` collection the gachapon publishes to, on purpose: the game
+   * has one "who just won what" list, and splitting it per feature would give the
+   * player two half-empty feeds to read instead of one busy one.
+   */
+  feed: GachaFeedRow[] | null;
+  refreshFeed(): void;
   /** Throws the hand away — the escape hatch when nothing on it can be paid. */
   drop(): void;
 }
@@ -60,6 +76,11 @@ export function FusionProvider({ children }: { children: ReactNode }) {
   const { account, updateAccount } = useAuth();
   const { byId } = usePlayers();
   const [config, setConfig] = useState<FusionConfig>(loadConfig);
+  const [feed, setFeed] = useState<GachaFeedRow[] | null>(null);
+
+  const refreshFeed = useCallback(() => {
+    void fetchGachaFeed().then(setFeed);
+  }, []);
 
   useEffect(() => {
     const refresh = () => setConfig(loadConfig());
@@ -128,9 +149,23 @@ export function FusionProvider({ children }: { children: ReactNode }) {
         return outcome.ok ? outcome.account : current;
       });
 
+      const kept = preview.pick;
+      if (kept?.announce && isCloudEnabled()) {
+        void publishGachaWin({
+          uid: account.id,
+          username: displayNameOf(account),
+          avatarId: account.avatarId,
+          prize: kept.name,
+          rarity: kept.rarity,
+          at: now.toISOString(),
+        }).then((sent) => {
+          if (sent) refreshFeed();
+        });
+      }
+
       return { ok: true, error: null, pick: preview.pick };
     },
-    [account, byId, updateAccount],
+    [account, byId, updateAccount, refreshFeed],
   );
 
   const drop = useCallback(() => {
@@ -140,8 +175,8 @@ export function FusionProvider({ children }: { children: ReactNode }) {
   const state = useMemo(() => stateOf(account?.fusion), [account?.fusion]);
 
   const value = useMemo<FusionValue>(
-    () => ({ config, replace, reset, state, fuse, take, drop }),
-    [config, replace, reset, state, fuse, take, drop],
+    () => ({ config, replace, reset, state, fuse, take, drop, feed, refreshFeed }),
+    [config, replace, reset, state, fuse, take, drop, feed, refreshFeed],
   );
 
   return <FusionContext.Provider value={value}>{children}</FusionContext.Provider>;

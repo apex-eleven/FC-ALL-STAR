@@ -98,6 +98,7 @@ export default function AdminFusion() {
       reward: { kind: 'exchange', amount: 1_000 },
       chance: 10,
       rarity: 'common',
+      announce: false,
     };
     patch({ prizes: [...latest.current.prizes, prize] }, 'เพิ่มรางวัลแล้ว');
   }
@@ -354,6 +355,15 @@ export default function AdminFusion() {
                   </option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                className={`${styles.toggle} ${prize.announce ? styles.toggleOn : ''}`}
+                title="ประกาศให้ทุกคนเห็นในฟีดผู้โชคดี เมื่อมีคนเก็บรางวัลนี้"
+                onClick={() => patchPrize(prize.id, { announce: !prize.announce })}
+              >
+                {prize.announce ? 'ประกาศ' : 'ไม่ประกาศ'}
+              </button>
 
               <button
                 type="button"

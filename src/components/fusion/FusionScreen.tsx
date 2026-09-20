@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Lock, LockOpen, X } from 'lucide-react';
 import { useAccount } from '@/features/auth/AuthContext';
 import type { OwnedPlayer } from '@/features/club/types';
@@ -6,6 +6,7 @@ import { RARITY_COLOR, RARITY_LABEL } from '@/features/fusion/constants';
 import { useFusion } from '@/features/fusion/FusionContext';
 import { livePrizes, materialBlock, type MaterialBlock } from '@/features/fusion/fusion';
 import type { FusionError, FusionPick } from '@/features/fusion/types';
+import { animates } from '@/features/motion/motion';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { ratingWithPlus } from '@/features/rankup/plus';
 import { useSound } from '@/features/sound/SoundContext';
@@ -43,10 +44,25 @@ const BLOCK_TEXT: Record<Exclude<MaterialBlock, null>, string> = {
   'not-accepted': 'ใช้ไม่ได้',
 };
 
+/** How long the chosen card's flip runs. Mirrored in the stylesheet. */
+const FLIP_MS = 520;
+
+/** "เมื่อสักครู่", "12 นาทีที่แล้ว", "3 ชม.ที่แล้ว", then the date. */
+function since(iso: string): string {
+  const at = Date.parse(iso);
+  if (Number.isNaN(at)) return '';
+  const minutes = Math.floor((Date.now() - at) / 60_000);
+  if (minutes < 1) return 'เมื่อสักครู่';
+  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ชม.ที่แล้ว`;
+  return new Date(at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+}
+
 export default function FusionScreen() {
   const { navigate } = useNavigation();
   const account = useAccount();
-  const { config, state, fuse, take } = useFusion();
+  const { config, state, fuse, take, feed, refreshFeed } = useFusion();
   const { toggleLock } = useTransfer();
   const view = useRewardView();
   const { play } = useSound();
@@ -56,10 +72,33 @@ export default function FusionScreen() {
   /** Which card of the hand was turned over. null = all still face down. */
   const [turned, setTurned] = useState<number | null>(null);
   const [kept, setKept] = useState<FusionPick | null>(null);
+  /**
+   * The hand as it was dealt.
+   *
+   * Claiming clears `state.pending`, so the account stops being able to describe the
+   * cards the moment one is taken. They are held here too, which is what lets the
+   * other four turn over afterwards — the player paid for the whole hand and gets to
+   * see what was in it.
+   */
+  const [shown, setShown] = useState<FusionPick[]>([]);
+  /** True while the flip is mid-air, so the result line waits for the card to land. */
+  const [flipping, setFlipping] = useState(false);
 
-  const need = Math.max(1, Math.floor(config.materials));
   const hand = state.pending;
+  const need = Math.max(1, Math.floor(config.materials));
   const locked = useMemo(() => new Set(account.transfer?.locked ?? []), [account.transfer?.locked]);
+
+  useEffect(() => {
+    refreshFeed();
+  }, [refreshFeed]);
+
+  /** A hand arriving — including one found on load — becomes the cards on screen. */
+  useEffect(() => {
+    if (!hand) return;
+    setShown(hand.picks);
+    setTurned(null);
+    setKept(null);
+  }, [hand]);
 
   /**
    * Every owned card with the reason it cannot be used, sorted so the usable ones
@@ -97,6 +136,7 @@ export default function FusionScreen() {
     play('click');
     setChosen([]);
     setError(null);
+    setShown(result.picks);
     setTurned(null);
     setKept(null);
   };
@@ -110,24 +150,40 @@ export default function FusionScreen() {
     }
     play('land');
     setTurned(index);
-    setKept(result.pick);
+    if (!animates()) {
+      setKept(result.pick);
+      return;
+    }
+    // With motion on, the reward line waits for the card to land — a number read off
+    // a face that is still edge-on is the thing that makes a flip feel broken.
+    setFlipping(true);
+    window.setTimeout(() => {
+      setFlipping(false);
+      setKept(result.pick);
+    }, FLIP_MS);
+  };
+
+  const backToBench = () => {
+    setShown([]);
+    setTurned(null);
+    setKept(null);
   };
 
   /* ── the hand on the table ────────────────────────────── */
 
-  if (hand || kept) {
-    const picks = hand?.picks ?? [];
+  if (shown.length > 0) {
+    const decided = turned !== null;
     return (
       <div className={styles.screen}>
         <header className={styles.head}>
           <div>
             <h1 className={styles.title}>{config.title}</h1>
             <p className={styles.subtitle}>
-              {kept ? 'เก็บใบนี้เรียบร้อย' : `เลือกได้ใบเดียวจาก ${picks.length} ใบ`}
+              {decided ? 'เก็บใบที่เลือกเรียบร้อย' : `เลือกได้ใบเดียวจาก ${shown.length} ใบ`}
             </p>
           </div>
           {kept ? (
-            <button type="button" className={styles.close} onClick={() => setKept(null)}>
+            <button type="button" className={styles.close} onClick={backToBench}>
               <X size={22} strokeWidth={2.4} />
             </button>
           ) : null}
@@ -136,44 +192,55 @@ export default function FusionScreen() {
         {error ? <p className={styles.error}>{ERROR_TEXT[error]}</p> : null}
 
         <div className={styles.hand}>
-          {picks.map((pick, index) => {
-            const open = turned === index;
+          {shown.map((pick, index) => {
+            const mine = turned === index;
             const detail = view(pick.reward);
             return (
               <button
                 type="button"
                 key={`${pick.prizeId}-${index}`}
-                className={`${styles.slot} ${open ? styles.slotOpen : ''} ${
-                  turned !== null && !open ? styles.slotFaded : ''
+                className={`${styles.slot} ${decided ? styles.slotFlipped : ''} ${
+                  decided && !mine ? styles.slotMissed : ''
                 }`}
-                style={{ '--tone': RARITY_COLOR[pick.rarity] } as React.CSSProperties}
+                style={
+                  {
+                    '--tone': RARITY_COLOR[pick.rarity],
+                    // The ones that were not taken turn a beat later, so the chosen
+                    // card lands first and the eye knows which one is the answer.
+                    '--delay': decided && !mine ? `${160 + index * 70}ms` : '0ms',
+                  } as React.CSSProperties
+                }
                 onClick={() => turnOver(index)}
-                disabled={turned !== null}
+                disabled={decided}
               >
-                {open ? (
-                  <>
+                <span className={styles.inner}>
+                  <span className={`${styles.face} ${styles.faceBack}`}>
+                    <span className={styles.mark}>?</span>
+                  </span>
+                  <span className={`${styles.face} ${styles.faceFront}`}>
                     <img className={styles.slotArt} src={detail.icon} alt="" />
                     <span className={styles.slotName}>{pick.name}</span>
                     <span className={styles.slotCount}>{detail.count}</span>
                     <span className={styles.slotRarity}>{RARITY_LABEL[pick.rarity]}</span>
-                  </>
-                ) : (
-                  <span className={styles.slotBack}>?</span>
-                )}
+                    {mine ? <span className={styles.mineTag}>เก็บใบนี้</span> : null}
+                  </span>
+                </span>
               </button>
             );
           })}
         </div>
 
-        {kept ? (
+        {kept && !flipping ? (
           <div className={styles.result}>
             <p className={styles.resultLine}>ได้รับ {view(kept.reward).text}</p>
-            <button type="button" className={styles.again} onClick={() => setKept(null)}>
+            <button type="button" className={styles.again} onClick={backToBench}>
               ผสมอีกครั้ง
             </button>
           </div>
         ) : (
-          <p className={styles.hint}>แตะการ์ดที่ต้องการ — ใบที่เหลือจะหายไป</p>
+          <p className={styles.hint}>
+            {decided ? 'กำลังเปิดใบที่เหลือ…' : 'แตะการ์ดที่ต้องการ — ใบที่เหลือจะหายไป'}
+          </p>
         )}
       </div>
     );
@@ -210,48 +277,103 @@ export default function FusionScreen() {
       {poolEmpty ? <p className={styles.error}>{ERROR_TEXT.empty}</p> : null}
       {error ? <p className={styles.error}>{ERROR_TEXT[error]}</p> : null}
 
-      <div className={styles.grid}>
-        {bench.map(({ card, block }) => {
-          const picked = chosen.includes(card.id);
-          const isLocked = locked.has(card.id);
-          return (
-            <div
-              key={card.id}
-              className={`${styles.cell} ${picked ? styles.cellPicked : ''} ${
-                block !== null ? styles.cellBlocked : ''
-              }`}
-            >
-              <button
-                type="button"
-                className={styles.cardButton}
-                onClick={() => toggle(card, block)}
-                disabled={block !== null}
+      <div className={styles.body}>
+        <div className={styles.grid}>
+          {bench.map(({ card, block }) => {
+            const picked = chosen.includes(card.id);
+            const isLocked = locked.has(card.id);
+            return (
+              <div
+                key={card.id}
+                className={`${styles.cell} ${picked ? styles.cellPicked : ''} ${
+                  block !== null ? styles.cellBlocked : ''
+                }`}
               >
-                <SquadCard player={card} scale={0.62} interactive={false} />
-              </button>
+                <button
+                  type="button"
+                  className={styles.cardButton}
+                  onClick={() => toggle(card, block)}
+                  disabled={block !== null}
+                >
+                  <SquadCard player={card} scale={0.62} interactive={false} />
+                </button>
 
-              {block !== null ? <span className={styles.badge}>{BLOCK_TEXT[block]}</span> : null}
+                {block !== null ? <span className={styles.badge}>{BLOCK_TEXT[block]}</span> : null}
 
-              {/*
-                The same lock that stops a card being sold. Kept on the card here so a
-                player can protect something the moment they notice it in the list,
-                instead of leaving and coming back through the signing market.
-              */}
-              <button
-                type="button"
-                className={`${styles.lock} ${isLocked ? styles.lockOn : ''}`}
-                onClick={() => toggleLock(card.id)}
-                aria-label={isLocked ? 'ปลดล็อคการ์ด' : 'ล็อคการ์ด'}
-                title={isLocked ? 'ปลดล็อคการ์ด' : 'ล็อคการ์ดไม่ให้ถูกใช้หรือขาย'}
-              >
-                {isLocked ? <Lock size={14} strokeWidth={2.6} /> : <LockOpen size={14} strokeWidth={2.2} />}
-              </button>
-            </div>
-          );
-        })}
+                {/*
+                  The same lock that stops a card being sold. Kept on the card here so a
+                  player can protect something the moment they notice it in the list,
+                  instead of leaving and coming back through the signing market.
+                */}
+                <button
+                  type="button"
+                  className={`${styles.lock} ${isLocked ? styles.lockOn : ''}`}
+                  onClick={() => toggleLock(card.id)}
+                  aria-label={isLocked ? 'ปลดล็อคการ์ด' : 'ล็อคการ์ด'}
+                  title={isLocked ? 'ปลดล็อคการ์ด' : 'ล็อคการ์ดไม่ให้ถูกใช้หรือขาย'}
+                >
+                  {isLocked ? (
+                    <Lock size={14} strokeWidth={2.6} />
+                  ) : (
+                    <LockOpen size={14} strokeWidth={2.2} />
+                  )}
+                </button>
+              </div>
+            );
+          })}
+
+          {bench.length === 0 ? <p className={styles.empty}>ยังไม่มีการ์ดในสโมสร</p> : null}
+        </div>
+
+        <aside className={styles.side}>
+          <section className={styles.panel}>
+            <h2 className={styles.panelTitle}>ประวัติการผสม</h2>
+            {state.history.length === 0 ? (
+              <p className={styles.panelEmpty}>ยังไม่เคยผสม</p>
+            ) : (
+              <ul className={styles.list}>
+                {state.history.map((win) => (
+                  <li key={win.id} className={styles.row}>
+                    <span
+                      className={styles.dot}
+                      style={{ background: RARITY_COLOR[win.rarity] }}
+                      aria-hidden="true"
+                    />
+                    <span className={styles.rowName}>{win.name}</span>
+                    <span className={styles.rowTime}>{since(win.at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {state.fusions > 0 ? (
+              <p className={styles.panelFoot}>ผสมไปแล้ว {state.fusions} ครั้ง</p>
+            ) : null}
+          </section>
+
+          <section className={styles.panel}>
+            <h2 className={styles.panelTitle}>ผู้โชคดีล่าสุด</h2>
+            {feed === null ? (
+              <p className={styles.panelEmpty}>กำลังโหลด…</p>
+            ) : feed.length === 0 ? (
+              <p className={styles.panelEmpty}>ยังไม่มีใครได้รางวัลใหญ่</p>
+            ) : (
+              <ul className={styles.list}>
+                {feed.map((row) => (
+                  <li key={`${row.uid}-${row.at}`} className={styles.row}>
+                    <span
+                      className={styles.dot}
+                      style={{ background: RARITY_COLOR[row.rarity] }}
+                      aria-hidden="true"
+                    />
+                    <span className={styles.rowWho}>{row.username}</span>
+                    <span className={styles.rowName}>{row.prize}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
       </div>
-
-      {bench.length === 0 ? <p className={styles.empty}>ยังไม่มีการ์ดในสโมสร</p> : null}
     </div>
   );
 }
