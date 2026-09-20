@@ -23,10 +23,10 @@ import { shopStamp } from '@/features/shop/shop';
 import { indexOwned } from '@/features/squad/squad';
 import { useStarPass } from '@/features/starpass/StarPassContext';
 import { cupId, defaultCup } from './constants';
-import { currentCup, entriesLeft, tieForYou, windowOpen } from './cup';
+import { currentCup, entriesLeft, kickoffAt, roundDue, tieForYou, windowOpen } from './cup';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './cupConfigStore';
 import { enterCup, playCupRound, type RoundOutcome } from './play';
-import type { CupConfig, CupEnterError, CupKind, CupRun, CupState } from './types';
+import { CUP_KINDS, type CupConfig, type CupEnterError, type CupKind, type CupRun, type CupState } from './types';
 
 /**
  * The cup provider.
@@ -61,6 +61,11 @@ interface CupValue {
   simulate(kind: CupKind): CupPlayResult;
   /** Builds the live match for the next tie, to watch it instead. */
   prepareLive(kind: CupKind): LiveMatch | null;
+  /** The round that just played itself, waiting to be shown once. */
+  lastRound: { kind: CupKind; outcome: CupPlayResult } | null;
+  clearLastRound(): void;
+  /** When the next round kicks off. Null once it is due — or when nothing is running. */
+  kickoffOf(kind: CupKind): Date | null;
   /** Settles a watched tie with the score it ended on. */
   finishLive(kind: CupKind, score: [number, number], shootout?: [number, number] | null): CupPlayResult;
 }
@@ -77,6 +82,7 @@ export function CupProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   // Re-read once a minute so a window closing is noticed on an open screen.
   const [clock, setClock] = useState(() => Date.now());
+  const [lastRound, setLastRound] = useState<{ kind: CupKind; outcome: CupPlayResult } | null>(null);
 
   useEffect(() => {
     const refresh = () => setConfig(loadConfig());
@@ -221,6 +227,42 @@ export function CupProvider({ children }: { children: ReactNode }) {
 
   const simulate = useCallback((kind: CupKind) => settle(kind), [settle]);
 
+  /**
+   * Plays any round whose kickoff time has passed.
+   *
+   * The clock ticks once a minute, and every tick asks both competitions whether a
+   * round is due. That is the whole scheduler — there is no server to run one, and a
+   * run that only advanced while its screen was open would stall the moment the
+   * player looked away.
+   *
+   * It runs after entering too, because round 0 kicks off at the draw.
+   */
+  useEffect(() => {
+    if (!state) return;
+    for (const kind of CUP_KINDS) {
+      const run = state.runs[kind];
+      if (!run || run.status !== 'running' || !roundDue(run, new Date(clock))) continue;
+      const outcome = settle(kind);
+      // Held so the screen can show what the round produced, rewards included. A
+      // round that played itself while nobody was looking is worth exactly one
+      // pop-up, not a silent jump to the next tie.
+      if (outcome.ok) setLastRound({ kind, outcome });
+    }
+  }, [state, clock, settle]);
+
+  const clearLastRound = useCallback(() => setLastRound(null), []);
+
+  /** When the next round kicks off, or null when it is due now (or there is no run). */
+  const kickoffOf = useCallback(
+    (kind: CupKind): Date | null => {
+      const run = state?.runs[kind];
+      if (!run || run.status !== 'running') return null;
+      const at = kickoffAt(run, run.round);
+      return at && at.getTime() > clock ? at : null;
+    },
+    [state, clock],
+  );
+
   const finishLive = useCallback(
     (kind: CupKind, score: [number, number], shootout?: [number, number] | null) =>
       settle(kind, { score, shootout: shootout ?? null }),
@@ -298,6 +340,9 @@ export function CupProvider({ children }: { children: ReactNode }) {
       rating,
       left,
       open,
+      kickoffOf,
+      lastRound,
+      clearLastRound,
       refreshOpponents,
       enter,
       simulate,

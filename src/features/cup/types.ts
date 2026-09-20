@@ -66,6 +66,14 @@ export interface CupRun {
   rounds: CupTie[][];
   /** Which round is next to play. Equals `rounds.length` once the run is over. */
   round: number;
+  /**
+   * When each round kicks off, ISO, one per round.
+   *
+   * Fixed at the draw rather than derived on read: a run that recomputed its times
+   * from the competition's gap would move every remaining round the moment an admin
+   * retuned it, including rounds a player had already been told the time of.
+   */
+  kickoffs: string[];
   status: CupRunStatus;
   /** Round indexes whose reward has been paid. Never paid twice. */
   claimed: number[];
@@ -129,6 +137,14 @@ export interface CupCompetition {
   days: number[];
   /** Rating spread the padding bots are drawn around the player's own OVR. */
   botSpread: number;
+  /**
+   * Minutes between one round kicking off and the next.
+   *
+   * Per competition, not global: the daily cup has to fit its rounds inside a day
+   * and the weekend one has a whole weekend, so one number could only ever suit one
+   * of them.
+   */
+  roundGapMinutes: number;
   rewards: CupRoundReward[];
   /** Uploaded art (data URL) or '' for the `/brand/` fallback. */
   background: string;
@@ -160,4 +176,12 @@ export type CupEnterError =
   | 'in-progress'
   | 'cannot-afford';
 
-export type CupPlayError = 'closed' | 'no-run' | 'finished' | 'club-full' | 'card-missing' | 'at-cap';
+export type CupPlayError =
+  | 'closed'
+  | 'no-run'
+  | 'finished'
+  /** The round's kickoff time has not come round yet. */
+  | 'too-early'
+  | 'club-full'
+  | 'card-missing'
+  | 'at-cap';

@@ -1,6 +1,15 @@
 import { MAX_PLUS } from '@/features/rankup/constants';
 import type { ShopReward } from '@/features/shop/types';
-import { CUP_CONFIG_KEY, CUP_SIZES, MAX_ENTRIES, MAX_ROUND_REWARDS, NAME_MAX, defaultCup } from './constants';
+import {
+  CUP_CONFIG_KEY,
+  CUP_SIZES,
+  MAX_ENTRIES,
+  MAX_ROUND_GAP,
+  MAX_ROUND_REWARDS,
+  MIN_ROUND_GAP,
+  NAME_MAX,
+  defaultCup,
+} from './constants';
 import type { CupCompetition, CupConfig, CupRoundReward, CupState, CupKind } from './types';
 
 /**
@@ -101,6 +110,12 @@ function sanitizeCompetition(value: unknown, fallback: CupCompetition): CupCompe
     entries: clampInt(source.entries, 1, MAX_ENTRIES, fallback.entries),
     days: sanitizeDays(source.days, fallback.days),
     botSpread: clampInt(source.botSpread, 0, 60, fallback.botSpread),
+    roundGapMinutes: clampInt(
+      source.roundGapMinutes,
+      MIN_ROUND_GAP,
+      MAX_ROUND_GAP,
+      fallback.roundGapMinutes,
+    ),
     rewards: sanitizeRewards(source.rewards, fallback.rewards),
     background: dataUrl(source.background),
     trophy: dataUrl(source.trophy),
@@ -258,6 +273,11 @@ function normalizeRun(value: unknown): CupState['runs'][CupKind] {
     teams,
     rounds,
     round: clampInt(source.round, 0, expected, 0),
+    // A run saved before kickoff times existed gets none, and `kickoffAt` treats a
+    // missing time as "playable now" — an old run must not be stranded mid-bracket.
+    kickoffs: Array.isArray(source.kickoffs)
+      ? source.kickoffs.slice(0, expected).map((entry) => text(entry, 40, ''))
+      : [],
     status,
     claimed: Array.isArray(source.claimed)
       ? [...new Set(source.claimed.map((entry) => clampInt(entry, 1, 8, 1)))]

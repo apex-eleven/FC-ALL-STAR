@@ -7,7 +7,9 @@ import {
   CUP_SIZES,
   CUP_TROPHY_IMAGE,
   MAX_ENTRIES,
+  MAX_ROUND_GAP,
   MAX_ROUND_REWARDS,
+  MIN_ROUND_GAP,
   roundCount,
 } from '@/features/cup/constants';
 import type { CupCompetition, CupConfig, CupKind, CupRoundReward } from '@/features/cup/types';
@@ -224,6 +226,32 @@ export default function AdminCup() {
                   patch(tab, { botSpread: number(event.target.value, competition.botSpread) })
                 }
               />
+            </div>
+
+            <div className={styles.field}>
+              <span className={styles.label}>ห่างกันกี่นาทีต่อรอบ ({MIN_ROUND_GAP}–{MAX_ROUND_GAP})</span>
+              <input
+                className={styles.input}
+                value={competition.roundGapMinutes}
+                inputMode="numeric"
+                onChange={(event) =>
+                  patch(tab, {
+                    roundGapMinutes: Math.max(
+                      MIN_ROUND_GAP,
+                      Math.min(
+                        MAX_ROUND_GAP,
+                        number(event.target.value, competition.roundGapMinutes),
+                      ),
+                    ),
+                  })
+                }
+              />
+              <p className={styles.hint}>
+                เวลาถูกตรึงตอนสมัคร — แก้ค่านี้มีผลกับคนที่สมัครหลังจากนี้เท่านั้น
+                ไม่ไปขยับเวลาของรอบที่บอกผู้เล่นไปแล้ว · รอบแรกเตะทันทีที่สมัคร
+                รวมทั้งหมด {(roundCount(competition.size) - 1) * competition.roundGapMinutes / 60} ชม.
+                จนจบถ้วย
+              </p>
             </div>
           </div>
 

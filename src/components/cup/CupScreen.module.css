@@ -270,8 +270,46 @@
 }
 
 .prizeWhat {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
   color: var(--color-muted);
-  text-align: right;
+}
+
+/* Reward art with its amount beside it, rather than the old text-only list. */
+.prizeItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.prizeArt {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.prizeCount {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Sits where the two action buttons used to, counting down to the next kickoff. */
+.kickoff {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 26px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .ahead {

@@ -9,6 +9,7 @@ import {
   currentCup,
   entriesLeft,
   playRound,
+  roundDue,
   unpaidRewards,
   windowOpen,
   withClaimed,
@@ -171,6 +172,9 @@ export function playCupRound(account: Account, input: RoundInput): RoundOutcome 
   const run = state.runs[kind];
   if (!run) return fail('no-run');
   if (run.status !== 'running') return fail('finished');
+  // The clock is the only gate on a round now: the bracket is drawn at entry and each
+  // round plays itself once its kickoff time comes round.
+  if (!roundDue(run, now)) return fail('too-early');
 
   const played = playRound(run, { result: input.result, now });
 

@@ -7,6 +7,10 @@ export const CUP_SIZES = [4, 8, 16] as const;
 
 export const MAX_ENTRIES = 20;
 export const MAX_ROUND_REWARDS = 8;
+
+/** Minutes between rounds. 0 would put a whole bracket in one second. */
+export const MIN_ROUND_GAP = 5;
+export const MAX_ROUND_GAP = 24 * 60;
 export const NAME_MAX = 40;
 /** Finished runs kept per account. */
 export const HISTORY_LIMIT = 30;
@@ -61,6 +65,8 @@ function daily(): CupCompetition {
     entries: 3,
     days: [],
     botSpread: 8,
+    // Three rounds two hours apart is six hours — inside a single day's window.
+    roundGapMinutes: 120,
     rewards: [
       { wins: 1, rewards: [{ kind: 'exchange', amount: 400 }] },
       { wins: 2, rewards: [{ kind: 'exchange', amount: 900 }, { kind: 'gem', amount: 120 }] },
@@ -90,6 +96,8 @@ function weekend(): CupCompetition {
     // these and closes at `resetHour` on the day after the last.
     days: [5, 6, 0],
     botSpread: 6,
+    // Four rounds, so a longer gap still finishes well inside a weekend.
+    roundGapMinutes: 180,
     rewards: [
       { wins: 1, rewards: [{ kind: 'exchange', amount: 600 }] },
       { wins: 2, rewards: [{ kind: 'exchange', amount: 1200 }, { kind: 'gem', amount: 200 }] },

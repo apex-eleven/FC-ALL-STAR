@@ -275,6 +275,7 @@ export function buildRun(input: BuildRunInput): CupRun {
     teams,
     rounds: emptyBoard(size),
     round: 0,
+    kickoffs: kickoffsFor(input.now, roundCount(size), competition.roundGapMinutes),
     status: 'running',
     claimed: [],
     startedAt: input.now.toISOString(),
@@ -482,6 +483,41 @@ export function withHistory(state: CupState, result: CupResult): CupState {
 /** Cups won across both competitions — the number the trophy cabinet shows. */
 export function totalTrophies(state: CupState): number {
   return (state.trophies.daily ?? 0) + (state.trophies.weekend ?? 0);
+}
+
+/**
+ * The clock for a whole bracket, fixed at the draw.
+ *
+ * Round 0 kicks off the moment the player enters — making them wait two hours to
+ * play the round they just paid for would be an odd way to start. Every round after
+ * that is one gap further on.
+ */
+export function kickoffsFor(startedAt: Date, rounds: number, gapMinutes: number): string[] {
+  const gap = Math.max(1, Math.round(gapMinutes)) * 60_000;
+  return Array.from({ length: rounds }, (_, index) =>
+    new Date(startedAt.getTime() + index * gap).toISOString(),
+  );
+}
+
+/**
+ * When a round kicks off, or null when the run predates kickoff times.
+ *
+ * Null means "playable now" everywhere it is read. A run drawn before this existed
+ * would otherwise be stuck forever, which is a worse outcome than it finishing on
+ * the old rules.
+ */
+export function kickoffAt(run: CupRun, round: number): Date | null {
+  const iso = run.kickoffs[round];
+  if (!iso) return null;
+  const at = Date.parse(iso);
+  return Number.isNaN(at) ? null : new Date(at);
+}
+
+/** Has the next round's time come round yet? */
+export function roundDue(run: CupRun, now: Date): boolean {
+  if (run.status !== 'running' || run.round >= run.rounds.length) return false;
+  const at = kickoffAt(run, run.round);
+  return at === null || now.getTime() >= at.getTime();
 }
 
 /** "2 วัน 04:11" down to zero. Never negative. */

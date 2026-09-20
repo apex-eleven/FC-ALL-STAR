@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, Home, Play, Swords, Ticket, Trophy } from 'lucide-react';
+import { ChevronLeft, Clock, History, Home, Ticket, Trophy } from 'lucide-react';
 import { useAccount } from '@/features/auth/AuthContext';
 import { formatCurrency } from '@/features/currencies/constants';
 import { currencies } from '@/data/mock/currencies';
 import { useCup } from '@/features/cup/CupContext';
-import { CUP_FORFEIT_SCORE, CUP_LABEL, roundCount, roundName } from '@/features/cup/constants';
+import { CUP_LABEL, roundCount, roundName } from '@/features/cup/constants';
 import { countdown, nextOpen, nextReward, roundsWon, tieForYou, windowEnd } from '@/features/cup/cup';
+import useRewardView from '@/components/shop/useRewardView';
 import type { CupEnterError, CupKind, CupRun } from '@/features/cup/types';
-import type { LiveMatch } from '@/features/manager/ManagerContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
-import ManagerLiveMatch from '@/components/manager/ManagerLiveMatch';
 import CupBracket from './CupBracket';
 import CupResultOverlay, { type CupResultView } from './CupResultOverlay';
 import styles from './CupScreen.module.css';
@@ -43,14 +42,14 @@ export default function CupScreen() {
     open,
     refreshOpponents,
     enter,
-    simulate,
-    prepareLive,
-    finishLive,
+    kickoffOf,
+    lastRound,
+    clearLastRound,
   } = useCup();
 
+  const rewardView = useRewardView();
   const [kind, setKind] = useState<CupKind>('daily');
   const [toast, setToast] = useState('');
-  const [live, setLive] = useState<LiveMatch | null>(null);
   const [view, setView] = useState<CupResultView | null>(null);
   // Ticks the countdown. Everything else on this screen changes only on a press.
   const [now, setNow] = useState(() => new Date());
@@ -96,56 +95,58 @@ export default function CupScreen() {
     setToast('จับสลากประกบคู่เรียบร้อย');
   }, [enter, kind]);
 
-  /** Shows what a finished round produced, and the run's ending when it ended. */
-  const reveal = useCallback(
-    (outcome: ReturnType<typeof simulate>) => {
-      if (!outcome.ok || !outcome.tie) {
-        setToast('ลงแข่งไม่สำเร็จ');
-        return;
-      }
-      setView({
-        tie: outcome.tie,
-        run: outcome.run,
-        through: outcome.through,
-        paid: outcome.paid,
-        result: outcome.result,
-      });
-    },
-    [],
-  );
+  /**
+   * A round played itself — show what it produced, once, then let it go.
+   *
+   * This is the only place a result opens by itself. Everything else on the screen
+   * still waits to be pressed.
+   */
+  useEffect(() => {
+    if (!lastRound || lastRound.kind !== kind) return;
+    const { outcome } = lastRound;
+    clearLastRound();
+    if (!outcome.tie) return;
+    setView({
+      tie: outcome.tie,
+      run: outcome.run,
+      through: outcome.through,
+      paid: outcome.paid,
+      result: outcome.result,
+    });
+  }, [lastRound, kind, clearLastRound]);
 
-  const onSimulate = useCallback(() => {
-    reveal(simulate(kind));
-  }, [reveal, simulate, kind]);
-
-  const onWatch = useCallback(() => {
-    const prepared = prepareLive(kind);
-    if (!prepared) {
-      setToast('เริ่มแมตช์ไม่สำเร็จ');
-      return;
-    }
-    setLive(prepared);
-  }, [prepareLive, kind]);
+  const kickoff = kickoffOf(kind);
 
   /**
-   * The watched tie ended.
+   * The player's most recent finished tie, or null before the first one.
    *
-   * A level score is not an answer in a knockout, so the shootout is rolled here
-   * from the same seed the unwatched ties use — watching a tie must not change what
-   * kind of result it can have.
+   * Searched from the back: the run holds every round, and the one worth looking at
+   * again is the one that just played itself.
    */
-  const onFinished = useCallback(
-    (score: [number, number]) => {
-      setLive(null);
-      reveal(finishLive(kind, score));
-    },
-    [finishLive, kind, reveal],
-  );
+  const lastPlayed = useMemo(() => {
+    if (!run) return null;
+    const seat = run.teams.findIndex((team) => team.you);
+    if (seat < 0) return null;
+    for (let index = run.rounds.length - 1; index >= 0; index -= 1) {
+      const found = run.rounds[index]?.find(
+        (entry) => entry.played && (entry.a === seat || entry.b === seat),
+      );
+      if (found) return found;
+    }
+    return null;
+  }, [run]);
 
-  const onForfeit = useCallback(() => {
-    setLive(null);
-    reveal(finishLive(kind, [...CUP_FORFEIT_SCORE] as [number, number]));
-  }, [finishLive, kind, reveal]);
+  const onReplay = useCallback(() => {
+    if (!run || !lastPlayed) return;
+    const seat = run.teams.findIndex((team) => team.you);
+    setView({
+      tie: lastPlayed,
+      run,
+      through: lastPlayed.winner === seat,
+      paid: [],
+      result: null,
+    });
+  }, [run, lastPlayed]);
 
   const background = competition.background || `/brand/cup_background.jpg`;
   const entriesLeftNow = left[kind];
@@ -226,15 +227,15 @@ export default function CupScreen() {
                       : `ชนะ ${band.wins} นัด`}
                   </span>
                   <span className={styles.prizeWhat}>
-                    {band.rewards
-                      .map((line) =>
-                        line.kind === 'card'
-                          ? `การ์ด x${line.amount}`
-                          : line.kind === 'item'
-                            ? `ไอเท็ม x${line.amount}`
-                            : `${currencies[line.kind].label} ${formatCurrency(line.amount)}`,
-                      )
-                      .join(' · ')}
+                    {band.rewards.map((line, index) => {
+                      const detail = rewardView(line);
+                      return (
+                        <span className={styles.prizeItem} key={`${band.wins}-${index}`}>
+                          <img className={styles.prizeArt} src={detail.icon} alt="" />
+                          <span className={styles.prizeCount}>{detail.count}</span>
+                        </span>
+                      );
+                    })}
                   </span>
                 </li>
               ))}
@@ -275,13 +276,23 @@ export default function CupScreen() {
               {roundName(run.size, run.round)} · พบกับ{' '}
               {run.teams[tie.a === run.teams.findIndex((team) => team.you) ? tie.b : tie.a]?.name ?? '—'}
             </span>
-            <button type="button" className={styles.ghost} onClick={onSimulate}>
-              <Swords size={20} />
-              ข้ามการแข่ง
-            </button>
-            <button type="button" className={styles.primary} onClick={onWatch}>
-              <Play size={20} />
-              ดูสด
+            {/*
+              Rounds play themselves at their kickoff time, so there is nothing to
+              press here — only how long until the next one. The tie that just
+              finished is watched back from the button beside it.
+            */}
+            <span className={styles.kickoff}>
+              <Clock size={20} />
+              {kickoff ? `เตะอีก ${countdown(kickoff, now)}` : 'กำลังลงสนาม…'}
+            </span>
+            <button
+              type="button"
+              className={styles.primary}
+              onClick={onReplay}
+              disabled={!lastPlayed}
+            >
+              <History size={20} />
+              ดูย้อนหลัง
             </button>
           </>
         ) : (
@@ -307,10 +318,6 @@ export default function CupScreen() {
       </footer>
 
       {toast && <div className={styles.toast}>{toast}</div>}
-
-      {live && (
-        <ManagerLiveMatch key={live.id} live={live} onFinished={onFinished} onForfeit={onForfeit} />
-      )}
 
       {view && (
         <CupResultOverlay
