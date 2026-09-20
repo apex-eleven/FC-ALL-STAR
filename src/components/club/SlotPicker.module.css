@@ -213,8 +213,74 @@
   width: 875px;
   height: 638px;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  /*
+   * Touch scrolling first: the stage is scaled, so a drag has to be handled by the
+   * grid rather than bubbling out and moving the page behind it.
+   */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scroll-behavior: smooth;
+  scrollbar-width: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.45) rgba(255, 255, 255, 0.08);
+}
+
+/* A wide, solid bar — the old two-pixel one was not a thumb-sized target. */
+.grid::-webkit-scrollbar {
+  width: 16px;
+}
+
+.grid::-webkit-scrollbar-track {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.grid::-webkit-scrollbar-thumb {
+  border: 4px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.45);
+  background-clip: content-box;
+}
+
+.grid::-webkit-scrollbar-thumb:active {
+  background-color: #37d3bd;
+}
+
+/* ---- page buttons ---- */
+
+.pageUp,
+.pageDown {
+  position: absolute;
+  right: 12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 2px solid rgba(70, 150, 150, 0.7);
+  border-radius: 50%;
+  background: rgba(14, 20, 26, 0.92);
+  color: #d9f5f0;
+  cursor: pointer;
+}
+
+.pageUp {
+  top: 62px;
+}
+
+.pageDown {
+  top: 624px;
+}
+
+.pageUp:active,
+.pageDown:active {
+  border-color: #37d3bd;
+  color: #37d3bd;
+}
+
+/* Kept in place rather than hidden, so the pair never jumps around mid-scroll. */
+.pageOff {
+  opacity: 0.25;
+  cursor: default;
 }
 
 .cell {

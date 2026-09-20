@@ -1,5 +1,15 @@
-import { useMemo, useState } from 'react';
-import { ChevronLeft, GitCompareArrows, Home, RefreshCw, ShoppingCart, User, Volleyball } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronUp,
+  GitCompareArrows,
+  Home,
+  RefreshCw,
+  ShoppingCart,
+  User,
+  Volleyball,
+} from 'lucide-react';
 import type { OwnedPlayer } from '@/features/club/types';
 import { canPlace } from '@/features/squad/squad';
 import { positionPenalty } from '@/features/squad/rating';
@@ -67,6 +77,29 @@ export default function SlotPicker({
   onShop,
 }: SlotPickerProps) {
   const [compareId, setCompareId] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [atTop, setAtTop] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+
+  /** One row at a time, so a card never ends up sliced across the top edge. */
+  const ROW = 212;
+
+  const onScroll = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    setAtTop(grid.scrollTop <= 1);
+    setAtEnd(grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 1);
+  }, []);
+
+  const page = useCallback(
+    (direction: 1 | -1) => {
+      const grid = gridRef.current;
+      if (!grid) return;
+      grid.scrollBy({ top: direction * ROW, behavior: 'smooth' });
+    },
+    [],
+  );
+
   const [sort, setSort] = useState<SwapSort>('position');
   const [filter, setFilter] = useState<SwapFilter>(EMPTY_SWAP_FILTER);
 
@@ -84,6 +117,12 @@ export default function SlotPicker({
     () => sortSwapList(eligible.filter((player) => matchesFilter(player, filter)), sort, position),
     [eligible, filter, sort, position],
   );
+
+  // The list refills whenever the sort or filter changes, so the ends are rechecked
+  // then too — otherwise the down button stays dead after a filter shortens the list.
+  useEffect(() => {
+    onScroll();
+  }, [onScroll, listed.length]);
 
   const clubs = useMemo(() => unique(eligible.map((player) => player.club)), [eligible]);
   const nations = useMemo(() => unique(eligible.map((player) => player.nation)), [eligible]);
@@ -181,7 +220,33 @@ export default function SlotPicker({
       <section className={styles.list}>
         <h2 className={styles.listTitle}>รายชื่อนักเตะ</h2>
 
-        <div className={styles.grid}>
+        {/*
+          Page buttons, for thumbs.
+          The list is four cards wide and scrolls a long way on a full club, and the
+          scrollbar inside a scaled stage is a two-pixel target on a phone. These
+          move it a row at a time, which is also the distance that keeps a part-row
+          from ending up half off the top.
+        */}
+        <button
+          type="button"
+          className={`${styles.pageUp} ${atTop ? styles.pageOff : ''}`}
+          onClick={() => page(-1)}
+          disabled={atTop}
+          aria-label="เลื่อนขึ้น"
+        >
+          <ChevronUp size={30} strokeWidth={2.6} />
+        </button>
+        <button
+          type="button"
+          className={`${styles.pageDown} ${atEnd ? styles.pageOff : ''}`}
+          onClick={() => page(1)}
+          disabled={atEnd}
+          aria-label="เลื่อนลง"
+        >
+          <ChevronDown size={30} strokeWidth={2.6} />
+        </button>
+
+        <div className={styles.grid} ref={gridRef} onScroll={onScroll}>
           {listed.map((player) => {
             // Another card with this name is already in the eleven or on the bench.
             const blocked = isDuplicate(player.id);
