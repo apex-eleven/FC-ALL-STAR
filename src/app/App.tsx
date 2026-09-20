@@ -6,7 +6,7 @@ import AnnouncementOverlay from '@/components/announcement/AnnouncementOverlay';
 import AuthScreen from '@/components/auth/AuthScreen';
 import DraftScreen from '@/components/draft/DraftScreen';
 import ClubScreen from '@/components/club/ClubScreen';
-import CupScreen from '@/components/cup/CupScreen';
+import LeagueScreen from '@/components/league/LeagueScreen';
 import RankUpScreen from '@/components/rankup/RankUpScreen';
 import TransferScreen from '@/components/transfer/TransferScreen';
 import ShopScreen from '@/components/shop/ShopScreen';
@@ -15,6 +15,7 @@ import MissionScreen from '@/components/missions/MissionScreen';
 import StarPassScreen from '@/components/starpass/StarPassScreen';
 import BagScreen from '@/components/items/BagScreen';
 import GachaScreen from '@/components/gacha/GachaScreen';
+import FusionScreen from '@/components/fusion/FusionScreen';
 import RedeemScreen from '@/components/redeem/RedeemScreen';
 import InboxScreen from '@/components/inbox/InboxScreen';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -51,7 +52,7 @@ export default function App() {
   /**
    * The screen for the current route.
    *
-   * Draft, the cups, rank-up and club bring their own chrome — back button, screen
+   * Draft, league, rank-up and club bring their own chrome — back button, screen
    * title, home shortcut — so they sit directly in the stage rather than inside
    * GameLayout's home chrome.
    */
@@ -62,10 +63,10 @@ export default function App() {
         <DraftScreen />
       </Stage>
     );
-  } else if (route === 'cup') {
+  } else if (route === 'league') {
     screen = (
       <Stage>
-        <CupScreen />
+        <LeagueScreen />
       </Stage>
     );
   } else if (route === 'rankup') {
@@ -108,6 +109,12 @@ export default function App() {
     screen = (
       <Stage>
         <BagScreen />
+      </Stage>
+    );
+  } else if (route === 'fusion') {
+    screen = (
+      <Stage>
+        <FusionScreen />
       </Stage>
     );
   } else if (route === 'gacha') {

@@ -25,10 +25,10 @@ import { emptySquad, indexOwned, normalizeSquad } from '@/features/squad/squad';
 import { normalizeProgress } from '@/features/transfers/transferConfigStore';
 import { normalizeProgress as normalizeShopProgress } from '@/features/shop/shopConfigStore';
 import { normalizeState as normalizeManagerState } from '@/features/manager/managerConfigStore';
-import { normalizeProgress as normalizeCupState } from '@/features/cup/cupConfigStore';
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
 import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
+import { normalizeState as normalizeFusion } from '@/features/fusion/fusionConfigStore';
 import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigStore';
 import { normalizeProgress as normalizeRedeem } from '@/features/redeem/redeemConfigStore';
 import { normalizeProgress as normalizeInbox } from '@/features/notifications/inboxConfigStore';
@@ -90,7 +90,7 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
         : {},
     club,
     squad: normalizeSquad(data.squad, owned),
-    cup: data.cup === undefined ? undefined : normalizeCupState(data.cup),
+    league: (data.league as Account['league']) ?? undefined,
     // Listed field by field like everything else here — an unlisted field is
     // dropped on load, and the watch list and locks would vanish on every refresh.
     transfer:
@@ -103,6 +103,7 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
     starpass: data.starpass === undefined ? undefined : normalizeStarPass(data.starpass),
     inventory: data.inventory === undefined ? undefined : normalizeInventory(data.inventory),
     gacha: data.gacha === undefined ? undefined : normalizeGacha(data.gacha),
+    fusion: data.fusion === undefined ? undefined : normalizeFusion(data.fusion),
     redeem: data.redeem === undefined ? undefined : normalizeRedeem(data.redeem),
     inbox: data.inbox === undefined ? undefined : normalizeInbox(data.inbox),
     login: data.login === undefined ? undefined : normalizeLogin(data.login),

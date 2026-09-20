@@ -49,14 +49,14 @@ export type WalletReason =
   | 'item'
   /** A gachapon spin: the key spent, or a prize won. */
   | 'gacha'
+  /** A prize kept from the card-fusion bench. */
+  | 'fusion'
   /** Rewards from a code typed into the แลกโค้ด screen. */
   | 'redeem'
   /** Attachments claimed from a mail in the inbox. */
   | 'inbox'
   /** A day claimed on the daily login calendar. */
-  | 'login'
-  /** A cup entry paid, or a round's prize money. */
-  | 'cup';
+  | 'login';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

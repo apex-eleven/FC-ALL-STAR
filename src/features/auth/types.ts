@@ -2,7 +2,7 @@ import type { Entity } from '@/types/common';
 import type { Wallet, WalletEntry } from '@/features/currencies/types';
 import type { DraftProgress } from '@/features/draft/types';
 import type { Club } from '@/features/club/types';
-import type { CupState } from '@/features/cup/types';
+import type { LeagueState } from '@/features/league/types';
 import type { Squad } from '@/features/squad/types';
 import type { TransferProgress } from '@/features/transfers/types';
 import type { ShopProgress } from '@/features/shop/types';
@@ -10,6 +10,7 @@ import type { ManagerState } from '@/features/manager/types';
 import type { MissionProgress } from '@/features/missions/types';
 import type { StarPassProgress } from '@/features/starpass/types';
 import type { Inventory } from '@/features/items/types';
+import type { FusionState } from '@/features/fusion/types';
 import type { GachaState } from '@/features/gacha/types';
 import type { RedeemProgress } from '@/features/redeem/types';
 import type { InboxProgress } from '@/features/notifications/types';
@@ -49,11 +50,10 @@ export interface Account extends Entity {
   /** Starting eleven and bench. Repaired on read against the cards still owned. */
   squad: Squad;
   /**
-   * Cup entries, the bracket in progress, and the trophy cabinet. Absent until the
-   * first cup is entered — and absent on every account made before the cups replaced
-   * the daily league, which reads as nobody having entered one yet.
+   * Today's league standing. Absent on accounts created before the league existed —
+   * the provider fills it in on first open.
    */
-  cup?: CupState;
+  league?: LeagueState;
   /**
    * Signing-market watch list and sell locks. Absent on accounts created before the
    * market existed, which reads as nothing watched and nothing locked.
@@ -76,6 +76,8 @@ export interface Account extends Entity {
   displayName?: string;
   /** Gachapon spins and the last few wins. Absent until the first spin. */
   gacha?: GachaState;
+  /** Card-fusion bench: the hand on the table and recent keeps. Absent until the first fusion. */
+  fusion?: FusionState;
   /** Redeem codes this account has used, keyed by code id. Absent until the first one. */
   redeem?: RedeemProgress;
   /** Mails opened, collected and deleted. Absent until the first mail is opened. */

@@ -5,7 +5,7 @@
  * or admin config needs something to check it against, and a second hand-written
  * list would drift the first time a screen is added.
  */
-export const ROUTE_IDS = ['home', 'draft', 'club', 'cup', 'rankup', 'transfer', 'shop', 'manager', 'missions', 'starpass', 'bag', 'gacha', 'redeem', 'inbox'] as const;
+export const ROUTE_IDS = ['home', 'draft', 'club', 'league', 'rankup', 'transfer', 'shop', 'manager', 'missions', 'starpass', 'fusion', 'bag', 'gacha', 'redeem', 'inbox'] as const;
 
 export type RouteId = (typeof ROUTE_IDS)[number];
 
@@ -16,13 +16,14 @@ export const ROUTE_LABEL: Record<RouteId, string> = {
   home: 'หน้าหลัก',
   draft: 'เปิดแพ็ค',
   club: 'สโมสร',
-  cup: 'ฟุตบอลถ้วย',
+  league: 'ลีก',
   rankup: 'ตีบวกการ์ด',
   transfer: 'การเซ็นสัญญา',
   shop: 'ร้านค้า',
   manager: 'เมเนเจอร์โหมด',
   missions: 'ภารกิจ',
   starpass: 'Star Pass',
+  fusion: 'ผสมการ์ด',
   bag: 'กระเป๋า',
   gacha: 'กาชาปอง',
   redeem: 'แลกโค้ด',

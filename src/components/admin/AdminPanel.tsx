@@ -18,7 +18,7 @@ import { pushConfigToCloud } from '@/features/cloud/cloudConfig';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import AdminBackup from './AdminBackup';
 import AdminClub from './AdminClub';
-import AdminCup from './AdminCup';
+import AdminLeague from './AdminLeague';
 import AdminAnnouncement from './AdminAnnouncement';
 import AdminPlayers from './AdminPlayers';
 import AdminRankUp from './AdminRankUp';
@@ -30,6 +30,7 @@ import AdminMissions from './AdminMissions';
 import AdminStarPass from './AdminStarPass';
 import AdminItems from './AdminItems';
 import AdminGacha from './AdminGacha';
+import AdminFusion from './AdminFusion';
 import AdminRedeem from './AdminRedeem';
 import AdminInbox from './AdminInbox';
 import AdminDailyLogin from './AdminDailyLogin';
@@ -54,7 +55,7 @@ type Tab =
   | 'store'
   | 'drafts'
   | 'rates'
-  | 'cup'
+  | 'league'
   | 'rankup'
   | 'transfer'
   | 'shop'
@@ -63,6 +64,7 @@ type Tab =
   | 'starpass'
   | 'items'
   | 'gacha'
+  | 'fusion'
   | 'redeem'
   | 'inbox'
   | 'dailylogin'
@@ -80,7 +82,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'store', label: 'ร้านค้าแพ็ค' },
   { id: 'drafts', label: 'ดราฟต์' },
   { id: 'rates', label: 'อัตราสุ่ม' },
-  { id: 'cup', label: 'ฟุตบอลถ้วย' },
+  { id: 'league', label: 'ลีก' },
   { id: 'rankup', label: 'ตีบวกการ์ด' },
   { id: 'transfer', label: 'เซ็นสัญญา' },
   { id: 'shop', label: 'ร้านค้าไอเท็ม' },
@@ -89,6 +91,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'starpass', label: 'Star Pass' },
   { id: 'items', label: 'ไอเท็ม' },
   { id: 'gacha', label: 'กาชาปอง' },
+  { id: 'fusion', label: 'ผสมการ์ด' },
   { id: 'redeem', label: 'แลกโค้ด' },
   { id: 'inbox', label: 'กล่องจดหมาย' },
   { id: 'dailylogin', label: 'เข้าเกมรายวัน' },
@@ -265,7 +268,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'store' && <AdminStore />}
         {tab === 'drafts' && <AdminDrafts />}
         {tab === 'rates' && <AdminDraftRates />}
-        {tab === 'cup' && <AdminCup />}
+        {tab === 'league' && <AdminLeague />}
         {tab === 'rankup' && <AdminRankUp />}
         {tab === 'transfer' && <AdminTransfer />}
         {tab === 'shop' && <AdminShop />}
@@ -274,6 +277,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'starpass' && <AdminStarPass />}
         {tab === 'items' && <AdminItems />}
         {tab === 'gacha' && <AdminGacha />}
+        {tab === 'fusion' && <AdminFusion />}
         {tab === 'redeem' && <AdminRedeem />}
         {tab === 'inbox' && <AdminInbox />}
         {tab === 'dailylogin' && <AdminDailyLogin />}

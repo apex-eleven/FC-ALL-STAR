@@ -5,7 +5,7 @@ import type { Club, OwnedPlayer } from '@/features/club/types';
 import { appendEntry, credit, debit } from '@/features/currencies/wallet';
 import type { Wallet, WalletEntry, WalletReason } from '@/features/currencies/types';
 import { cardToPlayer } from '@/features/draft/pool';
-import { dayKeyAt } from '@/lib/dayKey';
+import { seasonIdAt } from '@/features/league/season';
 import { withItems } from '@/features/items/inventory';
 import type { PlayerCard } from '@/features/players/types';
 import { SHOP_EVENT_ID } from './constants';
@@ -37,7 +37,7 @@ export function progressOf(account: Pick<Account, 'shop'>): ShopProgress {
 
 /** The shop day a moment belongs to — daily limits start again at `dailyResetHour`. */
 export function shopDay(now: Date, config: Pick<ShopConfig, 'dailyResetHour'>): string {
-  return dayKeyAt(now, config.dailyResetHour);
+  return seasonIdAt(now, config.dailyResetHour);
 }
 
 /** Inside its start/end window and switched on. */
@@ -140,7 +140,15 @@ function credited(
   payout: readonly ShopReward[],
   reason: Extract<
     WalletReason,
-    'shop' | 'admin-grant' | 'mission' | 'starpass' | 'gacha' | 'redeem' | 'inbox' | 'login' | 'cup'
+    | 'shop'
+    | 'admin-grant'
+    | 'mission'
+    | 'starpass'
+    | 'gacha'
+    | 'fusion'
+    | 'redeem'
+    | 'inbox'
+    | 'login'
   >,
   by?: string,
 ): { ok: boolean; wallet: Wallet; ledger: WalletEntry[] } {
@@ -355,15 +363,14 @@ export type RewardDelivery =
 
 /**
  * Hands over a reward list outside a purchase — mission, chest, Star Pass, gacha, redeem-code,
- * inbox, daily-login and cup-round payouts. Same all-or-nothing rules as buying: every card is
- * checked before anything is credited.
+ * inbox and daily-login payouts. Same all-or-nothing rules as buying: every card is checked before anything is credited.
  */
 export function deliverRewards(
   account: Account,
   payout: readonly ShopReward[],
   lookup: CardLookup,
   stamp: ShopStamp,
-  reason: 'mission' | 'starpass' | 'gacha' | 'redeem' | 'inbox' | 'login' | 'cup',
+  reason: 'mission' | 'starpass' | 'gacha' | 'fusion' | 'redeem' | 'inbox' | 'login',
   eventId: string,
 ): RewardDelivery {
   const cards = delivered(account.club, payout, lookup, stamp, eventId);

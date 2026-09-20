@@ -21,6 +21,7 @@ import { normalizeState as normalizeManagerState } from '@/features/manager/mana
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
 import { normalizeDisplayName, normalizeInventory } from '@/features/items/itemsConfigStore';
+import { normalizeState as normalizeFusion } from '@/features/fusion/fusionConfigStore';
 import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigStore';
 import { normalizeProgress as normalizeRedeem } from '@/features/redeem/redeemConfigStore';
 import { normalizeProgress as normalizeInbox } from '@/features/notifications/inboxConfigStore';
@@ -126,6 +127,7 @@ function toPublic(stored: StoredAccount): Account {
     ...(account.starpass === undefined ? {} : { starpass: normalizeStarPass(account.starpass) }),
     ...(account.inventory === undefined ? {} : { inventory: normalizeInventory(account.inventory) }),
     ...(account.gacha === undefined ? {} : { gacha: normalizeGacha(account.gacha) }),
+    ...(account.fusion === undefined ? {} : { fusion: normalizeFusion(account.fusion) }),
     ...(account.redeem === undefined ? {} : { redeem: normalizeRedeem(account.redeem) }),
     ...(account.inbox === undefined ? {} : { inbox: normalizeInbox(account.inbox) }),
     ...(account.login === undefined ? {} : { login: normalizeLogin(account.login) }),
