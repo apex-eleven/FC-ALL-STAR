@@ -62,11 +62,18 @@
   --bottomnav-h: 107px;
 
   --leftnav-x: 172px;
-  --leftnav-y: 222px;
+  /*
+   * The rail has to clear the bottom bar: 942 stage - 107 bar = 835 of usable height.
+   * Five tiles at the old 222/130 ran to 872 and pushed the last one under the bar,
+   * so the rail starts higher and the pitch is a little tighter.
+   * 186 + 4x124 + 88 tile + label lands at ~806, leaving the bar clear.
+   * Adding a sixth tile means revisiting these two numbers again.
+   */
+  --leftnav-y: 186px;
   --leftnav-w: 96px;
   --leftnav-tile-w: 96px;
   --leftnav-tile-h: 88px;
-  --leftnav-pitch: 130px;
+  --leftnav-pitch: 124px;
 
   --rail-x: 1150px;
   --rail-w: 744px;
