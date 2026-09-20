@@ -90,7 +90,7 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
         : {},
     club,
     squad: normalizeSquad(data.squad, owned),
-    league: (data.league as Account['league']) ?? undefined,
+    cup: (data.cup as Account['cup']) ?? undefined,
     // Listed field by field like everything else here — an unlisted field is
     // dropped on load, and the watch list and locks would vanish on every refresh.
     transfer:

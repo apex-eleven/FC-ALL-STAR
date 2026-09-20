@@ -6,7 +6,7 @@ import AnnouncementOverlay from '@/components/announcement/AnnouncementOverlay';
 import AuthScreen from '@/components/auth/AuthScreen';
 import DraftScreen from '@/components/draft/DraftScreen';
 import ClubScreen from '@/components/club/ClubScreen';
-import LeagueScreen from '@/components/league/LeagueScreen';
+import CupScreen from '@/components/cup/CupScreen';
 import RankUpScreen from '@/components/rankup/RankUpScreen';
 import TransferScreen from '@/components/transfer/TransferScreen';
 import ShopScreen from '@/components/shop/ShopScreen';
@@ -52,7 +52,7 @@ export default function App() {
   /**
    * The screen for the current route.
    *
-   * Draft, league, rank-up and club bring their own chrome — back button, screen
+   * Draft, cup, rank-up and club bring their own chrome — back button, screen
    * title, home shortcut — so they sit directly in the stage rather than inside
    * GameLayout's home chrome.
    */
@@ -63,10 +63,10 @@ export default function App() {
         <DraftScreen />
       </Stage>
     );
-  } else if (route === 'league') {
+  } else if (route === 'cup') {
     screen = (
       <Stage>
-        <LeagueScreen />
+        <CupScreen />
       </Stage>
     );
   } else if (route === 'rankup') {

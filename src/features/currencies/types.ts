@@ -51,6 +51,8 @@ export type WalletReason =
   | 'gacha'
   /** A prize kept from the card-fusion bench. */
   | 'fusion'
+  /** A cup run: the entry fee paid, or a round reward won. */
+  | 'cup'
   /** Rewards from a code typed into the แลกโค้ด screen. */
   | 'redeem'
   /** Attachments claimed from a mail in the inbox. */

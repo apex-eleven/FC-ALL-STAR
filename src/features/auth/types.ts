@@ -2,7 +2,7 @@ import type { Entity } from '@/types/common';
 import type { Wallet, WalletEntry } from '@/features/currencies/types';
 import type { DraftProgress } from '@/features/draft/types';
 import type { Club } from '@/features/club/types';
-import type { LeagueState } from '@/features/league/types';
+import type { CupState } from '@/features/cup/types';
 import type { Squad } from '@/features/squad/types';
 import type { TransferProgress } from '@/features/transfers/types';
 import type { ShopProgress } from '@/features/shop/types';
@@ -50,10 +50,10 @@ export interface Account extends Entity {
   /** Starting eleven and bench. Repaired on read against the cards still owned. */
   squad: Squad;
   /**
-   * Today's league standing. Absent on accounts created before the league existed —
-   * the provider fills it in on first open.
+   * Cup runs, entries used, and the trophy cabinet. Absent until the first entry —
+   * `currentCup` fills it in and rolls it over when the cup day changes.
    */
-  league?: LeagueState;
+  cup?: CupState;
   /**
    * Signing-market watch list and sell locks. Absent on accounts created before the
    * market existed, which reads as nothing watched and nothing locked.

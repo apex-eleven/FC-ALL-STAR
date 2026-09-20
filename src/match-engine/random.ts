@@ -2,7 +2,7 @@
  * ตัวสุ่มแบบมี seed — seed เดิมได้ผลเดิมเสมอ
  *
  * ย้ายมาจาก `@/utils/seededRandom` ของ repo เก่า เพื่อให้ match-engine ไม่ต้องพึ่งไฟล์นอกโฟลเดอร์
- * (repo ใหม่มี seeded() ของตัวเองอยู่ที่ features/league/season.ts — คนละตัว อย่าสลับกัน
+ * (repo ใหม่มี seeded() ของตัวเองอยู่ที่ features/sim/seeded.ts — คนละตัว อย่าสลับกัน
  *  เพราะ seed เดิมต้องให้ผลการจำลองเดิมเป๊ะ)
  */
 

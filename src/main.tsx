@@ -15,7 +15,7 @@ import { RedeemProvider } from '@/features/redeem/RedeemContext';
 import { InboxProvider } from '@/features/notifications/InboxContext';
 import { DailyLoginProvider } from '@/features/dailylogin/DailyLoginContext';
 import { DraftProvider } from '@/features/draft/DraftContext';
-import { LeagueProvider } from '@/features/league/LeagueContext';
+import { CupProvider } from '@/features/cup/CupContext';
 import { AnnouncementProvider } from '@/features/announcement/AnnouncementContext';
 import { RankUpProvider } from '@/features/rankup/RankUpContext';
 import { TransferProvider } from '@/features/transfers/TransferContext';
@@ -41,7 +41,7 @@ const root = createRoot(container);
 //
 // Players sits above drafts because a draft's pool is a list of card ids that the
 // catalogue resolves — the packs cannot be built without it. Crests sit right under
-// it: they add to the team rating that the league and manager mode read. Star Pass and missions
+// it: they add to the team rating that the cup and manager mode read. Star Pass and missions
 // sit right under it (card rewards resolve there too) and above everything that
 // counts toward them; missions give Star Pass XP, so the pass is outermost. Items
 // sit between: the premium ticket needs the pass, manager mode needs the shield. The
@@ -65,7 +65,7 @@ function render() {
                             <ItemsProvider>
                               <MissionProvider>
                                 <DraftProvider>
-                                  <LeagueProvider>
+                                  <CupProvider>
                                     <WalkoutProvider>
                                       <RankUpProvider>
                                         <TransferProvider>
@@ -84,7 +84,7 @@ function render() {
                                         </TransferProvider>
                                       </RankUpProvider>
                                     </WalkoutProvider>
-                                  </LeagueProvider>
+                                  </CupProvider>
                                 </DraftProvider>
                               </MissionProvider>
                             </ItemsProvider>

@@ -5,7 +5,7 @@ import type { Club, OwnedPlayer } from '@/features/club/types';
 import { appendEntry, credit, debit } from '@/features/currencies/wallet';
 import type { Wallet, WalletEntry, WalletReason } from '@/features/currencies/types';
 import { cardToPlayer } from '@/features/draft/pool';
-import { seasonIdAt } from '@/features/league/season';
+import { dayKeyAt } from '@/lib/dayKey';
 import { withItems } from '@/features/items/inventory';
 import type { PlayerCard } from '@/features/players/types';
 import { SHOP_EVENT_ID } from './constants';
@@ -37,7 +37,7 @@ export function progressOf(account: Pick<Account, 'shop'>): ShopProgress {
 
 /** The shop day a moment belongs to — daily limits start again at `dailyResetHour`. */
 export function shopDay(now: Date, config: Pick<ShopConfig, 'dailyResetHour'>): string {
-  return seasonIdAt(now, config.dailyResetHour);
+  return dayKeyAt(now, config.dailyResetHour);
 }
 
 /** Inside its start/end window and switched on. */
@@ -146,6 +146,7 @@ function credited(
     | 'starpass'
     | 'gacha'
     | 'fusion'
+    | 'cup'
     | 'redeem'
     | 'inbox'
     | 'login'
@@ -370,7 +371,7 @@ export function deliverRewards(
   payout: readonly ShopReward[],
   lookup: CardLookup,
   stamp: ShopStamp,
-  reason: 'mission' | 'starpass' | 'gacha' | 'fusion' | 'redeem' | 'inbox' | 'login',
+  reason: 'mission' | 'starpass' | 'gacha' | 'fusion' | 'cup' | 'redeem' | 'inbox' | 'login',
   eventId: string,
 ): RewardDelivery {
   const cards = delivered(account.club, payout, lookup, stamp, eventId);
