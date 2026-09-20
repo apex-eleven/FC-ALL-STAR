@@ -32,6 +32,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---- รายชื่อแอดมิน ----
+    // เจ้าตัวอ่าน document ของตัวเองได้อย่างเดียว — เกมต้องอ่านได้ ไม่งั้นถามไม่ได้ว่า
+    // ตัวเองเป็นแอดมินหรือเปล่า แล้วปุ่มแอดมินจะไม่มีวันขึ้น
+    // (checkAdmin ใน CloudAuthProvider เรียก getDoc ตรง ๆ กฎอ่านตัวนี้จึงจำเป็น
+    //  คนละเรื่องกับ exists() ที่ isAdmin() ใช้ ซึ่งทำงานในกฎด้วยกันเองไม่ต้องพึ่งสิทธิ์อ่าน)
+    // อ่านของคนอื่นไม่ได้ (จะได้ไม่รู้ว่าใครเป็นแอดมินบ้าง) และเขียนไม่ได้เลย
+    // ต้องสร้างจาก Console เท่านั้น
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // ---- ตารางจองชื่อ ----
     // ทุกคนอ่านได้ เพราะตอน sign in ต้องแปลงชื่อ -> uid ก่อนถึงจะรู้ว่า login ด้วยอะไร
     // จองได้ครั้งเดียว: create ผ่านเฉพาะตอนที่ยังไม่มีใครจอง และต้องจองเป็นของตัวเอง
@@ -68,7 +80,9 @@ service cloud.firestore {
     match /gachaFeed/{row} {
       allow read: if signedIn();
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if isAdmin();
+      // ลบได้ (ไว้ล้างประกาศ) แต่แก้ข้อความย้อนหลังไม่ได้
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     // ---- อย่างอื่นปิดหมด ----
