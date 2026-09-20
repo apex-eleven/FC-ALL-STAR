@@ -99,6 +99,7 @@ export default function AdminFusion() {
       chance: 10,
       rarity: 'common',
       announce: false,
+      showcase: false,
     };
     patch({ prizes: [...latest.current.prizes, prize] }, 'เพิ่มรางวัลแล้ว');
   }
@@ -126,6 +127,7 @@ export default function AdminFusion() {
   }
 
   const total = chanceTotal(config);
+  const pinned = config.prizes.filter((prize) => prize.showcase).length;
   const live = config.prizes.filter((prize) => prize.enabled && prize.chance > 0).length;
 
   const textField = (label: string, value: string, apply: (value: string) => void) => (
@@ -308,8 +310,12 @@ export default function AdminFusion() {
 
       <div className={styles.block}>
         <h3 className={styles.blockTitle}>
-          รางวัล ({live} รายการที่ออกได้ · น้ำหนักรวม {total})
+          รางวัล ({live} รายการที่ออกได้ · น้ำหนักรวม {total} · ปักหมุดขึ้นแท่น {pinned}/3)
         </h3>
+        <p className={styles.hint}>
+          ไม่ปักหมุดเลย = แท่นเลือกสามใบที่หายากที่สุดให้เอง · ปักแล้วสามรายการแรกจากบนลงล่าง
+          จะได้อันดับ 1 2 3 ตามลำดับ — รายการที่ปิดอยู่หรือถูกล็อคไม่ให้ออกจะไม่ขึ้นแท่น
+        </p>
 
         {config.prizes.map((prize) => (
           <div key={prize.id} className={styles.prize}>
@@ -355,6 +361,15 @@ export default function AdminFusion() {
                   </option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                className={`${styles.toggle} ${prize.showcase ? styles.toggleOn : ''}`}
+                title="ปักหมุดรางวัลนี้ขึ้นแท่นโชว์บนหน้าผสมการ์ด (ปักได้ 3 รายการ เรียงตามลำดับในตารางนี้)"
+                onClick={() => patchPrize(prize.id, { showcase: !prize.showcase })}
+              >
+                {prize.showcase ? 'โชว์บนแท่น' : 'ไม่โชว์'}
+              </button>
 
               <button
                 type="button"

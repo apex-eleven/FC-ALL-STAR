@@ -37,6 +37,15 @@ export interface FusionPrize {
   rarity: FusionRarity;
   /** Shout this one to the whole game's winners feed when a player keeps it. */
   announce: boolean;
+  /**
+   * Pin this prize to the showcase podium on the bench screen.
+   *
+   * Nothing pinned means the podium picks the three rarest by itself, which is the
+   * sensible default. Once anything is pinned the admin is driving: the first three
+   * pinned prizes take places 1, 2 and 3 **in list order**, so moving a row changes
+   * which one stands in the middle.
+   */
+  showcase: boolean;
 }
 
 export interface FusionConfig {

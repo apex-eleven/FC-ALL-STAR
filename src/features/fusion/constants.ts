@@ -54,7 +54,7 @@ function prize(
   reward: FusionPrize['reward'],
   announce = false,
 ): FusionPrize {
-  return { id, enabled: true, name: '', reward, chance, rarity, announce };
+  return { id, enabled: true, name: '', reward, chance, rarity, announce, showcase: false };
 }
 
 /**

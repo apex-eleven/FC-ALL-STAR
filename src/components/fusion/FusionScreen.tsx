@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Lock, LockOpen, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowUpDown,
+  Layers,
+  Lock,
+  LockOpen,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  Users,
+  X,
+} from 'lucide-react';
 import { useAccount } from '@/features/auth/AuthContext';
 import type { OwnedPlayer } from '@/features/club/types';
 import { RARITY_COLOR, RARITY_LABEL } from '@/features/fusion/constants';
@@ -44,6 +55,23 @@ const BLOCK_TEXT: Record<Exclude<MaterialBlock, null>, string> = {
   'not-accepted': 'ใช้ไม่ได้',
 };
 
+/** The left rail's filters. Each one answers a question a player actually asks. */
+type BenchTab = 'all' | 'usable' | 'locked';
+
+const TAB_LABEL: Record<BenchTab, string> = {
+  all: 'การ์ดทั้งหมด',
+  usable: 'ใช้ได้',
+  locked: 'ล็อคไว้',
+};
+
+type BenchSort = 'ovr' | 'plus' | 'new';
+
+const SORT_LABEL: Record<BenchSort, string> = {
+  ovr: 'ค่า OVR สูงสุด',
+  plus: 'ค่าบวกสูงสุด',
+  new: 'เพิ่งได้มา',
+};
+
 /** How long the chosen card's flip runs. Mirrored in the stylesheet. */
 const FLIP_MS = 520;
 
@@ -68,6 +96,8 @@ export default function FusionScreen() {
   const { play } = useSound();
 
   const [chosen, setChosen] = useState<string[]>([]);
+  const [tab, setTab] = useState<BenchTab>('all');
+  const [sort, setSort] = useState<BenchSort>('ovr');
   const [error, setError] = useState<FusionError | null>(null);
   /** Which card of the hand was turned over. null = all still face down. */
   const [turned, setTurned] = useState<number | null>(null);
@@ -105,15 +135,27 @@ export default function FusionScreen() {
    * come first — a bench that opens on a wall of greyed-out cards reads as broken.
    */
   const bench = useMemo<{ card: OwnedPlayer; block: MaterialBlock }[]>(() => {
-    const rows = account.club.players.map((card) => ({
-      card,
-      block: materialBlock(card, account, config),
-    }));
+    const rows = account.club.players
+      .map((card) => ({ card, block: materialBlock(card, account, config) }))
+      .filter((row) => {
+        if (tab === 'usable') return row.block === null;
+        if (tab === 'locked') return row.block === 'locked';
+        return true;
+      });
+
+    const order = (row: { card: OwnedPlayer }) => {
+      if (sort === 'plus') return row.card.plus ?? 0;
+      if (sort === 'new') return Date.parse(row.card.acquiredAt) || 0;
+      return ratingWithPlus(row.card);
+    };
+
     return rows.sort((a, b) => {
+      // Usable cards first whatever the sort — a bench that opens on a wall of
+      // greyed-out cards reads as broken.
       if ((a.block === null) !== (b.block === null)) return a.block === null ? -1 : 1;
-      return ratingWithPlus(b.card) - ratingWithPlus(a.card);
+      return order(b) - order(a);
     });
-  }, [account, config]);
+  }, [account, config, tab, sort]);
 
   const poolEmpty = livePrizes(config).length === 0;
 
@@ -124,10 +166,14 @@ export default function FusionScreen() {
    * เพราะรางวัลมีทั้งเงิน ไอเท็ม และการ์ด ซึ่งเทียบมูลค่ากันตรง ๆ ไม่ได้
    */
   const showcase = useMemo(() => {
+    const live = livePrizes(config);
+    // แอดมินปักหมุดไว้ = ใช้ตามนั้น เรียงตามลำดับในตาราง
+    const pinned = live.filter((prize) => prize.showcase).slice(0, 3);
     const rank = (rarity: (typeof FUSION_RARITIES)[number]) => FUSION_RARITIES.indexOf(rarity);
-    const top = [...livePrizes(config)]
-      .sort((a, b) => rank(b.rarity) - rank(a.rarity) || a.chance - b.chance)
-      .slice(0, 3);
+    const top =
+      pinned.length > 0
+        ? pinned
+        : [...live].sort((a, b) => rank(b.rarity) - rank(a.rarity) || a.chance - b.chance).slice(0, 3);
     // ที่ 2 ซ้าย ที่ 1 กลาง ที่ 3 ขวา — แท่นรับรางวัลอ่านจากกลางออกข้าง
     return [1, 0, 2].flatMap((index) =>
       top[index] ? [{ prize: top[index]!, place: index + 1 }] : [],
@@ -266,35 +312,57 @@ export default function FusionScreen() {
 
   return (
     <div className={styles.screen}>
+      <button type="button" className={styles.back} onClick={() => navigate('home')}>
+        <ArrowLeft size={30} strokeWidth={2.6} />
+      </button>
+
       <header className={styles.head}>
-        <h1 className={styles.title}>{config.title}</h1>
-        <p className={styles.subtitle}>{config.subtitle}</p>
+        <span className={styles.crest} aria-hidden="true">
+          <Trophy size={34} strokeWidth={2.2} />
+        </span>
+        <div>
+          <h1 className={styles.title}>{config.title}</h1>
+          <p className={styles.subtitle}>{config.subtitle}</p>
+        </div>
       </header>
 
       <button type="button" className={styles.close} onClick={() => navigate('home')}>
-        <X size={26} strokeWidth={2.4} />
+        <X size={28} strokeWidth={2.4} />
       </button>
 
       <div className={styles.status}>
-        <span className={styles.counter}>
-          เลือกแล้ว {chosen.length} / {need}
+        <span className={styles.statusIcon} aria-hidden="true">
+          <Layers size={26} strokeWidth={2.2} />
         </span>
-        <button
-          type="button"
-          className={styles.fuse}
-          onClick={startFusion}
-          disabled={chosen.length < need || poolEmpty || !config.enabled}
-        >
-          ผสมการ์ด
-        </button>
+        <span className={styles.counter}>
+          เลือกแล้ว <b className={styles.counterNow}>{chosen.length}</b> / {need}
+        </span>
       </div>
+
+      <button
+        type="button"
+        className={styles.fuse}
+        onClick={startFusion}
+        disabled={chosen.length < need || poolEmpty || !config.enabled}
+      >
+        ผสมการ์ด
+        <Sparkles size={24} strokeWidth={2.4} />
+      </button>
 
       {poolEmpty ? <p className={styles.error}>{ERROR_TEXT.empty}</p> : null}
       {error ? <p className={styles.error}>{ERROR_TEXT[error]}</p> : null}
 
       {showcase.length > 0 ? (
         <div className={styles.showcase}>
-          <span className={styles.showcaseTitle}>รางวัลใหญ่ที่สุด</span>
+          <div className={styles.showcaseHead}>
+            <span className={styles.showcaseIcon} aria-hidden="true">
+              <ShieldCheck size={30} strokeWidth={2.2} />
+            </span>
+            <div>
+              <span className={styles.showcaseTitle}>รางวัลใหญ่ที่สุด</span>
+              <span className={styles.showcaseNote}>โอกาสได้รับการ์ดระดับสูง</span>
+            </div>
+          </div>
           <div className={styles.podium}>
             {showcase.map(({ prize, place }) => {
               const detail = view(prize.reward);
@@ -316,7 +384,51 @@ export default function FusionScreen() {
       ) : null}
 
       <div className={`${styles.body} ${showcase.length > 0 ? styles.bodyBelow : ''}`}>
-        <div className={styles.grid}>
+        <section className={styles.bench}>
+          <nav className={styles.tabs} aria-label="ตัวกรองการ์ด">
+            {(['all', 'usable', 'locked'] as const).map((id) => (
+              <button
+                type="button"
+                key={id}
+                className={`${styles.tab} ${tab === id ? styles.tabOn : ''}`}
+                onClick={() => setTab(id)}
+              >
+                {id === 'all' ? (
+                  <Layers size={24} strokeWidth={2.2} />
+                ) : id === 'usable' ? (
+                  <Users size={24} strokeWidth={2.2} />
+                ) : (
+                  <Lock size={24} strokeWidth={2.2} />
+                )}
+                <span>{TAB_LABEL[id]}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className={styles.benchMain}>
+            <div className={styles.benchHead}>
+              <span className={styles.benchIcon} aria-hidden="true">
+                <Layers size={24} strokeWidth={2.2} />
+              </span>
+              <h2 className={styles.benchTitle}>{TAB_LABEL[tab]}</h2>
+              <label className={styles.sort}>
+                <ArrowUpDown size={18} strokeWidth={2.2} />
+                <span>เรียงตาม:</span>
+                <select
+                  className={styles.sortSelect}
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as BenchSort)}
+                >
+                  {(['ovr', 'plus', 'new'] as const).map((id) => (
+                    <option key={id} value={id}>
+                      {SORT_LABEL[id]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className={styles.grid}>
           {bench.map(({ card, block }) => {
             const picked = chosen.includes(card.id);
             const isLocked = locked.has(card.id);
@@ -333,7 +445,7 @@ export default function FusionScreen() {
                   onClick={() => toggle(card, block)}
                   disabled={block !== null}
                 >
-                  <SquadCard player={card} scale={0.62} interactive={false} />
+                  <SquadCard player={card} scale={0.88} interactive={false} />
                 </button>
 
                 {block !== null ? <span className={styles.badge}>{BLOCK_TEXT[block]}</span> : null}
@@ -360,8 +472,10 @@ export default function FusionScreen() {
             );
           })}
 
-          {bench.length === 0 ? <p className={styles.empty}>ยังไม่มีการ์ดในสโมสร</p> : null}
-        </div>
+              {bench.length === 0 ? <p className={styles.empty}>ไม่มีการ์ดในหมวดนี้</p> : null}
+            </div>
+          </div>
+        </section>
 
         <aside className={styles.side}>
           <section className={styles.panel}>

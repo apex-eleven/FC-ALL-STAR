@@ -97,6 +97,7 @@ export function normalizeConfig(value: unknown): FusionConfig {
       chance: int(entry.chance, 0, MAX_CHANCE, 0),
       rarity: rarity(entry.rarity),
       announce: bool(entry.announce, false),
+      showcase: bool(entry.showcase, false),
     });
   }
 
