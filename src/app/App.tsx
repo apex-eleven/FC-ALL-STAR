@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import GameLayout from '@/components/layout/GameLayout';
 import MobileGate from '@/components/layout/MobileGate';
+import SaveErrorBanner from '@/components/layout/SaveErrorBanner';
 import Stage from '@/components/layout/Stage';
 import AnnouncementOverlay from '@/components/announcement/AnnouncementOverlay';
 import AuthScreen from '@/components/auth/AuthScreen';
@@ -155,6 +156,7 @@ export default function App() {
   return (
     <>
       <MobileGate />
+      <SaveErrorBanner />
       {screen}
       <AnnouncementOverlay />
     </>

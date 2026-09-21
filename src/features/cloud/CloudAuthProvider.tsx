@@ -43,7 +43,9 @@ import {
   resolveRole,
 } from '@/features/auth/constants';
 import type { Account, AuthResult, AuthStatus } from '@/features/auth/types';
-import { AuthContext, type AuthValue, type SignUpInput } from '@/features/auth/AuthContext';
+import { AuthContext, type AuthValue, type SaveError, type SignUpInput } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
+import { describeError, reportSaveError } from './cloudSaveErrors';
 import { PATHS, cloudAuth, cloudDb, usernameToEmail } from './firebase';
 
 const OK: AuthResult = { ok: true, error: null };
@@ -208,6 +210,11 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [account, setAccount] = useState<Account | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [saveError, setSaveError] = useState<SaveError | null>(null);
+  // How many saves have failed in a row, and when the admins were last told. Refs,
+  // not state: they are read inside the save path, which must not re-create itself.
+  const failures = useRef(0);
+  const lastReport = useRef(0);
   // Writes are frequent (every pull, every squad change). Keeping the latest account
   // in a ref lets updateAccount apply its mutation without re-subscribing anything.
   const accountRef = useRef<Account | null>(null);
@@ -406,6 +413,28 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
    * connection. A failed write is logged and the next change retries the whole
    * document, so the save converges rather than drifting.
    */
+  /**
+   * A save was refused: put the bar up, and tell the admins.
+   *
+   * The report is throttled to one a minute per player. Every move calls the save, so
+   * a player stuck in a failing state would otherwise file a report per tap.
+   */
+  const saveFailed = useCallback((account: Account, error: unknown) => {
+    failures.current += 1;
+    const message = describeError(error);
+    setSaveError({ message, at: new Date().toISOString(), count: failures.current });
+
+    const now = Date.now();
+    if (now - lastReport.current < 60_000) return;
+    lastReport.current = now;
+    void reportSaveError({
+      uid: account.id,
+      username: displayNameOf(account),
+      message,
+      count: failures.current,
+    });
+  }, []);
+
   const updateAccount = useCallback((mutate: (account: Account) => Account) => {
     const current = accountRef.current;
     if (!current) return;
@@ -425,15 +454,24 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
     // applied and play carries on — a save that failed to upload must never take the
     // move with it.
     try {
-      void setDoc(reference, { ...toDocument(next), updatedAt: serverTimestamp() }).catch(
+      void setDoc(reference, { ...toDocument(next), updatedAt: serverTimestamp() }).then(
+        () => {
+          // One good save clears the bar — the save converges, as noted above.
+          if (failures.current > 0) {
+            failures.current = 0;
+            setSaveError(null);
+          }
+        },
         (error: unknown) => {
           console.error('[cloud] ไม่สามารถบันทึกเซฟขึ้นคลาวด์ได้', error);
+          saveFailed(next, error);
         },
       );
     } catch (error) {
       console.error('[cloud] ข้อมูลเซฟไม่ถูกรูปแบบ จึงไม่ได้อัปโหลด', error);
+      saveFailed(next, error);
     }
-  }, []);
+  }, [saveFailed]);
 
   const updateOther = useCallback(
     async (username: string, mutate: (account: Account) => Account): Promise<boolean> => {
@@ -499,6 +537,7 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
       // Cloud admin is the `admins/{uid}` document, not the username constant: a name
       // anyone can register must not grant the panel on a public site.
       isAdmin,
+      saveError,
       signUp,
       signIn,
       signOut,
@@ -520,6 +559,7 @@ export function CloudAuthProvider({ children }: CloudAuthProviderProps) {
       updateAccount,
       updateOther,
       listAccounts,
+      saveError,
     ],
   );
 

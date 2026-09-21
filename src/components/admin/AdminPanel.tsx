@@ -31,6 +31,7 @@ import AdminStarPass from './AdminStarPass';
 import AdminItems from './AdminItems';
 import AdminGacha from './AdminGacha';
 import AdminFusion from './AdminFusion';
+import AdminSaveErrors from './AdminSaveErrors';
 import AdminRedeem from './AdminRedeem';
 import AdminInbox from './AdminInbox';
 import AdminDailyLogin from './AdminDailyLogin';
@@ -65,6 +66,7 @@ type Tab =
   | 'items'
   | 'gacha'
   | 'fusion'
+  | 'saveErrors'
   | 'redeem'
   | 'inbox'
   | 'dailylogin'
@@ -92,6 +94,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'items', label: 'ไอเท็ม' },
   { id: 'gacha', label: 'กาชาปอง' },
   { id: 'fusion', label: 'ผสมการ์ด' },
+  { id: 'saveErrors', label: 'เซฟล้มเหลว' },
   { id: 'redeem', label: 'แลกโค้ด' },
   { id: 'inbox', label: 'กล่องจดหมาย' },
   { id: 'dailylogin', label: 'เข้าเกมรายวัน' },
@@ -278,6 +281,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'items' && <AdminItems />}
         {tab === 'gacha' && <AdminGacha />}
         {tab === 'fusion' && <AdminFusion />}
+        {tab === 'saveErrors' && <AdminSaveErrors />}
         {tab === 'redeem' && <AdminRedeem />}
         {tab === 'inbox' && <AdminInbox />}
         {tab === 'dailylogin' && <AdminDailyLogin />}

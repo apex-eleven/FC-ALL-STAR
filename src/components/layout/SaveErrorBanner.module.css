@@ -1,0 +1,72 @@
+/*
+ * Fixed to the window, not the 2048x942 stage: these must read the same on a phone
+ * as on a desktop, and stay above every screen the stage can show.
+ */
+.stack {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(760px, calc(100vw - 16px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #fff;
+  pointer-events: auto;
+}
+
+.bad {
+  border: 1px solid rgba(255, 140, 140, 0.7);
+  background: rgba(150, 20, 30, 0.95);
+}
+
+.warn {
+  border: 1px solid rgba(255, 210, 120, 0.7);
+  background: rgba(120, 78, 10, 0.95);
+}
+
+.text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.count {
+  opacity: 0.85;
+}
+
+/* Firestore's own words, for the admin. Small and wrappable — they can be long. */
+.detail {
+  display: block;
+  margin-top: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+
+.close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  cursor: pointer;
+}

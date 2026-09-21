@@ -103,4 +103,5 @@ export const PATHS = {
   configDoc: 'admin',
   leaderboard: 'leaderboard',
   gachaFeed: 'gachaFeed',
+  saveErrors: 'saveErrors',
 } as const;

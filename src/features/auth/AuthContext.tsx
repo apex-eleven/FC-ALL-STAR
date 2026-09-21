@@ -47,10 +47,25 @@ export interface SignUpInput {
   adminCode?: string;
 }
 
+/** The latest save the store refused, or null while saves are going through. */
+export interface SaveError {
+  message: string;
+  /** ISO time of the most recent failure. */
+  at: string;
+  /** Failed saves in a row. Resets to null on the first save that succeeds. */
+  count: number;
+}
+
 export interface AuthValue {
   status: AuthStatus;
   account: Account | null;
   isAdmin: boolean;
+  /**
+   * Set while the account is not reaching its store. The game keeps running from
+   * memory either way, so without this a failed save is invisible until the player
+   * reloads and finds their progress gone.
+   */
+  saveError: SaveError | null;
   signUp(input: SignUpInput): Promise<AuthResult>;
   signIn(username: string, password: string): Promise<AuthResult>;
   signOut(): Promise<void>;
@@ -339,6 +354,9 @@ export function LocalAuthProvider({ children, store = localAccountStore }: AuthP
       status,
       account,
       isAdmin: account?.role === 'admin',
+      // The browser store writes synchronously and has never been the one losing
+      // saves; only the cloud path reports.
+      saveError: null,
       signUp,
       signIn,
       signOut,
