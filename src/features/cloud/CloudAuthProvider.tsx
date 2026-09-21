@@ -63,7 +63,10 @@ function accountDoc(uid: string) {
 }
 
 /** Repairs a document read from Firestore, the same way the local store repairs storage. */
-function toAccount(uid: string, data: Record<string, unknown>): Account {
+function toAccount(uid: string, raw: Record<string, unknown>): Account {
+  // Arrays boxed on the way out are unboxed before any normaliser sees them, so the
+  // cup's bracket comes back as the `CupTie[][]` its own code expects.
+  const data = unboxNested(raw);
   const username = typeof data.username === 'string' ? data.username : 'player';
   const club = { players: withoutLegacy(normalizeClub(data.club).players) };
   const owned = indexOwned(club.players);
@@ -125,7 +128,11 @@ function toAccount(uid: string, data: Record<string, unknown>): Account {
  */
 function stripUndefined<T>(value: T): T {
   if (Array.isArray(value)) {
-    return value.map((entry) => stripUndefined(entry)) as unknown as T;
+    // An array directly inside an array is the other thing Firestore throws on
+    // synchronously — see NESTED below — so each inner one is boxed on the way out.
+    return value.map((entry) =>
+      Array.isArray(entry) ? { [NESTED]: stripUndefined(entry) } : stripUndefined(entry),
+    ) as unknown as T;
   }
 
   if (value && typeof value === 'object') {
@@ -137,6 +144,47 @@ function stripUndefined<T>(value: T): T {
     return clean as T;
   }
 
+  return value;
+}
+
+/**
+ * Box for an array that sits directly inside another array.
+ *
+ * Firestore stores arrays of values and arrays of maps, but not arrays of arrays —
+ * it rejects the whole document with "Nested arrays are not supported", and throws
+ * **synchronously**, so the `.catch` on the write never sees it. The cup keeps its
+ * bracket as `rounds: CupTie[][]`, which meant every save after entering a cup was
+ * refused, the game carried on from memory, and the next load brought back the last
+ * save from before the entry: tickets un-spent, pulls gone.
+ *
+ * Boxing happens only at this boundary. The game keeps its natural shape in memory
+ * and in localStorage; `unboxNested` puts it back on the way in.
+ */
+const NESTED = '__nested';
+
+/** The inverse of the boxing in `stripUndefined`, applied to everything read back. */
+function unboxNested<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => {
+      if (
+        entry &&
+        typeof entry === 'object' &&
+        !Array.isArray(entry) &&
+        Object.keys(entry).length === 1 &&
+        Array.isArray((entry as Record<string, unknown>)[NESTED])
+      ) {
+        return unboxNested((entry as Record<string, unknown>)[NESTED]);
+      }
+      return unboxNested(entry);
+    }) as unknown as T;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = unboxNested(entry);
+    }
+    return out as T;
+  }
   return value;
 }
 
