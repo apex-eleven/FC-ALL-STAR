@@ -11,8 +11,14 @@
  *
  * ต้องมี ffmpeg ในเครื่อง (https://ffmpeg.org/download.html)
  *
- *   node scripts/compress-media.mjs           ดูว่าจะเปลี่ยนอะไรบ้าง (ไม่แตะไฟล์)
- *   node scripts/compress-media.mjs --apply   ทำจริง
+ *   node scripts/compress-media.mjs                 ดูว่าจะเปลี่ยนอะไรบ้าง (ไม่แตะไฟล์)
+ *   node scripts/compress-media.mjs --apply         ทำจริง
+ *   node scripts/compress-media.mjs --apply --loop=7.08
+ *                                                   ตั้งจุดวนลูปของ walkout (ค่าปกติ 7.08)
+ *
+ * --loop ต้องตรงกับ "วนลูปตั้งแต่วินาที" ในแผงแอดมิน walkout — สคริปต์บังคับให้มี
+ * keyframe ตรงจุดนั้นพอดี ลูปถึงจะกระโดดกลับได้เนียน ไม่งั้นบีบแล้ว keyframe ย้ายที่
+ * แล้วมือถือต้องถอดรหัสย้อนหลายวินาทีทุกครั้งที่วน
  */
 import { readdir, readFile, writeFile, rename, unlink, stat, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -24,6 +30,18 @@ import { fileURLToPath } from 'node:url';
 const run = promisify(execFile);
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const apply = process.argv.includes('--apply');
+
+/**
+ * The walkout's loop point, in seconds. Has to match the admin panel's setting —
+ * see the header. Read from `--loop=` because the real value lives in the game's
+ * settings, which a build-time script cannot see.
+ */
+const loopArg = process.argv.find((arg) => arg.startsWith('--loop='));
+const LOOP_AT = loopArg ? Number.parseFloat(loopArg.slice('--loop='.length)) : 7.08;
+if (!Number.isFinite(LOOP_AT) || LOOP_AT < 0) {
+  console.error(`--loop ต้องเป็นตัวเลขวินาที ได้ "${loopArg}"`);
+  process.exit(1);
+}
 
 const PLAYERS = join(root, 'public', 'players');
 const VIDEO = join(root, 'src', 'assets', 'video');
@@ -211,9 +229,17 @@ async function rebuildManifest() {
 /**
  * CRF 23 at 1080 wide. The source clips are 1440x1080 at 29 Mbps — far beyond what a
  * looping overlay needs, and the single biggest thing in the repo.
+ *
+ * `walkout.mp4` is the single clip the walkout plays now. The two old names are
+ * still listed so an old checkout compresses as it always did.
+ *
+ * Keyframes: one forced at the loop point, and one every two seconds besides. The
+ * loop point is the one that matters — the walkout seeks back to it on every lap,
+ * and a seek that lands on a keyframe is instant. Everywhere else a keyframe every
+ * two seconds keeps admin-panel scrubbing responsive without bloating the file.
  */
 async function compressVideos() {
-  const clips = ['walkout-flight.mp4', 'walkout-stage.mp4'];
+  const clips = ['walkout.mp4', 'walkout-flight.mp4', 'walkout-stage.mp4'];
 
   for (const name of clips) {
     const from = join(VIDEO, name);
@@ -232,6 +258,9 @@ async function compressVideos() {
       '-crf', '23',
       '-preset', 'medium',
       '-vf', 'scale=1080:-2',
+      // A keyframe exactly where the walkout loops, and every two seconds otherwise.
+      '-force_key_frames', name === 'walkout.mp4' ? `0,${LOOP_AT}` : '0',
+      '-g', '120',
       '-c:a', 'aac',
       '-b:a', '96k',
       '-movflags', '+faststart',
@@ -245,6 +274,9 @@ async function compressVideos() {
       await unlink(from);
       await rename(temp, from);
       console.log(`วิดีโอ ${name}: ${mb(before)} -> ${mb(after)}`);
+      if (name === 'walkout.mp4') {
+        console.log(`  keyframe ที่จุดวนลูป ${LOOP_AT}s — ตั้งในแผงแอดมินให้ตรงกันด้วย`);
+      }
     } else {
       await unlink(temp);
       console.log(`วิดีโอ ${name}: ${mb(before)} — บีบแล้วไม่เล็กลง ข้ามไป`);
