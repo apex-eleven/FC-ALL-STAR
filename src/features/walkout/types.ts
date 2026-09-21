@@ -16,26 +16,24 @@ export interface WalkoutConfig {
   useMinRating: boolean;
   /** Cards at or above this rating get the walkout, when `useMinRating` is on. */
   minRating: number;
-  /** Seconds into the flight clip at which each fact appears. */
+  /** Seconds into the clip at which each fact appears, during the intro. */
   nationAt: number;
   positionAt: number;
   clubAt: number;
   /**
-   * How long before the flight clip ends the stage clip starts, in seconds.
+   * Where the loop starts, in seconds into the clip.
    *
-   * Must fit inside the flight's closing white flash, which is fully saturated for
-   * only 0.208s (6.833s to 7.042s, measured frame by frame). A longer crossfade
-   * starts while the image is still resolving and the join becomes visible.
+   * One file does what two used to: everything before this plays once as the intro,
+   * and from here to the end repeats until the player leaves. The card appears the
+   * first time playback crosses this point.
+   *
+   * A point on a keyframe loops without a hitch; anywhere else the browser has to
+   * decode forward from the keyframe before it, which can stutter on a phone.
    */
-  crossfade: number;
-  /**
-   * How long the white veil takes to clear once the stage clip is showing. The flash
-   * is pure white and the stage opens dark, so cutting straight between them is a
-   * jolt; holding the white and dissolving it reads as the flash blowing out.
-   */
-  flashOut: number;
-  /** 0 means the stage loops until the player closes it. */
+  loopStart: number;
+  /** 0 means the loop runs until the player closes it. */
   autoCloseSeconds: number;
 }
 
-export type WalkoutPhase = 'loading' | 'flight' | 'stage';
+/** `intro` plays once up to `loopStart`; `loop` repeats from there to the end. */
+export type WalkoutPhase = 'loading' | 'intro' | 'loop';

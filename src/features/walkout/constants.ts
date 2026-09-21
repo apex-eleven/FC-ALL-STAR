@@ -3,17 +3,17 @@ import type { WalkoutConfig } from './types';
 export const WALKOUT_CONFIG_KEY = 'football-home-ui:walkout:v1';
 
 /**
- * Timings measured against the shipped clips, frame by frame.
+ * Measured against the shipped clip, `src/assets/video/walkout.mp4`.
  *
- * Flight: 7.042s at 24fps. It brightens from about 6.5s and reaches full white at
- * frame 164 (6.833s), holding it to the end — a saturated window of 0.208s. That
- * window is the only place a cut is invisible, which is why `crossfade` defaults
- * just inside it rather than to something more generous.
+ * 28.14s at 60fps, 1080x810, with an audio track. It is the old flight (7.06s) and
+ * stage (21.06s) clips joined end to end without re-encoding, so the picture is
+ * unchanged. The stage half starts on a keyframe at **7.08s**, which is why that is
+ * the default loop point: seeking to a keyframe is instant, so the loop has no seam.
  *
- * Stage: 3.000s at 30fps, loops, opens on a dark lantern-lit arena.
+ * Keyframes in the shipped clip, for picking another loop point that stays smooth:
+ * 3.86 · 5.52 · 6.94 · 7.08 · 11.30 · 15.47 · 19.63 · 23.80 · 27.97
  *
- * The three reveals sit in the first two thirds so the last stretch is pure build-up
- * into the flash.
+ * The three reveals sit early in the intro so the last stretch is pure build-up.
  */
 export const DEFAULT_WALKOUT: WalkoutConfig = {
   enabled: true,
@@ -25,16 +25,21 @@ export const DEFAULT_WALKOUT: WalkoutConfig = {
   nationAt: 1.5,
   positionAt: 3,
   clubAt: 4.5,
-  crossfade: 0.2,
-  flashOut: 0.65,
+  loopStart: 7.08,
   autoCloseSeconds: 0,
 };
 
-export const FLIGHT_DURATION = 7.042;
-export const STAGE_DURATION = 3;
+/** Length of the shipped clip. Only a fallback — the real length is read off the video. */
+export const CLIP_DURATION = 28.14;
 
-/** When the flight's white flash reaches full saturation, in seconds. */
-export const FLASH_START = 6.833;
+/**
+ * How close to the end the loop jumps back.
+ *
+ * Seeking a frame early rather than waiting for `ended` is what makes it seamless:
+ * `ended` pauses the element first, and that pause is a visible black frame on most
+ * phones. One frame at 60fps.
+ */
+export const LOOP_LEAD = 1 / 60;
 
 export const MIN_RATING_FLOOR = 1;
 export const MIN_RATING_CEILING = 199;

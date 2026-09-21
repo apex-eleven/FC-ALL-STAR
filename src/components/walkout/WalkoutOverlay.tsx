@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import flightClip from '@/assets/video/walkout-flight.mp4';
-import stageClip from '@/assets/video/walkout-stage.mp4';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import walkoutClip from '@/assets/video/walkout.mp4';
 import type { PullOutcome } from '@/features/draft/pull';
 import { duckMusic, unduckMusic } from '@/features/sound/music';
 import { useSound } from '@/features/sound/SoundContext';
 import { useWalkout } from '@/features/walkout/WalkoutContext';
+import { CLIP_DURATION, LOOP_LEAD } from '@/features/walkout/constants';
 import type { WalkoutPhase } from '@/features/walkout/types';
 import styles from './WalkoutOverlay.module.css';
 
@@ -23,49 +23,66 @@ interface Beat {
 /**
  * The reveal.
  *
- * Two clips, mounted together for the whole sequence. The flight plays once while
- * nation, position, and club appear in turn; the stage clip starts `crossfade`
- * seconds before the flight ends and the flight fades out over its own closing white
- * flash, so the join lands inside a frame that is already pure white.
+ * One clip. Everything before `loopStart` plays once as the intro, while nation,
+ * position and club appear in turn; from `loopStart` to the end repeats until the
+ * player leaves, and the card sits on top of it.
  *
- * Both clips carry an audio track and both play it. Browsers refuse unmuted playback
- * that was not started by a gesture, and this one starts from a `canplaythrough`
- * handler rather than from the pull button, so a refusal is expected rather than
- * exceptional: the clip is replayed muted and a button offers the sound back. The
- * animation never depends on the audio being allowed.
+ * The loop is driven by hand rather than with the `loop` attribute, because `loop`
+ * can only go back to zero — which would replay the intro every time round. A frame
+ * watcher jumps back to `loopStart` just before the end instead of waiting for
+ * `ended`: `ended` pauses the element first, and that pause is a black frame on most
+ * phones. See `LOOP_LEAD`.
  *
- * The stage loops until the player leaves. Results are already committed to the
- * account before this mounts, so skipping or closing early cannot lose a card.
+ * The clip carries an audio track. Browsers refuse unmuted playback that was not
+ * started by a gesture, and this one starts from a `canplaythrough` handler rather
+ * than from the pull button, so a refusal is expected rather than exceptional: the
+ * clip is replayed muted and a button offers the sound back. The animation never
+ * depends on the audio being allowed.
+ *
+ * Results are already committed to the account before this mounts, so skipping or
+ * closing early cannot lose a card.
  */
 export default function WalkoutOverlay({ outcome, onFinish }: WalkoutOverlayProps) {
   const { config } = useWalkout();
   const { config: sound } = useSound();
-  const flightRef = useRef<HTMLVideoElement>(null);
-  const stageRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const frame = useRef<number | null>(null);
 
   const [phase, setPhase] = useState<WalkoutPhase>('loading');
   const [shown, setShown] = useState<Set<Beat['key']>>(new Set());
-  const [veil, setVeil] = useState<'off' | 'on' | 'clearing'>('off');
   const [audioBlocked, setAudioBlocked] = useState(false);
-  const startedStage = useRef(false);
-  const fadeFrame = useRef<number | null>(null);
 
   const { player } = outcome;
 
-  // Read the audio settings through a ref inside the playback callbacks: those are
-  // memoised on the phase, and a slider moved mid-clip must not re-create them and
-  // restart a video that is already running. Seeded from the first render's values
-  // and kept in step by the effect below.
+  // Read the audio settings through a ref inside the playback callbacks, so a slider
+  // moved mid-clip does not re-create them and restart a video already running.
   const wanted = useRef({ enabled: sound.videoEnabled, volume: sound.videoVolume });
 
-  const beats: Beat[] = [
-    { key: 'nation', label: 'ชาติ', value: player.nation },
-    { key: 'position', label: 'ตำแหน่ง', value: player.position },
-    { key: 'club', label: 'สโมสร', value: player.club, thai: true },
-  ];
+  // Memoised: the frame watcher depends on it, and a fresh array every render would
+  // tear down and restart the watcher each time a fact appears.
+  const beats = useMemo<Beat[]>(
+    () => [
+      { key: 'nation', label: 'ชาติ', value: player.nation },
+      { key: 'position', label: 'ตำแหน่ง', value: player.position },
+      { key: 'club', label: 'สโมสร', value: player.club, thai: true },
+    ],
+    [player.nation, player.position, player.club],
+  );
 
   /**
-   * Starts a clip with sound if the browser allows it, muted if it does not.
+   * The loop point, held inside the clip.
+   *
+   * The config only knows a number; the clip may be shorter than that number if it
+   * was swapped for a shorter file. Half a second from the end is the floor, so there
+   * is always something to loop rather than a jump back onto the last frame.
+   */
+  const loopFrom = useCallback((video: HTMLVideoElement): number => {
+    const duration = Number.isFinite(video.duration) ? video.duration : CLIP_DURATION;
+    return Math.max(0, Math.min(config.loopStart, duration - 0.5));
+  }, [config.loopStart]);
+
+  /**
+   * Starts the clip with sound if the browser allows it, muted if it does not.
    *
    * The retry matters: a rejected unmuted `play()` leaves the element paused, so
    * without a second muted attempt a blocked autoplay policy would freeze the whole
@@ -96,127 +113,96 @@ export default function WalkoutOverlay({ outcome, onFinish }: WalkoutOverlayProp
     }
   }, []);
 
-  /** Ramps a clip's volume down by hand — HTMLMediaElement has no gain envelope. */
-  const fadeOut = useCallback((video: HTMLVideoElement | null, seconds: number) => {
-    if (!video) return;
-    if (seconds <= 0) {
-      video.volume = 0;
-      return;
-    }
-
-    const from = video.volume;
-    const startedAt = performance.now();
-
-    const step = () => {
-      const progress = Math.min(1, (performance.now() - startedAt) / (seconds * 1000));
-      video.volume = Math.max(0, from * (1 - progress));
-      if (progress < 1) fadeFrame.current = requestAnimationFrame(step);
-    };
-
-    fadeFrame.current = requestAnimationFrame(step);
-  }, []);
-
-  const toStage = useCallback(() => {
-    if (startedStage.current) return;
-    startedStage.current = true;
-
-    setPhase('stage');
-    setVeil('on');
-    void playClip(stageRef.current);
-
-    // The flight's closing note is a flash, not a tail — cutting it dead under the
-    // stage audio is harsher than riding it out across the same dissolve the picture
-    // uses.
-    fadeOut(flightRef.current, config.crossfade + config.flashOut);
-
-    // Next frame, so the browser paints the opaque veil before the transition to
-    // transparent starts. Setting both in one commit would skip the dissolve.
-    requestAnimationFrame(() => requestAnimationFrame(() => setVeil('clearing')));
-  }, [config.crossfade, config.flashOut, fadeOut, playClip]);
-
-  // Start the flight as soon as it can run through without stalling. The stage clip
-  // buffers during the flight's seven seconds, so it is ready well before the cut.
-  const onFlightReady = useCallback(() => {
-    if (phase !== 'loading') return;
-    setPhase('flight');
-    void playClip(flightRef.current).then((ok) => {
-      if (!ok) setPhase('stage');
-    });
-  }, [phase, playClip]);
-
-  const onFlightTime = useCallback(() => {
-    const video = flightRef.current;
+  /**
+   * Once per frame: reveal facts during the intro, switch to the loop when playback
+   * crosses the loop point, and jump back before the end once looping.
+   */
+  const watch = useCallback(() => {
+    const video = videoRef.current;
     if (!video) return;
 
     const time = video.currentTime;
+    const from = loopFrom(video);
+    const duration = Number.isFinite(video.duration) ? video.duration : CLIP_DURATION;
+
     setShown((current) => {
       const next = new Set(current);
       for (const beat of beats) {
         const at =
-          beat.key === 'nation'
-            ? config.nationAt
-            : beat.key === 'position'
-              ? config.positionAt
-              : config.clubAt;
+          beat.key === 'nation' ? config.nationAt : beat.key === 'position' ? config.positionAt : config.clubAt;
         if (time >= at) next.add(beat.key);
       }
       return next.size === current.size ? current : next;
     });
 
-    const duration = Number.isFinite(video.duration) ? video.duration : 7.04;
-    if (time >= duration - config.crossfade) toStage();
-  }, [beats, config, toStage]);
+    if (time >= from) setPhase((current) => (current === 'intro' ? 'loop' : current));
+
+    if (time >= duration - LOOP_LEAD) video.currentTime = from;
+
+    frame.current = requestAnimationFrame(watch);
+  }, [beats, config, loopFrom]);
+
+  const onReady = useCallback(() => {
+    if (phase !== 'loading') return;
+    setPhase('intro');
+    void playClip(videoRef.current).then((ok) => {
+      // Nothing would play at all — show the card rather than a frozen frame.
+      if (!ok) setPhase('loop');
+    });
+  }, [phase, playClip]);
+
+  // The frame watcher runs for as long as the clip is on screen.
+  useEffect(() => {
+    if (phase === 'loading') return;
+    frame.current = requestAnimationFrame(watch);
+    return () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    };
+  }, [phase, watch]);
+
+  /**
+   * Fallback for the watcher: a backgrounded tab stops animation frames, and the clip
+   * can reach its end while nobody was drawing. Going back and playing again keeps
+   * the loop alive either way.
+   */
+  const onEnded = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = loopFrom(video);
+    setPhase('loop');
+    void video.play().catch(() => undefined);
+  }, [loopFrom]);
 
   /** Recovery when the browser refused sound. A tap is a gesture, so this always works. */
   const enableAudio = useCallback(() => {
     setAudioBlocked(false);
-    const volume = wanted.current.volume;
-
-    const stage = stageRef.current;
-    const flight = flightRef.current;
-
-    if (flight) {
-      flight.muted = false;
-      // Once the stage is up the flight is mid-fade; restoring its level here would
-      // undo the dissolve, so only a clip still at full volume is touched.
-      if (!startedStage.current) flight.volume = volume;
-    }
-
-    if (stage) {
-      stage.muted = false;
-      stage.volume = volume;
-      if (startedStage.current && stage.paused) void stage.play().catch(() => undefined);
-    }
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = false;
+    video.volume = wanted.current.volume;
+    if (video.paused) void video.play().catch(() => undefined);
   }, []);
 
   // Live settings changes: a volume slider moved while the walkout is on screen
   // should be audible now, not on the next pull.
   useEffect(() => {
     wanted.current = { enabled: sound.videoEnabled, volume: sound.videoVolume };
-
-    const stage = stageRef.current;
-    if (stage) {
-      stage.muted = !sound.videoEnabled;
-      if (sound.videoEnabled) stage.volume = sound.videoVolume;
-    }
-
-    const flight = flightRef.current;
-    if (flight && !startedStage.current) {
-      flight.muted = !sound.videoEnabled;
-      if (sound.videoEnabled) flight.volume = sound.videoVolume;
-    }
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !sound.videoEnabled;
+    if (sound.videoEnabled) video.volume = sound.videoVolume;
   }, [sound.videoEnabled, sound.videoVolume]);
 
-  // Safety net: if the flight never fires `ended` — a stalled buffer, a tab that was
-  // backgrounded — the sequence still reaches the stage.
+  // Safety net: a stalled buffer must not trap the player in the intro. Given the
+  // intro's own length plus a few seconds of grace, then the card shows regardless.
   useEffect(() => {
-    if (phase !== 'flight') return;
-    const timer = window.setTimeout(toStage, 9000);
+    if (phase !== 'intro') return;
+    const timer = window.setTimeout(() => setPhase('loop'), (config.loopStart + 3) * 1000);
     return () => window.clearTimeout(timer);
-  }, [phase, toStage]);
+  }, [phase, config.loopStart]);
 
   useEffect(() => {
-    if (phase !== 'stage' || config.autoCloseSeconds <= 0) return;
+    if (phase !== 'loop' || config.autoCloseSeconds <= 0) return;
     const timer = window.setTimeout(onFinish, config.autoCloseSeconds * 1000);
     return () => window.clearTimeout(timer);
   }, [phase, config.autoCloseSeconds, onFinish]);
@@ -229,53 +215,24 @@ export default function WalkoutOverlay({ outcome, onFinish }: WalkoutOverlayProp
     return () => window.removeEventListener('keydown', onKey);
   }, [onFinish]);
 
-  // Closing mid-clip must not leave a fade running against a detached element.
-  useEffect(
-    () => () => {
-      if (fadeFrame.current !== null) cancelAnimationFrame(fadeFrame.current);
-    },
-    [],
-  );
-
   // The menu music drops under the walkout for as long as it is on screen. Tied to
   // mount rather than to a phase, so skipping, closing early, or a clip that never
-  // loads all bring it back — a duck that has to be undone by the thing that ducked
-  // it is a duck that eventually gets left on.
+  // loads all bring it back.
   useEffect(() => {
     duckMusic();
     return unduckMusic;
   }, []);
 
-  const style = {
-    '--walkout-crossfade': `${config.crossfade}s`,
-    '--walkout-flash-out': `${config.flashOut}s`,
-  } as CSSProperties;
-
   return (
-    <div className={styles.screen} style={style} role="dialog" aria-modal="true" aria-label="ผลการเปิดการ์ด">
+    <div className={styles.screen} role="dialog" aria-modal="true" aria-label="ผลการเปิดการ์ด">
       <video
-        ref={stageRef}
-        className={`${styles.video} ${styles.stage}`}
-        src={stageClip}
-        preload="auto"
-        loop
-        playsInline
-      />
-      <video
-        ref={flightRef}
-        className={`${styles.video} ${styles.flight} ${phase === 'stage' ? styles.flightOut : ''}`}
-        src={flightClip}
+        ref={videoRef}
+        className={styles.video}
+        src={walkoutClip}
         preload="auto"
         playsInline
-        onCanPlayThrough={onFlightReady}
-        onTimeUpdate={onFlightTime}
-        onEnded={toStage}
-      />
-
-      <div
-        className={`${styles.veil} ${veil === 'on' ? styles.veilOn : ''} ${
-          veil === 'clearing' ? styles.veilOut : ''
-        }`}
+        onCanPlayThrough={onReady}
+        onEnded={onEnded}
       />
 
       {phase === 'loading' && <div className={styles.loading}>กำลังโหลด…</div>}
@@ -286,7 +243,7 @@ export default function WalkoutOverlay({ outcome, onFinish }: WalkoutOverlayProp
         </button>
       )}
 
-      {phase === 'flight' && (
+      {phase === 'intro' && (
         <div className={styles.reveals}>
           {beats.map((beat) => (
             <div
@@ -294,9 +251,7 @@ export default function WalkoutOverlay({ outcome, onFinish }: WalkoutOverlayProp
               className={`${styles.reveal} ${shown.has(beat.key) ? styles.revealIn : ''}`}
             >
               <span className={styles.revealLabel}>{beat.label}</span>
-              <span
-                className={`${styles.revealValue} ${beat.thai ? styles.revealValueThai : ''}`}
-              >
+              <span className={`${styles.revealValue} ${beat.thai ? styles.revealValueThai : ''}`}>
                 {beat.value}
               </span>
             </div>
@@ -304,7 +259,7 @@ export default function WalkoutOverlay({ outcome, onFinish }: WalkoutOverlayProp
         </div>
       )}
 
-      {phase === 'stage' && (
+      {phase === 'loop' && (
         <>
           <img
             className={styles.card}

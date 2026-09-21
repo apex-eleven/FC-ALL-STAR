@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import walkoutClip from '@/assets/video/walkout.mp4';
 import { PLAYER_SETS, type PlayerSet } from '@/features/draft/types';
-import { FLASH_START, FLIGHT_DURATION } from '@/features/walkout/constants';
+import { CLIP_DURATION } from '@/features/walkout/constants';
 import { useWalkout } from '@/features/walkout/WalkoutContext';
 import type { WalkoutConfig } from '@/features/walkout/types';
 import styles from './AdminWalkout.module.css';
@@ -18,13 +19,19 @@ const BEATS: BeatField[] = [
 ];
 
 /**
- * Walkout tuning. Deliberately covers timings and the trigger rating, not the video
- * files: an 11 MB clip cannot live in localStorage, so replacing the footage is a
- * file swap in src/assets/video/ rather than an upload.
+ * Walkout tuning. Covers timings, the loop point and the trigger, not the video
+ * file itself: a 9 MB clip cannot live in localStorage or a 1 MB settings document,
+ * so replacing the footage is a file swap in src/assets/video/ rather than an upload.
+ *
+ * The loop point is picked by watching: the preview player here is the real clip,
+ * and "use this moment" takes whatever frame it is sitting on.
  */
 export default function AdminWalkout() {
   const { config, update, reset, isDefault } = useWalkout();
   const [error, setError] = useState<string | null>(null);
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const [duration, setDuration] = useState(CLIP_DURATION);
+  const [cursor, setCursor] = useState(0);
 
   const report = (result: { ok: boolean }) =>
     setError(result.ok ? null : 'บันทึกไม่สำเร็จ — พื้นที่เก็บข้อมูลอาจเต็ม');
@@ -38,16 +45,44 @@ export default function AdminWalkout() {
 
   const beatsOutOfOrder =
     config.nationAt > config.positionAt || config.positionAt > config.clubAt;
-  const beatsTooLate = BEATS.some(
-    (beat) => config[beat.key] > FLIGHT_DURATION - config.crossfade,
-  );
-  const crossfadeTooLong = config.crossfade > FLIGHT_DURATION - FLASH_START;
+  // A fact timed after the loop point never shows: the intro is over by then.
+  const beatsTooLate = BEATS.some((beat) => config[beat.key] > config.loopStart);
+  const loopTooLate = config.loopStart > duration - 0.5;
+
+  /** Takes whatever frame the preview is sitting on. */
+  function takeCursor() {
+    const video = previewRef.current;
+    if (!video) return;
+    report(update({ loopStart: Math.round(video.currentTime * 100) / 100 }));
+  }
+
+  /**
+   * Jumps the preview to a second before the end and plays, so the seam can be
+   * watched: it runs out, jumps back to the loop point, and keeps going.
+   */
+  function watchSeam() {
+    const video = previewRef.current;
+    if (!video) return;
+    video.currentTime = Math.max(0, duration - 1.5);
+    void video.play().catch(() => undefined);
+  }
+
+  /** The preview loops the same way the real overlay does, so the seam here is honest. */
+  function onPreviewTime() {
+    const video = previewRef.current;
+    if (!video) return;
+    setCursor(video.currentTime);
+    if (!video.paused && video.currentTime >= duration - 1 / 60) {
+      video.currentTime = Math.min(config.loopStart, duration - 0.5);
+    }
+  }
 
   return (
     <div className={styles.wrap}>
       <div className={styles.head}>
         <p className={styles.note}>
-          ตั้งค่าแอนิเมชัน walkout · คลิปแรกยาว {FLIGHT_DURATION} วินาที คลิปที่สองวนลูป
+          ตั้งค่าแอนิเมชัน walkout · คลิปเดียวยาว {duration.toFixed(2)} วินาที · เล่นช่วงแรกครั้งเดียว
+          แล้ววนลูปตั้งแต่จุดที่เลือกจนจบคลิป
         </p>
         <button type="button" className={styles.reset} onClick={() => report(reset())} disabled={isDefault}>
           คืนค่าเริ่มต้น
@@ -149,7 +184,82 @@ export default function AdminWalkout() {
       </div>
 
       <div className={styles.block}>
-        <h3 className={styles.blockTitle}>จังหวะในคลิปแรก</h3>
+        <h3 className={styles.blockTitle}>จุดเริ่มวนลูป</h3>
+
+        <video
+          ref={previewRef}
+          className={styles.preview}
+          src={walkoutClip}
+          controls
+          muted
+          playsInline
+          preload="metadata"
+          onLoadedMetadata={(event) => {
+            const length = event.currentTarget.duration;
+            if (Number.isFinite(length)) setDuration(length);
+          }}
+          onTimeUpdate={onPreviewTime}
+        />
+
+        <div className={styles.line}>
+          <span className={styles.lineLabel}>วนลูปตั้งแต่วินาที</span>
+          <input
+            className={styles.num}
+            value={config.loopStart}
+            inputMode="decimal"
+            aria-label="จุดเริ่มวนลูป"
+            onChange={(event) =>
+              setNumber('loopStart', event.target.value.replace(/[^\d.]/g, ''), true)
+            }
+          />
+          <span className={styles.unit}>วินาที</span>
+          <button type="button" className={styles.reset} onClick={takeCursor}>
+            ใช้เวลาที่หยุดไว้ ({cursor.toFixed(2)}s)
+          </button>
+          <button type="button" className={styles.reset} onClick={watchSeam}>
+            ดูตรงรอยต่อ
+          </button>
+        </div>
+
+        <p className={styles.legend}>
+          เลื่อนตัวเล่นข้างบนไปเฟรมที่ต้องการแล้วกด "ใช้เวลาที่หยุดไว้" · กด "ดูตรงรอยต่อ"
+          เพื่อดูว่าตอนจบคลิปแล้วกระโดดกลับมาเนียนไหม — ตัวเล่นนี้วนลูปแบบเดียวกับของจริง
+          <br />
+          จุดที่ตรงกับ keyframe จะวนได้เนียนที่สุด คลิปที่ใส่ไว้ตอนนี้มี keyframe ที่
+          3.86 · 5.52 · 6.94 · <strong>7.08</strong> · 11.30 · 15.47 · 19.63 · 23.80 · 27.97
+          (7.08 คือรอยต่อเดิมระหว่างสองคลิป) จุดอื่นใช้ได้เหมือนกันแต่อาจกระตุกนิดหน่อยบนมือถือ
+        </p>
+
+        <div className={styles.timeline}>
+          {/* The intro is everything before the loop point; the loop is the rest. */}
+          <span
+            className={styles.flash}
+            style={{
+              left: `${(Math.min(config.loopStart, duration) / duration) * 100}%`,
+              width: `${(Math.max(0, duration - config.loopStart) / duration) * 100}%`,
+            }}
+          />
+          {BEATS.map((beat) => (
+            <span
+              key={beat.key}
+              className={styles.marker}
+              style={{ left: `${(Math.min(config[beat.key], duration) / duration) * 100}%` }}
+            >
+              <span className={styles.markerLabel}>{beat.short}</span>
+            </span>
+          ))}
+        </div>
+        <p className={styles.legend}>แถบสว่างคือช่วงที่วนลูป · หมุดคือจังหวะที่โชว์ข้อมูลนักเตะ</p>
+
+        {loopTooLate && (
+          <p className={styles.warn}>
+            จุดเริ่มวนลูปชิดท้ายคลิปเกินไป — ระบบจะถอยมาให้เหลือช่วงวนอย่างน้อยครึ่งวินาที
+          </p>
+        )}
+      </div>
+
+      <div className={styles.block}>
+        <h3 className={styles.blockTitle}>จังหวะโชว์ข้อมูลนักเตะ</h3>
 
         {BEATS.map((beat) => (
           <div className={styles.line} key={beat.key}>
@@ -167,71 +277,14 @@ export default function AdminWalkout() {
           </div>
         ))}
 
-        <div className={styles.line}>
-          <span className={styles.lineLabel}>ครอสเฟดเข้าคลิปที่สอง</span>
-          <input
-            className={styles.num}
-            value={config.crossfade}
-            inputMode="decimal"
-            aria-label="ครอสเฟด"
-            onChange={(event) =>
-              setNumber('crossfade', event.target.value.replace(/[^\d.]/g, ''), true)
-            }
-          />
-          <span className={styles.unit}>
-            วินาทีก่อนคลิปแรกจบ · แฟลชขาวเต็มที่กว้าง {(FLIGHT_DURATION - FLASH_START).toFixed(2)} วินาที
-          </span>
-        </div>
-
-        <div className={styles.line}>
-          <span className={styles.lineLabel}>เวลาเฟดแฟลชขาวออก</span>
-          <input
-            className={styles.num}
-            value={config.flashOut}
-            inputMode="decimal"
-            aria-label="เฟดแฟลชออก"
-            onChange={(event) =>
-              setNumber('flashOut', event.target.value.replace(/[^\d.]/g, ''), true)
-            }
-          />
-          <span className={styles.unit}>วินาที หลังจากตัดเข้าคลิปที่สอง</span>
-        </div>
-
-        <div className={styles.timeline}>
-          {BEATS.map((beat) => (
-            <span
-              key={beat.key}
-              className={styles.marker}
-              style={{ left: `${(config[beat.key] / FLIGHT_DURATION) * 100}%` }}
-            >
-              <span className={styles.markerLabel}>{beat.short}</span>
-            </span>
-          ))}
-          <span
-            className={styles.flash}
-            style={{ width: `${((FLIGHT_DURATION - FLASH_START) / FLIGHT_DURATION) * 100}%` }}
-          />
-        </div>
-        <p className={styles.legend}>
-          แถบขาวด้านขวาคือช่วงที่คลิปแรกขาวเต็มที่ วัดทีละเฟรมได้{' '}
-          {(FLIGHT_DURATION - FLASH_START).toFixed(2)} วินาที (6.83–7.04s)
-          คลิปที่สองต้องเริ่มเล่นภายในช่วงนี้เท่านั้น รอยต่อถึงจะมองไม่เห็น
-        </p>
-
         {beatsOutOfOrder && (
           <p className={styles.warn}>
             ลำดับเวลาไม่เรียง — ธงควรมาก่อนตำแหน่ง และตำแหน่งมาก่อนสโมสร
           </p>
         )}
-        {crossfadeTooLong && (
-          <p className={styles.warn}>
-            ครอสเฟดยาวเกินช่วงแฟลชขาว ({(FLIGHT_DURATION - FLASH_START).toFixed(2)} วินาที) —
-            จะเริ่มเฟดตอนภาพยังไม่ขาว ทำให้เห็นรอยต่อ
-          </p>
-        )}
         {beatsTooLate && (
           <p className={styles.warn}>
-            มีจังหวะที่ตั้งไว้ช้ากว่าตอนที่คลิปตัดไปคลิปที่สอง จังหวะนั้นจะไม่ทันโชว์
+            มีจังหวะที่ตั้งไว้หลังจุดเริ่มวนลูป จังหวะนั้นจะไม่โชว์ เพราะช่วงแรกจบไปแล้ว
           </p>
         )}
       </div>
@@ -239,13 +292,11 @@ export default function AdminWalkout() {
       <div className={styles.block}>
         <h3 className={styles.blockTitle}>ไฟล์วิดีโอ</h3>
         <p className={styles.legend}>
-          เปลี่ยนคลิปได้โดยวางไฟล์ทับที่ <code>src/assets/video/walkout-flight.mp4</code> และ{' '}
-          <code>walkout-stage.mp4</code> ชื่อเดิม
+          เปลี่ยนคลิปได้โดยวางไฟล์ทับที่ <code>src/assets/video/walkout.mp4</code> ชื่อเดิม
           <br />
-          ไม่ได้ทำเป็นปุ่มอัปโหลดเพราะไฟล์รวมกัน 11 MB ซึ่งเกินโควตา localStorage
-          ที่ระบบอื่นในเกมใช้เก็บข้อมูลอยู่
+          ไม่ได้ทำเป็นปุ่มอัปโหลดเพราะไฟล์ขนาดราว 9 MB ซึ่งเกินพื้นที่เก็บค่าตั้งของเกม
           <br />
-          ถ้าเปลี่ยนคลิปแรกที่ความยาวไม่เท่าเดิม ต้องมาแก้ตัวเลขจังหวะข้างบนตามด้วย
+          เปลี่ยนคลิปแล้วให้กลับมาตั้งจุดเริ่มวนลูปใหม่ด้วยตัวเล่นข้างบน
         </p>
       </div>
 

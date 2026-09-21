@@ -31,11 +31,14 @@ export function normalizeConfig(value: unknown): WalkoutConfig {
         ? source.useMinRating
         : DEFAULT_WALKOUT.useMinRating,
     minRating: Math.round(clamp(source.minRating, 1, 199, DEFAULT_WALKOUT.minRating)),
-    nationAt: clamp(source.nationAt, 0, 7, DEFAULT_WALKOUT.nationAt),
-    positionAt: clamp(source.positionAt, 0, 7, DEFAULT_WALKOUT.positionAt),
-    clubAt: clamp(source.clubAt, 0, 7, DEFAULT_WALKOUT.clubAt),
-    crossfade: clamp(source.crossfade, 0.05, 1, DEFAULT_WALKOUT.crossfade),
-    flashOut: clamp(source.flashOut, 0, 3, DEFAULT_WALKOUT.flashOut),
+    nationAt: clamp(source.nationAt, 0, 600, DEFAULT_WALKOUT.nationAt),
+    positionAt: clamp(source.positionAt, 0, 600, DEFAULT_WALKOUT.positionAt),
+    clubAt: clamp(source.clubAt, 0, 600, DEFAULT_WALKOUT.clubAt),
+    // The clip's real length is only known once it loads, so this is a generous
+    // ceiling; the overlay clamps it against the actual duration at play time.
+    // Old saves carried `crossfade` and `flashOut` for the two-clip join — they are
+    // simply not read any more.
+    loopStart: clamp(source.loopStart, 0, 600, DEFAULT_WALKOUT.loopStart),
     autoCloseSeconds: Math.round(clamp(source.autoCloseSeconds, 0, 120, DEFAULT_WALKOUT.autoCloseSeconds)),
   };
 }

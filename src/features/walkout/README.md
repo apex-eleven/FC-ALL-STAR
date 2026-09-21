@@ -5,45 +5,49 @@ The reveal animation for a high-rated pull.
 ```
 walkout/
   types.ts              WalkoutConfig, WalkoutPhase
-  constants.ts          measured clip timings and defaults
+  constants.ts          the loop point, keyframes and defaults
   walkoutConfigStore.ts the only file that touches localStorage
   WalkoutContext.tsx    WalkoutProvider, useWalkout(), pickWalkout()
 ```
 
 UI lives in `src/components/walkout/WalkoutOverlay.tsx`.
 
-## The join between the two clips
+## One clip, looped from a chosen point
 
-This is the part that needed measuring rather than guessing.
+The walkout is a single file, `src/assets/video/walkout.mp4`. Everything before
+`loopStart` plays once as the intro while nation, position and club appear; from
+`loopStart` to the end repeats until the player leaves, with the card on top.
 
-- **Flight** (`walkout-flight.mp4`): 7.042s, 24fps, 2048x1536, silent. It brightens
-  from about 6.5s and reaches full white at frame 164 — **6.833s** — holding it to
-  the end. The saturated window is **0.208s**.
-- **Stage** (`walkout-stage.mp4`): 3.000s, 30fps, loops, silent. Opens on a dark
-  lantern-lit arena at roughly a third of the flight's closing brightness.
+It used to be two clips — a flight that played once and a stage that looped — with a
+crossfade tuned into the flight's closing white flash. The shipped file is exactly
+those two joined end to end with `ffmpeg -c copy`, so the picture is unchanged and
+the default `loopStart` (**7.08s**) is the old join.
 
-Both clips are mounted for the whole sequence, stage underneath. The stage starts
-`crossfade` seconds before the flight ends and the flight fades out over its own
-flash. `crossfade` defaults to **0.2s** so the entire fade happens inside that
-saturated window — a more generous value would start the fade while the image is
-still resolving, and the join becomes visible. The admin panel warns when the value
-exceeds 0.21.
+- 28.14s, 60fps, 1080x810, AAC audio.
+- Keyframes: 3.86 · 5.52 · 6.94 · 7.08 · 11.30 · 15.47 · 19.63 · 23.80 · 27.97
 
-Cutting from pure white straight into a dark arena is still a jolt, so a white veil
-is held at the moment of the switch and dissolved over `flashOut` (0.65s). That reads
-as the flash blowing out rather than a cut. The veil is set opaque and transparent in
-two separate frames via a double `requestAnimationFrame`; setting both in one commit
-would skip the transition entirely.
+**Why a hand-driven loop.** The `loop` attribute can only go back to zero, which
+would replay the intro every time round. A per-frame watcher jumps back to
+`loopStart` one frame before the end (`LOOP_LEAD`) instead of waiting for `ended`:
+`ended` pauses the element first, and that pause is a black frame on most phones.
+`ended` is still handled as a fallback, for a backgrounded tab where animation frames
+stop.
 
-Neither clip has an audio track, so nothing here depends on autoplay-with-sound being
-permitted.
+**Why keyframes matter.** Seeking to a keyframe is instant. Seeking anywhere else
+makes the browser decode forward from the keyframe before it — up to four seconds of
+1080p at 60fps here — which can stutter on a phone. The admin panel lists the
+keyframes for the shipped clip and has a preview player that loops the same way the
+overlay does, so a seam can be checked before saving.
+
+`loopStart` is clamped at play time to half a second before the clip's real end, so a
+number left over from a longer clip still leaves something to loop.
 
 ## Buffering
 
-The stage clip has the flight's full seven seconds to buffer, so only the flight is
-waited on. The overlay shows a brief loading state until `canplaythrough` and then
-starts. A nine-second safety timer moves to the stage even if `ended` never fires —
-a stalled buffer or a backgrounded tab must not trap the player in the flight.
+The overlay shows a brief loading state until `canplaythrough` and then starts. A
+safety timer moves to the loop after `loopStart + 3` seconds even if playback never
+crosses the loop point — a stalled buffer or a backgrounded tab must not trap the
+player in the intro.
 
 The **ข้าม** button is present in every phase for the same reason.
 
