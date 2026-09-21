@@ -5,13 +5,62 @@ import {
   downloadSnapshot,
   readSnapshotFile,
   saveConfigToRepo,
+  storageUsage,
   CONFIG_FILE,
 } from '@/features/backup/backup';
-import { pushConfigToCloud, pullConfigFromCloud } from '@/features/cloud/cloudConfig';
+import {
+  lastPullResult,
+  lastPushSize,
+  pullConfigFromCloud,
+  pushConfigToCloud,
+  type PullResult,
+} from '@/features/cloud/cloudConfig';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import styles from './AdminBackup.module.css';
 
 type Status = { tone: 'ok' | 'bad'; text: string } | null;
+
+/** Characters to megabytes, one decimal — localStorage and Firestore both count characters here. */
+function mb(chars: number): string {
+  return `${(chars / 1_000_000).toFixed(1)} MB`;
+}
+
+/** The last settings key segment, which is the readable part: `draft-events:v2` → `draft-events`. */
+function shortKey(key: string): string {
+  return key.replace(/^football-home-ui:/, '').replace(/:v\d+$/, '');
+}
+
+/**
+ * One line saying what the cloud pull did — or why it did not.
+ *
+ * This is what makes "the other browser still shows old packs" answerable: the
+ * pull used to report only a count, and 0 and a half-finished write looked the same
+ * as success.
+ */
+function describePull(result: PullResult | null): Status {
+  if (!result) return null;
+  switch (result.state) {
+    case 'disabled':
+      return { tone: 'bad', text: 'ไม่ได้เชื่อม Firebase — เว็บนี้ build โดยไม่มีค่า Firebase' };
+    case 'no-config':
+      return { tone: 'bad', text: 'บนคลาวด์ยังไม่มีตั้งค่าเลย — กด "ส่งตั้งค่าขึ้นคลาวด์" จากเครื่องแอดมินก่อน' };
+    case 'read-failed':
+      return { tone: 'bad', text: `ดึงจากคลาวด์ไม่สำเร็จ: ${result.reason}` };
+    case 'applied': {
+      const when = new Date(result.at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+      if (result.skipped.length === 0) {
+        return { tone: 'ok', text: `ดึงจากคลาวด์ครบ ${result.applied}/${result.total} รายการ · ${mb(result.chars)} · บันทึกเมื่อ ${when}` };
+      }
+      const missing = result.skipped.map((entry) => `${shortKey(entry.key)} (${mb(entry.chars)})`).join(', ');
+      return {
+        tone: 'bad',
+        text:
+          `พื้นที่เก็บในเบราว์เซอร์นี้ไม่พอ — เขียนได้ ${result.applied}/${result.total} รายการ ` +
+          `ขาด: ${missing} · ตั้งค่าทั้งหมด ${mb(result.chars)} ใช้พื้นที่เครื่องอยู่ ${mb(storageUsage())}`,
+      };
+    }
+  }
+}
 
 /**
  * Moving the game to another machine, and getting it back when something is lost.
@@ -23,6 +72,8 @@ type Status = { tone: 'ok' | 'bad'; text: string } | null;
 export default function AdminBackup() {
   const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState(false);
+  // What the pull at start-up did. Read once: it describes this session's boot.
+  const [bootPull] = useState<Status>(() => describePull(lastPullResult()));
   const [mode, setMode] = useState<'replace' | 'missing-only'>('replace');
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -39,6 +90,12 @@ export default function AdminBackup() {
       {isCloudEnabled() && (
         <div className={styles.block}>
           <h3 className={styles.blockTitle}>คลาวด์ (Firebase) — ทุกคนเห็นพร้อมกัน</h3>
+
+          {bootPull && (
+            <p className={`${styles.pull} ${bootPull.tone === 'bad' ? styles.pullBad : ''}`}>
+              <b>ตอนเปิดเกมครั้งนี้:</b> {bootPull.text}
+            </p>
+          )}
 
           <p className={styles.legend}>
             ส่งตั้งค่าทั้งหมดขึ้น Firestore · ผู้เล่นทุกคนจะได้ของใหม่ตอนเปิดเกมครั้งถัดไป
@@ -57,7 +114,10 @@ export default function AdminBackup() {
                   setBusy(false);
                   setStatus(
                     state === 'saved'
-                      ? { tone: 'ok', text: 'ส่งขึ้นคลาวด์แล้ว · ผู้เล่นทุกคนจะเห็นตอนเปิดครั้งถัดไป' }
+                      ? {
+                          tone: 'ok',
+                          text: `ส่งขึ้นคลาวด์แล้ว (${mb(lastPushSize())}) · ผู้เล่นทุกคนจะเห็นตอนเปิดครั้งถัดไป`,
+                        }
                       : state === 'too-large'
                         ? { tone: 'bad', text: 'ตั้งค่าใหญ่เกินไป (เกิน ~9 MB) — ลดขนาดหรือจำนวนรูปที่อัปโหลดลงก่อน' }
                         : state === 'denied'
@@ -76,10 +136,16 @@ export default function AdminBackup() {
               disabled={busy}
               onClick={() => {
                 setBusy(true);
-                void pullConfigFromCloud().then((count) => {
+                void pullConfigFromCloud().then((result) => {
                   setBusy(false);
-                  setStatus({ tone: 'ok', text: `ดึงจากคลาวด์ ${count} รายการ · กำลังโหลดหน้าใหม่…` });
-                  window.setTimeout(() => window.location.reload(), 900);
+                  const status = describePull(result);
+                  setStatus(status);
+                  // Reload only on a complete pull. A failed or partial one stays on
+                  // screen, because the message is the whole point of pressing this.
+                  if (result.state === 'applied' && result.skipped.length === 0) {
+                    setStatus({ tone: 'ok', text: `${status?.text ?? ''} · กำลังโหลดหน้าใหม่…` });
+                    window.setTimeout(() => window.location.reload(), 1500);
+                  }
                 });
               }}
             >

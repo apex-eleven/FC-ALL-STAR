@@ -145,23 +145,62 @@ export type ApplyMode = 'missing-only' | 'replace';
  * The caller must reload the page afterwards: every context read its storage once, at
  * mount, and none of them are watching for changes underneath.
  */
-export function applySnapshot(snapshot: Snapshot, mode: ApplyMode): number {
-  let applied = 0;
+/** What a restore actually wrote, and what it could not fit. */
+export interface ApplyResult {
+  applied: number;
+  /** Game entries the snapshot carried (only `STORAGE_PREFIX` keys count). */
+  total: number;
+  /** Entries the browser refused for lack of room, biggest last. */
+  skipped: { key: string; chars: number }[];
+}
 
-  for (const [key, value] of Object.entries(snapshot.entries)) {
-    if (!key.startsWith(STORAGE_PREFIX)) continue;
+/**
+ * Writes a snapshot's entries into localStorage.
+ *
+ * Smallest first, and a refusal skips that one entry rather than ending the loop.
+ * It used to stop at the first quota error, in whatever order the keys came — so a
+ * single large blob of uploaded art early in the list could leave the draft packs,
+ * the catalogue and everything after it unwritten, and the browser would carry on
+ * with the stale copy it already had. Browsers differ a lot here (roughly 2.5 M
+ * characters in Safari against 5 M in Chrome), which is why the admin's own browser
+ * showed the right packs while another one on the same account did not.
+ *
+ * Small entries are the tuning and the lists; the big ones are images. Writing in
+ * size order means an overflow costs pictures, not the game's rules.
+ */
+export function applySnapshotDetailed(snapshot: Snapshot, mode: ApplyMode): ApplyResult {
+  const entries = Object.entries(snapshot.entries)
+    .filter(([key]) => key.startsWith(STORAGE_PREFIX))
+    .sort((a, b) => a[1].length - b[1].length);
+
+  const result: ApplyResult = { applied: 0, total: entries.length, skipped: [] };
+
+  for (const [key, value] of entries) {
     if (mode === 'missing-only' && window.localStorage.getItem(key) !== null) continue;
-
     try {
       window.localStorage.setItem(key, value);
-      applied += 1;
+      result.applied += 1;
     } catch {
-      // Out of quota partway through. Stop rather than leave half a save behind.
-      break;
+      result.skipped.push({ key, chars: value.length });
     }
   }
 
-  return applied;
+  return result;
+}
+
+export function applySnapshot(snapshot: Snapshot, mode: ApplyMode): number {
+  return applySnapshotDetailed(snapshot, mode).applied;
+}
+
+/** Characters this game currently holds in localStorage, keys included. */
+export function storageUsage(): number {
+  let total = 0;
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+    if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+    total += key.length + (window.localStorage.getItem(key)?.length ?? 0);
+  }
+  return total;
 }
 
 export type MirrorState = 'saved' | 'unavailable' | 'failed';

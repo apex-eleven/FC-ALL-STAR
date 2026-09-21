@@ -1,9 +1,10 @@
 import { doc, getDoc, onSnapshot, setDoc, type DocumentData } from 'firebase/firestore';
 import {
   announceConfigChange,
-  applySnapshot,
+  applySnapshotDetailed,
   collectSnapshot,
   isSnapshot,
+  type ApplyResult,
   type Snapshot,
 } from '@/features/backup/backup';
 import { PATHS, cloudDb, isCloudEnabled } from './firebase';
@@ -41,6 +42,12 @@ const MAX_PARTS = 30;
 
 export type ConfigPushState = 'saved' | 'too-large' | 'denied' | 'unavailable' | 'failed';
 
+/** Size of what the last push sent, in characters. Shown beside the push result. */
+let lastPushChars = 0;
+export function lastPushSize(): number {
+  return lastPushChars;
+}
+
 function configRef() {
   const db = cloudDb();
   return db ? doc(db, PATHS.config, PATHS.configDoc) : null;
@@ -60,6 +67,7 @@ export async function pushConfigToCloud(): Promise<ConfigPushState> {
   // that the sign-in screen can load the game before anyone has logged in.
   const snapshot = collectSnapshot(false);
   const payload = JSON.stringify(snapshot);
+  lastPushChars = payload.length;
   const parts: string[] = [];
   for (let start = 0; start < payload.length; start += PART_CHARS) {
     parts.push(payload.slice(start, start + PART_CHARS));
@@ -82,27 +90,34 @@ export async function pushConfigToCloud(): Promise<ConfigPushState> {
   }
 }
 
+type ReadOutcome = { snapshot: Snapshot; chars: number } | { error: string };
+
 /**
- * The settings a `config/admin` document points at, or null when they cannot be
- * put together (missing part, part from another save, malformed JSON).
+ * The settings a `config/admin` document points at, or why they could not be put
+ * together. The reason used to be thrown away, which is how a browser could sit on
+ * stale packs indefinitely with nothing anywhere saying so.
  */
-async function readSnapshot(index: DocumentData): Promise<Snapshot | null> {
+async function readSnapshot(index: DocumentData): Promise<ReadOutcome> {
   let raw: string;
   if (typeof index.snapshot === 'string') {
     // Saved before parts existed.
     raw = index.snapshot;
   } else {
     const count = typeof index.parts === 'number' ? Math.floor(index.parts) : 0;
-    if (count <= 0 || count > MAX_PARTS) return null;
+    if (count <= 0 || count > MAX_PARTS) return { error: `จำนวนส่วนไม่ถูกต้อง (${String(index.parts)})` };
     const pieces: string[] = [];
     for (let part = 0; part < count; part += 1) {
       const target = partRef(part);
-      if (!target) return null;
+      if (!target) return { error: 'ยังไม่ได้เชื่อม Firebase' };
       const document = await getDoc(target);
       const data = document.exists() ? document.data() : null;
       // A part from a different save means a newer write is under way; its index
       // update will arrive and be read then.
-      if (!data || data.savedAt !== index.savedAt || typeof data.data !== 'string') return null;
+      if (!data) return { error: `หาส่วนที่ ${part + 1}/${count} ไม่เจอ` };
+      if (data.savedAt !== index.savedAt) {
+        return { error: `ส่วนที่ ${part + 1}/${count} มาจากการบันทึกคนละครั้ง (กำลังบันทึกใหม่อยู่?)` };
+      }
+      if (typeof data.data !== 'string') return { error: `ส่วนที่ ${part + 1}/${count} ข้อมูลเสีย` };
       pieces.push(data.data);
     }
     raw = pieces.join('');
@@ -110,10 +125,41 @@ async function readSnapshot(index: DocumentData): Promise<Snapshot | null> {
 
   try {
     const parsed: unknown = JSON.parse(raw);
-    return isSnapshot(parsed) ? (parsed as Snapshot) : null;
+    return isSnapshot(parsed)
+      ? { snapshot: parsed as Snapshot, chars: raw.length }
+      : { error: 'รูปแบบข้อมูลไม่ใช่ไฟล์ตั้งค่าของเกม' };
   } catch {
-    return null;
+    return { error: 'แกะข้อมูลไม่ได้ (JSON เสีย)' };
   }
+}
+
+/** What the latest pull from the cloud did — shown in the admin panel's backup tab. */
+export type PullResult =
+  | { state: 'disabled' }
+  | { state: 'no-config' }
+  | { state: 'read-failed'; reason: string }
+  | ({ state: 'applied'; chars: number; at: string } & ApplyResult);
+
+let lastPull: PullResult | null = null;
+
+/** The outcome of the most recent pull this session, boot or live update. */
+export function lastPullResult(): PullResult | null {
+  return lastPull;
+}
+
+function applyRead(outcome: ReadOutcome): PullResult {
+  if ('error' in outcome) return { state: 'read-failed', reason: outcome.error };
+  const applied = applySnapshotDetailed(outcome.snapshot, 'replace');
+  const result: PullResult = {
+    state: 'applied',
+    chars: outcome.chars,
+    at: outcome.snapshot.savedAt,
+    ...applied,
+  };
+  if (applied.skipped.length > 0) {
+    console.warn('[cloud] พื้นที่เก็บในเบราว์เซอร์ไม่พอ ข้ามค่าตั้งบางรายการ', applied.skipped);
+  }
+  return result;
 }
 
 /**
@@ -125,23 +171,26 @@ async function readSnapshot(index: DocumentData): Promise<Snapshot | null> {
  *
  * Their own account data is untouched: it is not in these documents at all.
  */
-export async function pullConfigFromCloud(): Promise<number> {
-  if (!isCloudEnabled()) return 0;
+export async function pullConfigFromCloud(): Promise<PullResult> {
+  if (!isCloudEnabled()) return (lastPull = { state: 'disabled' });
 
   const reference = configRef();
-  if (!reference) return 0;
+  if (!reference) return (lastPull = { state: 'disabled' });
 
   try {
     const document = await getDoc(reference);
-    if (!document.exists()) return 0;
-
-    const snapshot = await readSnapshot(document.data());
-    return snapshot ? applySnapshot(snapshot, 'replace') : 0;
-  } catch {
+    if (!document.exists()) return (lastPull = { state: 'no-config' });
+    lastPull = applyRead(await readSnapshot(document.data()));
+  } catch (error) {
     // Offline, blocked, or rules misconfigured. The committed JSON already ran, so
-    // the game has settings either way.
-    return 0;
+    // the game has settings either way — but the admin panel now says why.
+    lastPull = {
+      state: 'read-failed',
+      reason: error instanceof Error ? error.message.split('\n')[0] ?? 'unknown' : String(error),
+    };
   }
+  if (lastPull.state === 'read-failed') console.warn('[cloud] ดึงตั้งค่าจากคลาวด์ไม่สำเร็จ', lastPull.reason);
+  return lastPull;
 }
 
 /**
@@ -169,12 +218,12 @@ export function watchCloudConfig(): () => void {
       if (!document.exists()) return;
       const ticket = ++latest;
       void readSnapshot(document.data())
-        .then((snapshot) => {
-          if (!snapshot || ticket !== latest) return;
+        .then((outcome) => {
+          if (ticket !== latest) return;
           // Replace, not merge: the admin's copy is the game's copy. A player's
           // browser holding yesterday's packs has to take today's.
-          applySnapshot(snapshot, 'replace');
-          announceConfigChange();
+          lastPull = applyRead(outcome);
+          if (lastPull.state === 'applied' && lastPull.applied > 0) announceConfigChange();
         })
         .catch(() => {
           // A malformed or unreadable save must not take the running game down.

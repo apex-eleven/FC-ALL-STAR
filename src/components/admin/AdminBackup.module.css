@@ -476,3 +476,20 @@
   border-radius: var(--radius-xs);
   background: rgba(0, 0, 0, 0.4);
 }
+
+/* What the start-up pull did — green when complete, red with the reason when not. */
+.pull {
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(43, 224, 140, 0.16);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  line-height: 1.55;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.pullBad {
+  background: rgba(229, 52, 63, 0.26);
+}
