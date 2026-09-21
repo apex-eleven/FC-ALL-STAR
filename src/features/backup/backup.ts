@@ -47,6 +47,9 @@ const PERSONAL_KEYS = [
   `${STORAGE_PREFIX}motion:v1`,
   // And how much it spends on blurs and shadows — a phone's answer, not the game's.
   `${STORAGE_PREFIX}fx:v1`,
+  // Which cloud save this browser last synced with. It is how a push can tell that
+  // someone else saved since — shared, every browser would claim to be up to date.
+  `${STORAGE_PREFIX}config-base:v1`,
 ];
 
 /** Keys holding account data — excluded from anything written into public/. */

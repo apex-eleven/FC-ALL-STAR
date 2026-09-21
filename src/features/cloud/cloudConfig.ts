@@ -40,7 +40,53 @@ const PART_CHARS = 300_000;
 /** A settings save bigger than this (about 9 MB) is refused rather than written. */
 const MAX_PARTS = 30;
 
-export type ConfigPushState = 'saved' | 'too-large' | 'denied' | 'unavailable' | 'failed';
+export type ConfigPushState =
+  | 'saved'
+  | 'too-large'
+  | 'denied'
+  | 'unavailable'
+  | 'failed'
+  /** Someone else saved since this browser last synced. Pushing would undo their work. */
+  | 'stale'
+  /** This browser holds less than the cloud does. Pushing would delete what it lacks. */
+  | 'would-shrink';
+
+/**
+ * Which cloud save this browser is built on — set when it pulls one in full or
+ * pushes one. A push only goes ahead without asking when the cloud is still on that
+ * save; otherwise this browser is behind and its copy would overwrite newer work.
+ */
+const BASE_KEY = 'football-home-ui:config-base:v1';
+
+function readBase(): string | null {
+  try {
+    return window.localStorage.getItem(BASE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeBase(savedAt: string): void {
+  try {
+    window.localStorage.setItem(BASE_KEY, savedAt);
+  } catch {
+    // Out of room. The guard then falls back to comparing sizes.
+  }
+}
+
+/** Why the last push was held back, for the panel to explain. */
+export interface PushGuard {
+  cloudEntries: number | null;
+  cloudChars: number | null;
+  cloudSavedAt: string | null;
+  localEntries: number;
+  localChars: number;
+}
+
+let lastGuard: PushGuard | null = null;
+export function lastPushGuard(): PushGuard | null {
+  return lastGuard;
+}
 
 /** Size of what the last push sent, in characters. Shown beside the push result. */
 let lastPushChars = 0;
@@ -58,8 +104,17 @@ function partRef(index: number) {
   return db ? doc(db, PATHS.config, `${PATHS.configDoc}-part-${index}`) : null;
 }
 
-/** Writes the current browser's settings to the cloud. Admin only, by rule. */
-export async function pushConfigToCloud(): Promise<ConfigPushState> {
+/**
+ * Writes the current browser's settings to the cloud. Admin only, by rule.
+ *
+ * Without `force`, it first checks it is not about to destroy something. This used
+ * to be unconditional, and the admin panel called it on every close — so opening and
+ * closing the panel in a browser that had only the four-entry fallback from the repo
+ * replaced the whole game's settings (packs, catalogue, cup, fusion, every picture)
+ * with that fallback, for every player. `force` is for an admin who has been shown
+ * the numbers and means it.
+ */
+export async function pushConfigToCloud(options: { force?: boolean } = {}): Promise<ConfigPushState> {
   const reference = configRef();
   if (!reference) return 'unavailable';
 
@@ -68,6 +123,35 @@ export async function pushConfigToCloud(): Promise<ConfigPushState> {
   const snapshot = collectSnapshot(false);
   const payload = JSON.stringify(snapshot);
   lastPushChars = payload.length;
+  const localEntries = Object.keys(snapshot.entries).length;
+
+  if (!options.force) {
+    try {
+      const current = await getDoc(reference);
+      if (current.exists()) {
+        const data = current.data();
+        const cloudSavedAt = typeof data.savedAt === 'string' ? data.savedAt : null;
+        const cloudEntries = typeof data.entries === 'number' ? data.entries : null;
+        const cloudChars = typeof data.chars === 'number' ? data.chars : null;
+        const cloudParts = typeof data.parts === 'number' ? data.parts : 0;
+        lastGuard = { cloudEntries, cloudChars, cloudSavedAt, localEntries, localChars: payload.length };
+
+        const base = readBase();
+        // Behind: this browser last synced with an older save than the cloud has.
+        if (base && cloudSavedAt && cloudSavedAt !== base) return 'stale';
+        // No record of syncing (a browser from before this check existed): fall back
+        // to size. Fewer entries, or fewer parts on an index too old to count them.
+        if (!base) {
+          const localParts = Math.ceil(payload.length / PART_CHARS);
+          const smaller = cloudEntries !== null ? localEntries < cloudEntries : localParts < cloudParts;
+          if (smaller) return 'would-shrink';
+        }
+      }
+    } catch {
+      // Cannot see the cloud copy. The write below will fail the same way if the
+      // cloud is really unreachable, and succeed if only this read was refused.
+    }
+  }
   const parts: string[] = [];
   for (let start = 0; start < payload.length; start += PART_CHARS) {
     parts.push(payload.slice(start, start + PART_CHARS));
@@ -82,7 +166,16 @@ export async function pushConfigToCloud(): Promise<ConfigPushState> {
       if (!target) return 'unavailable';
       await setDoc(target, { data, savedAt: snapshot.savedAt, index });
     }
-    await setDoc(reference, { parts: parts.length, savedAt: snapshot.savedAt });
+    // Entry count and size ride on the index so the next push can compare against
+    // them without fetching every part.
+    await setDoc(reference, {
+      parts: parts.length,
+      savedAt: snapshot.savedAt,
+      entries: localEntries,
+      chars: payload.length,
+    });
+    writeBase(snapshot.savedAt);
+    lastGuard = null;
     return 'saved';
   } catch (error) {
     const code = (error as { code?: string }).code ?? '';
@@ -158,6 +251,9 @@ function applyRead(outcome: ReadOutcome): PullResult {
   };
   if (applied.skipped.length > 0) {
     console.warn('[cloud] พื้นที่เก็บในเบราว์เซอร์ไม่พอ ข้ามค่าตั้งบางรายการ', applied.skipped);
+  } else {
+    // Complete: this browser now holds exactly that save.
+    writeBase(outcome.snapshot.savedAt);
   }
   return result;
 }

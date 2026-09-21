@@ -10,9 +10,11 @@ import {
 } from '@/features/backup/backup';
 import {
   lastPullResult,
+  lastPushGuard,
   lastPushSize,
   pullConfigFromCloud,
   pushConfigToCloud,
+  type ConfigPushState,
   type PullResult,
 } from '@/features/cloud/cloudConfig';
 import { isCloudEnabled } from '@/features/cloud/firebase';
@@ -37,6 +39,37 @@ function shortKey(key: string): string {
  * pull used to report only a count, and 0 and a half-finished write looked the same
  * as success.
  */
+/** What a push did, in words — including the two refusals that protect the cloud copy. */
+function describePush(state: ConfigPushState): Status {
+  const guard = lastPushGuard();
+  const cloud = guard
+    ? `บนคลาวด์มี ${guard.cloudEntries ?? '?'} รายการ${guard.cloudChars ? ` ${mb(guard.cloudChars)}` : ''}`
+    : '';
+  const here = guard ? `เครื่องนี้มี ${guard.localEntries} รายการ ${mb(guard.localChars)}` : '';
+  switch (state) {
+    case 'saved':
+      return { tone: 'ok', text: `ส่งขึ้นคลาวด์แล้ว (${mb(lastPushSize())}) · ผู้เล่นทุกคนจะเห็นตอนเปิดครั้งถัดไป` };
+    case 'stale':
+      return {
+        tone: 'bad',
+        text:
+          `ยังไม่ได้ส่ง — มีคนบันทึกค่าตั้งขึ้นคลาวด์หลังจากที่เครื่องนี้ดึงมาครั้งล่าสุด ` +
+          `ถ้าส่งตอนนี้จะทับงานของเขา · ${cloud} · ${here}`,
+      };
+    case 'would-shrink':
+      return {
+        tone: 'bad',
+        text: `ยังไม่ได้ส่ง — เครื่องนี้มีค่าตั้งน้อยกว่าบนคลาวด์ ถ้าส่งจะลบส่วนที่ขาดทิ้ง · ${cloud} · ${here}`,
+      };
+    case 'too-large':
+      return { tone: 'bad', text: 'ตั้งค่าใหญ่เกินไป (เกิน ~9 MB) — ลดขนาดหรือจำนวนรูปที่อัปโหลดลงก่อน' };
+    case 'denied':
+      return { tone: 'bad', text: 'ไอดีนี้ไม่ใช่แอดมินบนคลาวด์ (ต้องมี admins/{uid} ใน Firestore)' };
+    default:
+      return { tone: 'bad', text: 'ส่งขึ้นคลาวด์ไม่สำเร็จ' };
+  }
+}
+
 function describePull(result: PullResult | null): Status {
   if (!result) return null;
   switch (result.state) {
@@ -74,6 +107,8 @@ export default function AdminBackup() {
   const [busy, setBusy] = useState(false);
   // What the pull at start-up did. Read once: it describes this session's boot.
   const [bootPull] = useState<Status>(() => describePull(lastPullResult()));
+  // A push the guard held back — shows the confirm-and-overwrite button.
+  const [held, setHeld] = useState(false);
   const [mode, setMode] = useState<'replace' | 'missing-only'>('replace');
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -112,23 +147,35 @@ export default function AdminBackup() {
                 setBusy(true);
                 void pushConfigToCloud().then((state) => {
                   setBusy(false);
-                  setStatus(
-                    state === 'saved'
-                      ? {
-                          tone: 'ok',
-                          text: `ส่งขึ้นคลาวด์แล้ว (${mb(lastPushSize())}) · ผู้เล่นทุกคนจะเห็นตอนเปิดครั้งถัดไป`,
-                        }
-                      : state === 'too-large'
-                        ? { tone: 'bad', text: 'ตั้งค่าใหญ่เกินไป (เกิน ~9 MB) — ลดขนาดหรือจำนวนรูปที่อัปโหลดลงก่อน' }
-                        : state === 'denied'
-                          ? { tone: 'bad', text: 'ไอดีนี้ไม่ใช่แอดมินบนคลาวด์ (ต้องมี admins/{uid} ใน Firestore)' }
-                          : { tone: 'bad', text: 'ส่งขึ้นคลาวด์ไม่สำเร็จ' },
-                  );
+                  setStatus(describePush(state));
+                  setHeld(state === 'stale' || state === 'would-shrink');
                 });
               }}
             >
               ส่งตั้งค่าขึ้นคลาวด์
             </button>
+
+            {/*
+              Only offered after a push was held back and the numbers are on screen.
+              It is the one way to overwrite a bigger or newer cloud copy on purpose.
+            */}
+            {held && (
+              <button
+                type="button"
+                className={styles.danger}
+                disabled={busy}
+                onClick={() => {
+                  setBusy(true);
+                  void pushConfigToCloud({ force: true }).then((state) => {
+                    setBusy(false);
+                    setHeld(false);
+                    setStatus(describePush(state));
+                  });
+                }}
+              >
+                ยืนยันส่งทับของบนคลาวด์
+              </button>
+            )}
 
             <button
               type="button"
@@ -272,13 +319,37 @@ export default function AdminBackup() {
                 }
 
                 const applied = applySnapshot(snapshot, mode);
-                setStatus({
-                  tone: 'ok',
-                  text: `กู้คืน ${applied} รายการแล้ว · กำลังโหลดหน้าใหม่…`,
+
+                // Every context read its storage once, at mount, so a reload is the
+                // only honest way to show restored data. On a cloud deployment the
+                // restore has to reach the cloud first: the reload pulls the cloud
+                // copy over local storage, and would quietly undo the restore.
+                if (!isCloudEnabled()) {
+                  setStatus({ tone: 'ok', text: `กู้คืน ${applied} รายการแล้ว · กำลังโหลดหน้าใหม่…` });
+                  window.setTimeout(() => window.location.reload(), 900);
+                  return;
+                }
+
+                setStatus({ tone: 'ok', text: `กู้คืน ${applied} รายการในเครื่องแล้ว · กำลังส่งขึ้นคลาวด์…` });
+                setBusy(true);
+                // Forced: choosing a backup file and pressing restore is the admin
+                // saying "this is the game's settings now".
+                void pushConfigToCloud({ force: true }).then((state) => {
+                  setBusy(false);
+                  if (state !== 'saved') {
+                    const why = describePush(state);
+                    setStatus({
+                      tone: 'bad',
+                      text: `กู้ในเครื่องแล้ว แต่ส่งขึ้นคลาวด์ไม่สำเร็จ — ${why?.text ?? ''} · ยังไม่รีโหลด กดส่งซ้ำได้`,
+                    });
+                    return;
+                  }
+                  setStatus({
+                    tone: 'ok',
+                    text: `กู้คืน ${applied} รายการ และส่งขึ้นคลาวด์แล้ว (${mb(lastPushSize())}) · กำลังโหลดหน้าใหม่…`,
+                  });
+                  window.setTimeout(() => window.location.reload(), 1500);
                 });
-                // Every context read its storage once, at mount. A reload is the only
-                // honest way to make the restored data the data on screen.
-                window.setTimeout(() => window.location.reload(), 900);
               });
             }}
           />
