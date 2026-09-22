@@ -97,6 +97,29 @@ service cloud.firestore {
         && request.resource.data.uid == uid;
     }
 
+    // ---- ไลฟ์แชทหน้าแรก ----
+    // ต่อท้ายได้อย่างเดียว แก้ไม่ได้ · แอดมินลบได้ (ไว้ลบข้อความไม่เหมาะสม)
+    // ต้องเป็น uid ตัวเอง · ข้อความ 1–120 ตัวอักษร · เวลาต้องเป็นเวลาเซิร์ฟเวอร์
+    // เลเวลกับ OVR ในแถวเป็นแค่ "ค่าที่ผู้ส่งบอกเอง" ไว้แสดงผลเท่านั้น ไม่ได้ตรวจกับเซฟ
+    // ความยาว 120 ต้องตรงกับ CHAT_MAX_LENGTH ใน src/features/cloud/cloudChat.ts
+    match /chat/{row} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'avatarId', 'level', 'ovr', 'text', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username is string
+        && request.resource.data.username.size() <= 40
+        && request.resource.data.avatarId is string
+        && request.resource.data.level is int
+        && request.resource.data.ovr is int
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 120
+        && request.resource.data.at == request.time;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
     // ---- อย่างอื่นปิดหมด ----
     // ปฏิเสธไว้ก่อนเสมอ: คอลเลกชันใหม่ที่เพิ่มทีหลังจะไม่เปิดให้เขียนโดยบังเอิญ
     match /{document=**} {

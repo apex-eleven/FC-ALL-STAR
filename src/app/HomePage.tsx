@@ -11,6 +11,8 @@ import HeroSection from '@/components/home/HeroSection';
 import NewsBanner from '@/components/home/NewsBanner';
 import ClubCard from '@/components/home/ClubCard';
 import PlayCard from '@/components/home/PlayCard';
+import LiveChat from '@/components/home/LiveChat';
+import { displayNameOf } from '@/features/auth/constants';
 
 /**
  * Composition only. Static values come from data/mock; the news banner reads its
@@ -40,6 +42,15 @@ export default function HomePage() {
       <HeroSection
         content={hero}
         onCta={() => navigate('draft', FEATURED_DRAFT_ID)}
+      />
+      <LiveChat
+        sender={{
+          uid: account.id,
+          username: displayNameOf(account),
+          avatarId: account.avatarId,
+          level: account.level,
+          ovr: rating,
+        }}
       />
       <NewsBanner onOpen={(draftId) => navigate('draft', draftId ?? FEATURED_DRAFT_ID)} />
       <ClubCard

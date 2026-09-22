@@ -104,4 +104,5 @@ export const PATHS = {
   leaderboard: 'leaderboard',
   gachaFeed: 'gachaFeed',
   saveErrors: 'saveErrors',
+  chat: 'chat',
 } as const;

@@ -100,6 +100,10 @@
   --hero-dots-x: 630px;
   --hero-dots-y: 792px;
 
+  /* Live chat: same box as the news banner (744x415, top y162), centred on the hero
+     wordmark (x712) so it sits directly above NUMERO. 712 - 744/2 = 340. */
+  --chat-x: 340px;
+
   --profile-x: 160px;
   --avatar-size: 72px;
   --topbar-pad-right: 160px;
