@@ -1,4 +1,4 @@
-/* Same frame as NewsBanner (744x415, 78px strip), placed at --chat-x above NUMERO. */
+/* NewsBanner's width and strip, placed at --chat-x, running down to the card row's bottom edge. */
 .chat {
   position: absolute;
   left: var(--chat-x);
@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   width: var(--rail-w);
-  height: var(--news-h);
+  height: var(--chat-h);
   border-radius: var(--radius-xl);
   border: 3px solid rgba(10, 8, 20, 0.9);
   background: rgba(14, 10, 30, 0.82);

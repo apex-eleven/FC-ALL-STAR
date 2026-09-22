@@ -103,6 +103,8 @@
   /* Live chat: same box as the news banner (744x415, top y162), centred on the hero
      wordmark (x712) so it sits directly above NUMERO. 712 - 744/2 = 340. */
   --chat-x: 340px;
+  /* Runs down to the bottom of the CLUB / play cards: 601 + 172 - 162 = 611. */
+  --chat-h: 611px;
 
   --profile-x: 160px;
   --avatar-size: 72px;

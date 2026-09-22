@@ -39,10 +39,7 @@ export default function HomePage() {
 
   return (
     <>
-      <HeroSection
-        content={hero}
-        onCta={() => navigate('draft', FEATURED_DRAFT_ID)}
-      />
+      <HeroSection content={hero} />
       <LiveChat
         sender={{
           uid: account.id,
