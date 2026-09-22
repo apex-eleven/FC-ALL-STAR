@@ -236,6 +236,12 @@ export default function ClubScreen() {
    * per day — pays the share reward. Sharing always works; the reward is the once-a-
    * day bonus on top, same all-or-nothing rule as every other reward line (a wallet
    * at its cap leaves the day open so the next share still tries to pay it).
+   *
+   * Facebook's sharer.php stopped accepting a pre-filled post body years ago (it only
+   * reads `u` to build the preview card from that URL's Open Graph tags — see
+   * index.html) — no query parameter reopens that door, `quote` included, so it is
+   * still passed on the off chance a given browser/app honours it, but the team
+   * details are also copied to the clipboard so they can just be pasted in.
    */
   const handleShare = useCallback(() => {
     const starters = formation.slots
@@ -251,11 +257,16 @@ export default function ClubScreen() {
       formationName: formation.name,
       starters,
     });
+
+    void navigator.clipboard?.writeText?.(text).catch(() => {
+      // Clipboard permission denied or unavailable (e.g. insecure context) — the
+      // share dialog still opens, the player just types the details themselves.
+    });
     window.open(facebookShareUrl(text), '_blank', 'noopener,noreferrer,width=640,height=520');
 
     const today = shareTodayKey(new Date());
     if (!canClaimShare(account.share, today)) {
-      setToast('แชร์ทีมอีกครั้ง! วันนี้รับรางวัลไปแล้ว พรุ่งนี้มาแชร์รับรางวัลใหม่ได้');
+      setToast('คัดลอกรายละเอียดทีมแล้ว (วางในช่องโพสต์ได้เลย) — วันนี้รับรางวัลแชร์ไปแล้ว พรุ่งนี้มาแชร์รับใหม่ได้');
       return;
     }
 
@@ -265,7 +276,7 @@ export default function ClubScreen() {
     const stamp = shopStamp();
     const preview = claimShare(account, now, byId, stamp);
     if (!preview.ok) {
-      setToast('รับรางวัลแชร์ทีมไม่สำเร็จ ลองใหม่อีกครั้ง');
+      setToast('คัดลอกรายละเอียดทีมแล้ว — แต่รับรางวัลแชร์ทีมไม่สำเร็จ ลองใหม่อีกครั้ง');
       return;
     }
 
@@ -273,7 +284,7 @@ export default function ClubScreen() {
       const outcome = claimShare(current, now, byId, stamp);
       return outcome.ok ? outcome.account : current;
     });
-    setToast('แชร์ทีมสำเร็จ! ได้รับกุญแจกาชาปอง x20, FC Point x100, Gem x3,000');
+    setToast('คัดลอกรายละเอียดทีมแล้ว (วางในช่องโพสต์ได้เลย) — ได้รับกุญแจกาชาปอง x20, FC Point x100, Gem x3,000');
   }, [account, formation, squad, owned, rating, byId, updateAccount]);
 
   const pointerFor = useCallback(

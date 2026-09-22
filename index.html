@@ -14,6 +14,25 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>FC ALL-STAR</title>
+
+    <!-- Open Graph: what Facebook (and every other link-preview scraper) shows when
+         this URL is shared. It scrapes THIS document at the shared URL, not whatever
+         a script on the page tries to pass it afterwards — a share link's ?query
+         string or a `quote` parameter on sharer.php cannot change these, so the card
+         is the same for every share. A per-team card would need a server route that
+         renders a different image per team; this is the static, always-on fallback. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://fc-all-star.vercel.app/" />
+    <meta property="og:site_name" content="FC ALL-STAR" />
+    <meta property="og:title" content="FC ALL-STAR" />
+    <meta property="og:description" content="สร้างทีมในฝันของคุณ ดวลกับผู้เล่นทั่วโลก เล่นฟรีได้เลย!" />
+    <meta property="og:image" content="https://fc-all-star.vercel.app/brand/league_background.jpg" />
+    <meta property="og:image:width" content="2048" />
+    <meta property="og:image:height" content="972" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FC ALL-STAR" />
+    <meta name="twitter:description" content="สร้างทีมในฝันของคุณ ดวลกับผู้เล่นทั่วโลก เล่นฟรีได้เลย!" />
+    <meta name="twitter:image" content="https://fc-all-star.vercel.app/brand/league_background.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
