@@ -104,6 +104,24 @@
   margin-left: auto;
 }
 
+/* Sits right after .home, which already claimed the row's free space — no auto
+   margin needed here, it just follows home at the row's right edge. */
+.shareButton {
+  position: relative;
+}
+
+/* Small gold dot on the share icon while today's reward is still unclaimed. */
+.shareDot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 2px solid rgba(4, 12, 9, 0.9);
+}
+
 /* Dropping outside every slot removes the card, so the whole screen is a target —
    sitting at the very back so every real slot wins over it. */
 .removeZone {

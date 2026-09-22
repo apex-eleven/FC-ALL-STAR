@@ -150,6 +150,7 @@ function credited(
     | 'redeem'
     | 'inbox'
     | 'login'
+    | 'share'
   >,
   by?: string,
 ): { ok: boolean; wallet: Wallet; ledger: WalletEntry[] } {
@@ -371,7 +372,7 @@ export function deliverRewards(
   payout: readonly ShopReward[],
   lookup: CardLookup,
   stamp: ShopStamp,
-  reason: 'mission' | 'starpass' | 'gacha' | 'fusion' | 'cup' | 'redeem' | 'inbox' | 'login',
+  reason: 'mission' | 'starpass' | 'gacha' | 'fusion' | 'cup' | 'redeem' | 'inbox' | 'login' | 'share',
   eventId: string,
 ): RewardDelivery {
   const cards = delivered(account.club, payout, lookup, stamp, eventId);

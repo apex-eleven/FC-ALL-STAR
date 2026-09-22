@@ -15,6 +15,7 @@ import type { GachaState } from '@/features/gacha/types';
 import type { RedeemProgress } from '@/features/redeem/types';
 import type { InboxProgress } from '@/features/notifications/types';
 import type { DailyLoginProgress } from '@/features/dailylogin/types';
+import type { ShareProgress } from '@/features/share/types';
 
 export type Role = 'player' | 'admin';
 
@@ -84,6 +85,8 @@ export interface Account extends Entity {
   inbox?: InboxProgress;
   /** Daily login calendar: this run's claimed days and the streak. Absent until the first claim. */
   login?: DailyLoginProgress;
+  /** Day the "แชร์ทีม" button last paid its reward. Absent until the first share. */
+  share?: ShareProgress;
 }
 
 /** What the store persists. The credential never leaves the auth feature. */

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, Home } from 'lucide-react';
+import { ChevronLeft, Home, Share2 } from 'lucide-react';
 import { ASSETS } from '@/assets/assetMap';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
 import { equip } from '@/features/badges/badges';
@@ -12,6 +12,14 @@ import { syncOwned } from '@/features/club/sync';
 import { publishLeaderboardEntry } from '@/features/cloud/cloudLeaderboard';
 import { isCloudEnabled } from '@/features/cloud/firebase';
 import type { LeaderboardCard, LeaderboardEntry } from '@/features/leaderboard/types';
+import { shopStamp } from '@/features/shop/shop';
+import {
+  canClaimShare,
+  claimShare,
+  facebookShareUrl,
+  shareText,
+  todayKey as shareTodayKey,
+} from '@/features/share/share';
 import {
   autoBuild,
   canPlace,
@@ -216,6 +224,58 @@ export default function ClubScreen() {
     void publishLeaderboardEntry(entry);
   }, [account.id, account.username, account.displayName, account.avatarId, formation, squad, owned, rating]);
 
+  // Whether pressing "แชร์ทีม" right now would still pay today's reward — shown as
+  // a dot on the button, and decides whether the click also grants it.
+  const shareRewardAvailable = useMemo(
+    () => canClaimShare(account.share, shareTodayKey(new Date())),
+    [account.share],
+  );
+
+  /**
+   * Opens the Facebook share dialog with the current starting eleven, then — once
+   * per day — pays the share reward. Sharing always works; the reward is the once-a-
+   * day bonus on top, same all-or-nothing rule as every other reward line (a wallet
+   * at its cap leaves the day open so the next share still tries to pay it).
+   */
+  const handleShare = useCallback(() => {
+    const starters = formation.slots
+      .map((slot) => squad.starters[slot.id])
+      .filter((id): id is string => Boolean(id))
+      .map((id) => owned.get(id))
+      .filter((player): player is NonNullable<typeof player> => Boolean(player))
+      .map((player) => ({ name: player.name, rating: player.rating, position: player.position }));
+
+    const text = shareText({
+      teamName: displayNameOf(account),
+      rating,
+      formationName: formation.name,
+      starters,
+    });
+    window.open(facebookShareUrl(text), '_blank', 'noopener,noreferrer,width=640,height=520');
+
+    const today = shareTodayKey(new Date());
+    if (!canClaimShare(account.share, today)) {
+      setToast('แชร์ทีมอีกครั้ง! วันนี้รับรางวัลไปแล้ว พรุ่งนี้มาแชร์รับรางวัลใหม่ได้');
+      return;
+    }
+
+    // Clock and stamp fixed here, not inside updateAccount: the mutator may run
+    // twice, and both runs have to agree on which day was paid.
+    const now = new Date();
+    const stamp = shopStamp();
+    const preview = claimShare(account, now, byId, stamp);
+    if (!preview.ok) {
+      setToast('รับรางวัลแชร์ทีมไม่สำเร็จ ลองใหม่อีกครั้ง');
+      return;
+    }
+
+    updateAccount((current) => {
+      const outcome = claimShare(current, now, byId, stamp);
+      return outcome.ok ? outcome.account : current;
+    });
+    setToast('แชร์ทีมสำเร็จ! ได้รับกุญแจกาชาปอง x20, FC Point x100, Gem x3,000');
+  }, [account, formation, squad, owned, rating, byId, updateAccount]);
+
   const pointerFor = useCallback(
     (cardId: string) => (event: PointerEvent) => start(cardId, event),
     [start],
@@ -238,6 +298,20 @@ export default function ClubScreen() {
         <span className={styles.home}>
           <IconButton label="หน้าหลัก" size={46} onClick={() => navigate('home')}>
             <Home size={40} strokeWidth={2} />
+          </IconButton>
+        </span>
+        <span className={styles.shareButton}>
+          <IconButton
+            label={
+              shareRewardAvailable
+                ? 'แชร์ทีม — รับกุญแจกาชาปอง x20, FC Point x100, Gem x3,000'
+                : 'แชร์ทีม — รับรางวัลวันนี้ไปแล้ว'
+            }
+            size={46}
+            onClick={handleShare}
+          >
+            <Share2 size={40} strokeWidth={2} />
+            {shareRewardAvailable && <span className={styles.shareDot} aria-hidden="true" />}
           </IconButton>
         </span>
       </header>

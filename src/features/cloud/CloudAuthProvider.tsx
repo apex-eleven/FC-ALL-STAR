@@ -33,6 +33,7 @@ import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigSt
 import { normalizeProgress as normalizeRedeem } from '@/features/redeem/redeemConfigStore';
 import { normalizeProgress as normalizeInbox } from '@/features/notifications/inboxConfigStore';
 import { normalizeProgress as normalizeLogin } from '@/features/dailylogin/dailyloginConfigStore';
+import { normalizeShareProgress as normalizeShare } from '@/features/share/share';
 import { isItemAvatarId } from '@/features/avatars/extraAvatars';
 import {
   ADMIN_SIGNUP_CODE,
@@ -112,6 +113,7 @@ function toAccount(uid: string, raw: Record<string, unknown>): Account {
     redeem: data.redeem === undefined ? undefined : normalizeRedeem(data.redeem),
     inbox: data.inbox === undefined ? undefined : normalizeInbox(data.inbox),
     login: data.login === undefined ? undefined : normalizeLogin(data.login),
+    share: data.share === undefined ? undefined : normalizeShare(data.share),
     displayName: normalizeDisplayName(data.displayName),
   };
 }

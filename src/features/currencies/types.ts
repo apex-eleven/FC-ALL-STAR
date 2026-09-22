@@ -58,7 +58,9 @@ export type WalletReason =
   /** Attachments claimed from a mail in the inbox. */
   | 'inbox'
   /** A day claimed on the daily login calendar. */
-  | 'login';
+  | 'login'
+  /** The once-a-day reward for sharing the team to Facebook. */
+  | 'share';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;
