@@ -411,6 +411,13 @@ export class FootballAnimationStateMachine {
   private active: AnimationAction | null = null;
   private activeStart = 0;
 
+  /**
+   * Ground covered per gait cycle at a given speed. The procedural body's own gait
+   * until an authored model supplies measured strides (`setStrideModel`), so the
+   * phase a GLB clip is locked to matches the clip — not the placeholder.
+   */
+  private strideOf: (speed: number) => number = proceduralStride;
+
   /** Diagnostics: actions refused by priority, and actions never started. */
   refused = 0;
   expired = 0;
@@ -611,7 +618,7 @@ export class FootballAnimationStateMachine {
     const speed = visual.speed;
     // Ground covered per cycle at this speed; continuous across bands so the
     // cadence never jumps at a boundary.
-    const stride = proceduralStride(speed);
+    const stride = this.strideOf(speed);
     const cycles = speed / stride + (clip.strideMeters === 0 ? 1 / clip.duration : 0);
 
     locomotion.state = state;
@@ -624,6 +631,14 @@ export class FootballAnimationStateMachine {
       clip.strideMeters === 0
         ? 1
         : Math.max(RATE_MIN, Math.min(RATE_MAX, (speed / stride) * clip.duration));
+  }
+
+  /**
+   * Replaces the stride model — null restores the procedural placeholder. The gait
+   * phase carries on from where it is, so switching mid-match does not jolt the feet.
+   */
+  setStrideModel(model: ((speed: number) => number) | null): void {
+    this.strideOf = model ?? proceduralStride;
   }
 
   /** A keeper stands and shuffles in the set position; running is running. */

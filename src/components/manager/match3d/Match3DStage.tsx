@@ -17,7 +17,7 @@ import {
   shotEndHeight,
 } from './Match3DAdapter';
 import { PlayerVisualAdapter } from './players/PlayerVisualAdapter';
-import { FootballAnimationStateMachine } from './players/FootballAnimationStateMachine';
+import { PlayerPool } from './players/PlayerPool';
 import { shortestAngle } from './players/visualMath';
 import styles from './Match3DStage.module.css';
 
@@ -31,7 +31,9 @@ import styles from './Match3DStage.module.css';
  * interpolated between the engine's 20 Hz steps, the engine's own velocity, speed,
  * facing, movement state and decision, and actions taken from the engine's events.
  * What the body does with that is decided by one `FootballAnimationStateMachine` per
- * player, whose `AnimationCommand` the procedural poses then draw.
+ * player, held in the `PlayerPool`. The pool draws the realistic GLB body from the
+ * machine's `AnimationCommand` when the model is available; otherwise — missing,
+ * loading, invalid or failed — the same command drives the procedural `Player3D`.
  * Players are identified by id throughout — never by where they sit in an array —
  * so a substitution or a red card can never hand one player's body to another.
  *
@@ -128,13 +130,19 @@ function MatchObjects({ engine, label }: SceneProps) {
   // One adapter per match. It is the only thing here that reads the engine's players.
   const adapter = useMemo(() => new PlayerVisualAdapter(engine), [engine]);
 
-  // Bodies and looks, by player id. A substitute is a new id and gets a new rig and a
-  // look seeded from their own id; a red card removes one id and moves nobody else.
+  // Every player's animation state, heading and (once the model loads) realistic
+  // body, by player id. It starts looking for the model when the 3D view mounts.
+  const pool = useMemo(() => new PlayerPool(), [engine]);
+  useEffect(() => {
+    pool.start();
+    return () => pool.dispose();
+  }, [pool]);
+
+  // The procedural bodies and looks, by player id: the fallback body, and the look
+  // both bodies share. A substitute is a new id and gets a new rig and a look seeded
+  // from their own id; a red card removes one id and moves nobody else.
   const rigs = useRef(new Map<string, PlayerRig>());
   const appearances = useRef(new Map<string, PlayerAppearance>());
-  // One animation state machine per player id, made the first frame they are seen and
-  // dropped when they leave — a substitute never starts from anyone else's state.
-  const machines = useRef(new Map<string, FootballAnimationStateMachine>());
 
   const ball = useRef<Mesh>(null);
   const sun = useRef<DirectionalLight>(null);
@@ -161,26 +169,29 @@ function MatchObjects({ engine, label }: SceneProps) {
   };
 
   // Faces and kits are settled once per id: the same card always turns out the same.
-  const appearanceFor = (player: EnginePlayer): PlayerAppearance => {
-    const found = appearances.current.get(player.id);
+  // Called from render (for the procedural body) and from the frame loop (for a
+  // player React has not rendered yet) — both get the one seeded look.
+  const appearanceFor = (id: string, side: EnginePlayer['side'], keeper: boolean): PlayerAppearance => {
+    const found = appearances.current.get(id);
     if (found) return found;
-    const made = appearanceOf(player.id, player.side, player.keeper);
-    appearances.current.set(player.id, made);
+    const made = appearanceOf(id, side, keeper);
+    appearances.current.set(id, made);
     return made;
   };
 
   useFrame(({ camera }, delta) => {
     adapter.update(delta);
 
-    // Whoever left the pitch this frame: hide them now, rather than leave the body
-    // standing until React next re-renders the list, and forget their rig and look.
+    // Whoever left the pitch this frame: hide their procedural body now, rather than
+    // leave it standing until React next re-renders the list, and release everything
+    // else of theirs — rig, look, animation state, realistic body.
     for (const id of adapter.removed) {
       const gone = rigs.current.get(id);
       if (gone?.root) gone.root.visible = false;
       if (gone?.contact) gone.contact.visible = false;
       rigs.current.delete(id);
       appearances.current.delete(id);
-      machines.current.delete(id);
+      pool.release(id);
     }
 
     // Everything below moves by SIMULATION time, so x2 and x4 run the legs and the
@@ -189,36 +200,29 @@ function MatchObjects({ engine, label }: SceneProps) {
     const renderTime = adapter.renderTime;
     const ballX = adapter.ball.x;
     const ballZ = adapter.ball.z;
+    const cam = camera.position;
 
     for (const runtime of adapter.players) {
-      const rig = rigs.current.get(runtime.id);
-      const root = rig?.root;
-      const appearance = appearances.current.get(runtime.id);
-      // Not mounted yet: React adds the body on its next pass, a fraction of a second.
-      if (!rig || !root || !appearance) continue;
       const visual = runtime.visual;
       const x = visual.position.x;
       const z = visual.position.z;
+      const appearance = appearanceFor(runtime.id, visual.side, visual.isKeeper);
+      const player = pool.acquire(runtime.id, appearance, visual.heading);
 
-      let machine = machines.current.get(runtime.id);
-      if (!machine) {
-        machine = new FootballAnimationStateMachine();
-        machines.current.set(runtime.id, machine);
-      }
       // Visual data in, animation command out — in simulation time, so x4 plays
       // everything four times as fast and a pause (simDelta 0) freezes it.
-      const command = machine.update(visual, renderTime, simDelta);
+      const command = player.machine.update(visual, renderTime, simDelta);
 
       // Facing is the engine's. The view only overrides it to turn a scorer to the
       // camera, and turns at a bounded rate so it never snaps.
       if (visual.placed) {
-        rig.heading = command.facing.heading;
+        player.heading = command.facing.heading;
       } else {
         const want = command.action.facesCamera
-          ? Math.atan2(camera.position.x - x, camera.position.z - z)
+          ? Math.atan2(cam.x - x, cam.z - z)
           : command.facing.heading;
         const most = TURN_RATE * simDelta;
-        rig.heading += Math.max(-most, Math.min(most, shortestAngle(rig.heading, want)));
+        player.heading += Math.max(-most, Math.min(most, shortestAngle(player.heading, want)));
       }
 
       // The head follows the ball, as far as a neck turns, unless the action owns it.
@@ -226,33 +230,44 @@ function MatchObjects({ engine, label }: SceneProps) {
         ? 0
         : Math.max(
             -LOOK_LIMIT,
-            Math.min(LOOK_LIMIT, shortestAngle(rig.heading, Math.atan2(ballX - x, ballZ - z))),
+            Math.min(LOOK_LIMIT, shortestAngle(player.heading, Math.atan2(ballX - x, ballZ - z))),
           );
-      rig.lookY += (gaze - rig.lookY) * Math.min(1, simDelta * LOOK_EASE);
+      player.lookY += (gaze - player.lookY) * Math.min(1, simDelta * LOOK_EASE);
 
-      const pose = finalOut.current;
-      commandPose(pose, command, appearance.footed, scratch.current);
+      // Detail by distance, the same thresholds for either body.
+      const level = levelForDistance(Math.hypot(cam.x - x, cam.y, cam.z - z));
 
-      root.position.set(x, pose.rootY * appearance.stature, z);
-      root.rotation.y = rig.heading;
-      applyPose(rig, pose, rig.lookY);
+      // The realistic body if the model is there; otherwise the procedural one.
+      const modelDrawn = pool.draw(player, command, x, z, simDelta, level);
 
-      // The contact shadow stays on the grass whatever the body does, and thins as
-      // the feet leave the ground.
-      const contact = rig.contact;
+      const rig = rigs.current.get(runtime.id);
+      const root = rig?.root;
+      let lift = 0;
+      if (rig && root) {
+        root.visible = !modelDrawn;
+        if (!modelDrawn) {
+          const pose = finalOut.current;
+          commandPose(pose, command, appearance.footed, scratch.current);
+          root.position.set(x, pose.rootY * appearance.stature, z);
+          root.rotation.y = player.heading;
+          applyPose(rig, pose, player.lookY);
+          lift = Math.max(0, pose.rootY);
+          // The flags are only rewritten when the level changes.
+          if (level !== rig.lod) {
+            rig.lod = level;
+            applyDetailLevel(rig.parts, level);
+          }
+        }
+      }
+
+      // The contact shadow stays on the grass under either body, and thins as the
+      // feet leave the ground.
+      const contact = rig?.contact;
       if (contact) {
-        const lift = Math.max(0, pose.rootY);
         const spread = appearance.stature * (1 - lift * 0.7);
         contact.position.set(x, CONTACT_Y, z);
         contact.scale.set(spread * appearance.build, spread, 1);
-        contact.rotation.z = rig.heading;
-      }
-
-      // Detail by distance: the flags are only rewritten when the level changes.
-      const level = levelForDistance(camera.position.distanceTo(root.position));
-      if (level !== rig.lod) {
-        rig.lod = level;
-        applyDetailLevel(rig.parts, level);
+        contact.rotation.z = player.heading;
       }
     }
 
@@ -385,10 +400,18 @@ function MatchObjects({ engine, label }: SceneProps) {
         shadow-normalBias={0.02}
       />
 
-      {/* Keyed and rigged by id. The list itself is React's, and changes only when the
-          roster does; everything that moves is written by the frame loop above. */}
+      {/* The realistic bodies, added and removed by the pool as players come and go. */}
+      <primitive object={pool.group} />
+
+      {/* The procedural bodies — the fallback, hidden for any player the model draws.
+          Keyed and rigged by id; the list is React's and changes only when the roster
+          does; everything that moves is written by the frame loop above. */}
       {engine.players.map((player) => (
-        <Player3D key={player.id} rig={rigFor(player.id)} appearance={appearanceFor(player)} />
+        <Player3D
+          key={player.id}
+          rig={rigFor(player.id)}
+          appearance={appearanceFor(player.id, player.side, player.keeper)}
+        />
       ))}
 
       <mesh ref={ball} position={[0, BALL_RADIUS, 0]} castShadow>

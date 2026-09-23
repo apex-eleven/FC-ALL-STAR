@@ -106,15 +106,8 @@ export interface PlayerRig {
   parts: DetailParts;
   /** The level currently applied, so the flags are only rewritten on a change. */
   lod: DetailLevel | -1;
-  /**
-   * The heading the body is drawn at. Normally the adapter's smoothed engine facing;
-   * a celebration turns it to the camera. Position, velocity and speed are not kept
-   * here — they come from `PlayerVisualAdapter`, never from frame-to-frame deltas —
-   * and neither is gait phase or turn rate, which `FootballAnimationStateMachine` owns.
-   */
-  heading: number;
-  /** Where the head is pointed, smoothed, so it does not snap between targets. */
-  lookY: number;
+  // Heading, gaze and animation state are not kept here: they belong to the player's
+  // `PlayerPool` runtime, so they carry across if the realistic body takes over.
 }
 
 export function makeRig(): PlayerRig {
@@ -135,8 +128,6 @@ export function makeRig(): PlayerRig {
     contact: null,
     parts: makeDetailParts(),
     lod: -1,
-    heading: 0,
-    lookY: 0,
   };
 }
 
