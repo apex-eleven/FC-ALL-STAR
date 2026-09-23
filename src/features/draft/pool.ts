@@ -29,5 +29,8 @@ export function cardToPlayer(card: PlayerCard): DraftPlayer {
     nation: card.nation,
     club: card.club,
     portrait: playerArtUrl(card.artId) ?? FALLBACK_PORTRAIT[card.set],
+    // Omitted rather than undefined: owned cards are written to Firestore, which
+    // refuses undefined fields.
+    ...(card.code ? { code: card.code } : {}),
   };
 }

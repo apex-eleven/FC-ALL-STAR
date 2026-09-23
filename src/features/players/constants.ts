@@ -18,6 +18,8 @@ export const PLAYER_NAME_MAX = 24;
 export const PLAYER_CLUB_MAX = 28;
 export const PLAYER_NATION_MAX = 6;
 export const PLAYER_POSITION_MAX = 4;
+/** Card number: letters, digits, '-' and '_', stored upper-case. */
+export const PLAYER_CODE_MAX = 20;
 
 export const RATING_MIN = 1;
 export const RATING_MAX = 199;

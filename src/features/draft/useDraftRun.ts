@@ -109,6 +109,7 @@ export function useDraftRun(): DraftRunApi {
         nation: outcome.player.nation,
         club: outcome.player.club,
         portrait: outcome.player.portrait,
+        ...(outcome.player.code ? { code: outcome.player.code } : {}),
         acquiredAt,
       }));
 

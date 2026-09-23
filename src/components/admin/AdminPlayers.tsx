@@ -9,13 +9,14 @@ import { usePlayers } from '@/features/players/PlayerContext';
 import {
   MAX_PLAYERS,
   PLAYER_CLUB_MAX,
+  PLAYER_CODE_MAX,
   PLAYER_NAME_MAX,
   PLAYER_NATION_MAX,
   POSITIONS,
   RATING_MAX,
   RATING_MIN,
 } from '@/features/players/constants';
-import type { SaveResult } from '@/features/players/playerStore';
+import { cleanCode, type SaveResult } from '@/features/players/playerStore';
 import type { PlayerCard } from '@/features/players/types';
 import { PLAYER_SETS, type PlayerSet } from '@/features/draft/types';
 import styles from './AdminPlayers.module.css';
@@ -29,6 +30,8 @@ const SAVE_ERROR: Record<'quota' | 'unavailable' | 'too-many', string> = {
 type Status = { tone: 'ok' | 'bad'; text: string } | null;
 
 interface Form {
+  /** Card number — see PlayerCard.code. Admin-only. */
+  code: string;
   name: string;
   rating: string;
   position: string;
@@ -39,6 +42,7 @@ interface Form {
 }
 
 const EMPTY_FORM: Form = {
+  code: '',
   name: '',
   rating: '100',
   position: 'ST',
@@ -50,6 +54,7 @@ const EMPTY_FORM: Form = {
 
 function toForm(card: PlayerCard): Form {
   return {
+    code: card.code,
     name: card.name,
     rating: String(card.rating),
     position: card.position,
@@ -92,6 +97,8 @@ export default function AdminPlayers() {
   const [form, setForm] = useState<Form>(EMPTY_FORM);
   const [query, setQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<PlayerSet | 'all'>('all');
+  /** Show only cards that still need a number — the backlog after numbers arrived. */
+  const [noCodeOnly, setNoCodeOnly] = useState(false);
   const [artQuery, setArtQuery] = useState('');
   const [picking, setPicking] = useState(false);
   const [bulk, setBulk] = useState<Set<string>>(new Set());
@@ -108,15 +115,19 @@ export default function AdminPlayers() {
     const needle = query.trim().toLowerCase();
     return players
       .filter((card) => (tierFilter === 'all' ? true : card.set === tierFilter))
+      .filter((card) => !noCodeOnly || card.code === '')
       .filter(
         (card) =>
           !needle ||
+          card.code.toLowerCase().includes(needle) ||
           card.name.toLowerCase().includes(needle) ||
           card.club.toLowerCase().includes(needle) ||
           card.nation.toLowerCase().includes(needle),
       )
       .sort((a, b) => b.rating - a.rating);
-  }, [players, query, tierFilter]);
+  }, [players, query, tierFilter, noCodeOnly]);
+
+  const missingCodes = useMemo(() => players.filter((card) => card.code === '').length, [players]);
 
   const usedArt = useMemo(
     () => new Set(players.map((card) => card.artId).filter((id): id is string => id !== null)),
@@ -135,7 +146,24 @@ export default function AdminPlayers() {
       return;
     }
 
+    // The number is how crests tell cards apart, so every saved card must have one
+    // and no two cards may share it.
+    const code = cleanCode(form.code);
+    if (!code) {
+      setStatus({ tone: 'bad', text: 'ต้องใส่เลขประจำตัวการ์ด' });
+      return;
+    }
+    const taken = players.find((card) => card.code === code && card.id !== editing);
+    if (taken) {
+      setStatus({
+        tone: 'bad',
+        text: `เลข ${code} ใช้กับ ${taken.name} (OVR ${taken.rating}) แล้ว — ใช้เลขอื่น`,
+      });
+      return;
+    }
+
     const draft = {
+      code,
       name: form.name.trim(),
       rating: Number.isFinite(rating) ? rating : RATING_MIN,
       position: form.position.toUpperCase(),
@@ -266,6 +294,19 @@ export default function AdminPlayers() {
 
             <div className={styles.fields}>
               <label className={styles.field}>
+                <span className={styles.label}>เลขประจำตัวการ์ด · เห็นเฉพาะแอดมิน</span>
+                <input
+                  className={`${styles.input} ${styles.codeInput}`}
+                  value={form.code}
+                  maxLength={PLAYER_CODE_MAX}
+                  placeholder="เช่น 1001"
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(event) => setForm({ ...form, code: cleanCode(event.target.value) })}
+                />
+              </label>
+
+              <label className={styles.field}>
                 <span className={styles.label}>ชื่อ</span>
                 <input
                   className={styles.input}
@@ -359,6 +400,11 @@ export default function AdminPlayers() {
               <p className={styles.legend}>
                 OVR {RATING_MIN}–{RATING_MAX} · ตัวเลขนี้คือตัวที่ walkout ใช้ตัดสินว่าจะเล่นวิดีโอไหม
               </p>
+              <p className={styles.legend}>
+                เลขประจำตัวการ์ดห้ามซ้ำกัน · ตราทีมใช้เลขนี้ตัดสินว่าเป็นการ์ดใบไหน ·
+                ถ้าลบการ์ดแล้วเพิ่มใหม่ ให้ใส่เลขเดิม การ์ดที่ผู้เล่นมีอยู่แล้วจะยังนับเข้าตรา ·
+                ผู้เล่นไม่เห็นเลขนี้ในเกม (แต่ไม่ใช่ข้อมูลลับ อย่าใส่ข้อมูลส่วนตัว)
+              </p>
             </div>
           </div>
 
@@ -438,7 +484,7 @@ export default function AdminPlayers() {
 
               <p className={styles.legend}>
                 กดที่รูปเพื่อเลือกเป็นรูปของการ์ดที่กำลังแก้ · ปุ่มด้านบนใช้สร้างการ์ดทีละหลายใบ
-                แล้วค่อยมาแก้ชื่อ/OVR ทีหลัง
+                แล้วค่อยมาแก้ชื่อ/OVR/เลขประจำตัวการ์ดทีหลัง
               </p>
             </div>
           )}
@@ -524,7 +570,7 @@ export default function AdminPlayers() {
           <div className={styles.filters}>
             <input
               className={styles.input}
-              placeholder="ค้นหาชื่อ / สโมสร / ชาติ"
+              placeholder="ค้นหาเลขการ์ด / ชื่อ / สโมสร / ชาติ"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -548,8 +594,22 @@ export default function AdminPlayers() {
                   {set}
                 </button>
               ))}
+              <button
+                type="button"
+                className={`${styles.chip} ${noCodeOnly ? styles.chipOn : ''}`}
+                onClick={() => setNoCodeOnly((on) => !on)}
+              >
+                ยังไม่มีเลข ({missingCodes})
+              </button>
             </div>
           </div>
+
+          {missingCodes > 0 && (
+            <p className={styles.warn}>
+              มีการ์ด {missingCodes} ใบที่ยังไม่มีเลขประจำตัว · กด “ยังไม่มีเลข” แล้วแก้ไขใส่เลขให้ครบ ·
+              ระหว่างนี้ตราทีมจะเทียบการ์ดพวกนี้ด้วยชื่อ/รูปแทน
+            </p>
+          )}
 
           <div className={styles.list}>
             {visible.map((card) => (
@@ -579,7 +639,12 @@ export default function AdminPlayers() {
                   loading="lazy"
                 />
                 <span className={styles.rowMain}>
-                  <span className={styles.rowName}>{card.name}</span>
+                  <span className={styles.rowName}>
+                    <span className={card.code ? styles.rowCode : styles.rowNoCode}>
+                      {card.code ? `#${card.code}` : 'ไม่มีเลข'}
+                    </span>{' '}
+                    {card.name}
+                  </span>
                   <span className={styles.rowMeta}>
                     {card.position} · {card.nation} · {card.club}
                   </span>

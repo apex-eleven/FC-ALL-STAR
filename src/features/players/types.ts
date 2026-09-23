@@ -27,10 +27,21 @@ export interface PlayerCard extends Entity {
    * URL the way banner images do.
    */
   artId: string | null;
+  /**
+   * Card number the admin types in — the card's own identity, independent of `id`.
+   *
+   * `id` is generated, so deleting a card and adding it again makes a new one; the
+   * code is what the admin decides, and survives that. Team crests match on it. Shown
+   * only in the admin panel. '' = not assigned yet (cards made before codes existed).
+   *
+   * Hidden from players in the UI, not secret: the catalogue is shared config, so
+   * anyone who opens DevTools can read it. Don't put anything private in it.
+   */
+  code: string;
   createdAt: string;
 }
 
 export type PlayerCatalogue = readonly PlayerCard[];
 
 /** What the editor submits. Everything else is filled in on save. */
-export type PlayerCardDraft = Omit<PlayerCard, 'createdAt'>;
+export type PlayerCardDraft = Omit<PlayerCard, 'createdAt' | 'code'> & { code?: string };

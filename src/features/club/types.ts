@@ -31,6 +31,12 @@ export interface OwnedPlayer extends Entity {
    * features/rankup/plus.ts.
    */
   plus?: number;
+  /**
+   * Catalogue card number at the time it was pulled (`PlayerCard.code`). Kept on the
+   * card so it still identifies the card after the catalogue entry is deleted and
+   * re-added under a new id. Absent on cards pulled before numbers existed.
+   */
+  code?: string;
 }
 
 export interface Club {

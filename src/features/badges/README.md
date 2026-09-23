@@ -17,13 +17,13 @@ badges/
 - **Crests are config, the pins are an arrangement.** `squad.badges` holds three ids;
   `equipped()` resolves them against the live config on every read, so a crest the
   admin deletes or disables simply reads as an empty slot.
-- **Active = enough of the set on the pitch.** Only the starting eleven counts,
-  matched by player: the exact catalogue id (`OwnedPlayer.playerId`), the same
-  player name (the rule the squad uses for duplicates), or the same card art file.
-  Any rank-up level and any catalogue copy of that player qualifies — a card pulled
-  before the admin re-imported or renamed a player keeps its old id and name, but not
-  its artwork, so it still counts. Two copies of one player in a set count as one member.
-  `need` = 0 means the whole set.
+- **Active = enough of the set on the pitch.** Only the starting eleven counts. A
+  set member is matched by, in order: the exact catalogue id; the **card number**
+  (`PlayerCard.code`, typed by the admin, stamped on owned cards at pull time) — when
+  both sides have one it alone decides, so a 90 and a 122 of the same player are
+  different cards; and only when either side has no number yet, the same player name
+  or art file. Any rank-up level qualifies. `need` = 0 means the whole set. Two set
+  entries sharing a number count as one member.
 - **One rating everywhere.** `teamRating` = `squadRating` + active bonuses. The home
   tile, club panel, league and manager mode all read it through `useBadges().ratingOf`,
   never `squadRating` directly.

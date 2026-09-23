@@ -17,6 +17,8 @@ export interface DraftPlayer extends Entity {
   nation: string;
   /** Club name, revealed as the third beat of the walkout. */
   club: string;
+  /** Catalogue card number (`PlayerCard.code`), carried so a pull can stamp it. Never shown. */
+  code?: string;
 }
 
 /** Relative weight per set. Normalised at pull time, so these need not total 100. */

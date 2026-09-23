@@ -20,7 +20,7 @@ interface BadgeValue {
   config: BadgeConfig;
   replace(next: BadgeConfig): SaveResult;
   reset(): SaveResult;
-  /** Catalogue id -> player name and art, so crests match the player rather than one card entry. */
+  /** Catalogue id -> card number, name and art — what a crest matches cards on. */
   memberOf: MemberLookup;
   /** Team rating with crest bonuses — what every screen shows for a squad. */
   ratingOf(squad: Squad, owned: OwnedIndex): number;
@@ -60,7 +60,7 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
     (cardId) => {
       const card = byId(cardId);
       if (!card) return undefined;
-      return { name: card.name, portrait: cardToPlayer(card).portrait };
+      return { code: card.code, name: card.name, portrait: cardToPlayer(card).portrait };
     },
     [byId],
   );

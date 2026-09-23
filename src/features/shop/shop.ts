@@ -205,6 +205,7 @@ function delivered(
         nation: resolved.nation,
         club: resolved.club,
         portrait: resolved.portrait,
+        ...(resolved.code ? { code: resolved.code } : {}),
         acquiredAt: stamp.at,
         ...(line.plus > 0 ? { plus: line.plus } : {}),
       });

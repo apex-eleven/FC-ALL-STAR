@@ -92,6 +92,7 @@ function owned(card: PlayerCard, plus: number, stamp: CardStamp): OwnedPlayer {
     nation: resolved.nation,
     club: resolved.club,
     portrait: resolved.portrait,
+    ...(resolved.code ? { code: resolved.code } : {}),
     acquiredAt: stamp.at,
     ...(plus > 0 ? { plus } : {}),
   };

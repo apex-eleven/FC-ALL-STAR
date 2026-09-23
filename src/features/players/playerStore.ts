@@ -3,6 +3,7 @@ import {
   MAX_PLAYERS,
   PLAYERS_KEY,
   PLAYER_CLUB_MAX,
+  PLAYER_CODE_MAX,
   PLAYER_NAME_MAX,
   PLAYER_NATION_MAX,
   PLAYER_POSITION_MAX,
@@ -16,6 +17,19 @@ export type SaveResult = { ok: true } | { ok: false; reason: 'quota' | 'unavaila
 function text(value: unknown, max: number, fallback = ''): string {
   if (typeof value !== 'string') return fallback;
   return value.trim().slice(0, max);
+}
+
+/**
+ * Tidies a card number: upper-case, letters/digits/'-'/'_' only, capped. "a-01 " and
+ * "A-01" are the same card, so they must compare equal everywhere.
+ */
+export function cleanCode(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, '')
+    .slice(0, PLAYER_CODE_MAX);
 }
 
 /**
@@ -47,6 +61,7 @@ export function normalizeCard(value: unknown): PlayerCard | null {
     nation: text(source.nation, PLAYER_NATION_MAX, '—').toUpperCase(),
     club: text(source.club, PLAYER_CLUB_MAX, '—'),
     artId: typeof source.artId === 'string' && source.artId ? source.artId : null,
+    code: cleanCode(source.code),
     createdAt: text(source.createdAt, 32) || new Date(0).toISOString(),
   };
 }
@@ -55,6 +70,7 @@ export function normalizeCatalogue(value: unknown): PlayerCard[] {
   if (!Array.isArray(value)) return [];
 
   const seen = new Set<string>();
+  const codes = new Set<string>();
   const cards: PlayerCard[] = [];
 
   for (const entry of value) {
@@ -63,6 +79,12 @@ export function normalizeCatalogue(value: unknown): PlayerCard[] {
     // one wins rather than both surviving.
     if (!card || seen.has(card.id)) continue;
     seen.add(card.id);
+    // Same for a card number: two cards claiming one number would both satisfy a
+    // crest. The later one loses its number and shows up as "no number" in admin.
+    if (card.code) {
+      if (codes.has(card.code)) card.code = '';
+      else codes.add(card.code);
+    }
     cards.push(card);
     if (cards.length >= MAX_PLAYERS) break;
   }

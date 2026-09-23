@@ -27,8 +27,12 @@ export function syncOwned(
     if (!card) return owned;
 
     const live = cardToPlayer(card);
+    // The number follows the catalogue like the rest. When the entry has none, the
+    // card keeps whatever it was stamped with rather than losing it.
+    const code = live.code ?? owned.code;
     return {
       ...owned,
+      ...(code ? { code } : {}),
       name: live.name,
       rating: live.rating,
       position: live.position,

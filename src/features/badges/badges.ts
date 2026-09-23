@@ -9,17 +9,16 @@ import type { BadgeConfig, BadgeStatus, TeamBadge } from './types';
 
 /** What a crest needs to know about one catalogue card to recognise it on the pitch. */
 export interface SetMember {
+  /** Card number the admin assigned (`PlayerCard.code`), '' when none yet. */
+  code: string;
   name: string;
   /** Art URL as `cardToPlayer` builds it. */
   portrait: string;
 }
 
 /**
- * Resolves a catalogue id to that card's player, or undefined when the card is no
- * longer in the catalogue. Lets a crest recognise the *player*, not one catalogue
- * entry: a card pulled before the admin re-imported a player keeps its old catalogue
- * id — and its old name, typos included — and must still count for a set built from
- * the new entry.
+ * Resolves a catalogue id to that card, or undefined when the card is no longer in
+ * the catalogue.
  */
 export type MemberLookup = (cardId: string) => SetMember | undefined;
 
@@ -32,9 +31,8 @@ function nameKey(name: string): string {
 
 /**
  * The art file a card is drawn with, reduced to its file name so a thumb path, an
- * encoded path and a plain one compare equal. The artwork is the one thing a renamed
- * or re-imported card still has in common with the card somebody already owns.
- * Returns '' for fallback art, which many cards share and so identifies nobody.
+ * encoded path and a plain one compare equal. Returns '' for fallback art, which many
+ * cards share and so identifies nobody.
  */
 function artKey(portrait: string): string {
   if (!portrait) return '';
@@ -52,48 +50,72 @@ function artKey(portrait: string): string {
   return decoded.replace(/\.[a-z0-9]+$/i, '').toLowerCase();
 }
 
-/** The eleven on the pitch, by catalogue id, player name and artwork. Bench does not count. */
-export interface Fielded {
-  ids: Set<string>;
-  names: Set<string>;
-  arts: Set<string>;
+/** One card of the starting eleven, reduced to what identifies it. */
+interface FieldedCard {
+  playerId: string;
+  code: string;
+  name: string;
+  art: string;
 }
 
+/** The eleven on the pitch. Bench does not count. */
+export type Fielded = FieldedCard[];
+
 export function fielded(squad: Squad, owned: OwnedIndex): Fielded {
-  const ids = new Set<string>();
-  const names = new Set<string>();
-  const arts = new Set<string>();
+  const cards: FieldedCard[] = [];
   for (const slot of formationOf(squad).slots) {
     const cardId = squad.starters[slot.id];
     const card = cardId ? owned.get(cardId) : undefined;
     if (!card) continue;
-    ids.add(card.playerId);
-    if (card.name) names.add(nameKey(card.name));
-    const art = artKey(card.portrait ?? '');
-    if (art) arts.add(art);
+    cards.push({
+      playerId: card.playerId,
+      code: card.code ?? '',
+      name: card.name ? nameKey(card.name) : '',
+      art: artKey(card.portrait ?? ''),
+    });
   }
-  return { ids, names, arts };
-}
-
-/** Whether one member of a set is on the pitch — the exact card, or the same player. */
-export function isFielded(cardId: string, onPitch: Fielded, lookup: MemberLookup = noLookup): boolean {
-  if (onPitch.ids.has(cardId)) return true;
-  const member = lookup(cardId);
-  if (!member) return false;
-  if (member.name && onPitch.names.has(nameKey(member.name))) return true;
-  const art = artKey(member.portrait);
-  return art !== '' && onPitch.arts.has(art);
+  return cards;
 }
 
 /**
- * The set as distinct players. Two catalogue versions of one player in a set are one
- * member — otherwise a single card on the pitch would tick two boxes.
+ * Whether one card on the pitch is this member of the set.
+ *
+ * 1. Same catalogue id — always the right card.
+ * 2. Both carry a card number — the number decides, and nothing else. This is what
+ *    tells two cards of one player apart (a 90 and a 122 MBAPPE are different cards).
+ * 3. Either side has no number yet (cards made or pulled before numbers existed) —
+ *    fall back to the same player name or the same art file, so those clubs keep
+ *    working until the admin has numbered the catalogue.
+ */
+function matches(cardId: string, member: SetMember | undefined, card: FieldedCard): boolean {
+  if (card.playerId === cardId) return true;
+  if (!member) return false;
+  if (member.code && card.code) return member.code === card.code;
+  if (member.name && card.name === nameKey(member.name)) return true;
+  const art = artKey(member.portrait);
+  return art !== '' && card.art === art;
+}
+
+/** Whether one member of a set is on the pitch. */
+export function isFielded(cardId: string, onPitch: Fielded, lookup: MemberLookup = noLookup): boolean {
+  const member = lookup(cardId);
+  return onPitch.some((card) => matches(cardId, member, card));
+}
+
+/**
+ * The set as distinct cards. Two catalogue entries sharing a number — or, without
+ * numbers, sharing a name — are one member, otherwise a single card on the pitch
+ * would tick two boxes.
  */
 function members(badge: TeamBadge, lookup: MemberLookup): string[][] {
   const groups = new Map<string, string[]>();
   for (const id of badge.cardIds) {
-    const name = lookup(id)?.name;
-    const key = name ? `n:${nameKey(name)}` : `i:${id}`;
+    const member = lookup(id);
+    const key = member?.code
+      ? `c:${member.code}`
+      : member?.name
+        ? `n:${nameKey(member.name)}`
+        : `i:${id}`;
     const group = groups.get(key);
     if (group) group.push(id);
     else groups.set(key, [id]);

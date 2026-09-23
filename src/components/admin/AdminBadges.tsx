@@ -118,7 +118,7 @@ export default function AdminBadges() {
       .filter(
         (card) =>
           search === '' ||
-          [card.name, card.id, card.club, card.nation, card.position, String(card.rating)].some((field) =>
+          [card.code, card.name, card.id, card.club, card.nation, card.position, String(card.rating)].some((field) =>
             field.toLowerCase().includes(search),
           ),
       )
@@ -129,7 +129,7 @@ export default function AdminBadges() {
       <div className={styles.picker}>
         <input
           className={styles.input}
-          placeholder="ค้นหาการ์ด ชื่อ / OVR / ตำแหน่ง / สโมสร"
+          placeholder="ค้นหาการ์ด เลขการ์ด / ชื่อ / OVR / ตำแหน่ง / สโมสร"
           value={query[badge.id] ?? ''}
           disabled={full}
           onChange={(event) => setQuery((prev) => ({ ...prev, [badge.id]: event.target.value }))}
@@ -146,7 +146,7 @@ export default function AdminBadges() {
           <option value="">{full ? `ครบ ${MAX_SET_CARDS} คนแล้ว` : '+ เพิ่มนักเตะเข้าชุด'}</option>
           {shown.map((card) => (
             <option key={card.id} value={card.id}>
-              {card.name} · OVR {card.rating} · {card.position} · {card.set}
+              {card.code ? `#${card.code}` : '(ไม่มีเลข)'} · {card.name} · OVR {card.rating} · {card.position} · {card.set}
               {card.club ? ` · ${card.club}` : ''}
             </option>
           ))}
@@ -343,7 +343,9 @@ export default function AdminBadges() {
                         <Shield size={18} strokeWidth={2} />
                       )}
                       <span className={styles.chipText}>
-                        {card ? `${card.name} · ${card.rating} ${card.position}` : 'การ์ดที่ถูกลบแล้ว'}
+                        {card
+                          ? `${card.code ? `#${card.code} · ` : ''}${card.name} · ${card.rating} ${card.position}`
+                          : 'การ์ดที่ถูกลบแล้ว'}
                       </span>
                       <button
                         type="button"
