@@ -24,9 +24,22 @@ public/models/players/T_Numbers.png       ตัวเลข 0–9 เรีย�
 - ใบหน้าทั่วไป ห้ามเป็นหน้านักเตะจริง และต้องมีสิทธิ์ใช้งานในเว็บสาธารณะก่อน commit
 - กระดูกที่ต้องมี: `Hips` `Head` และซ้าย/ขวาของ `UpperLeg` `LowerLeg` `Foot` `UpperArm` `ForeArm`
   (ชื่อแบบ Mixamo / Unreal / Blender ก็ใช้ได้ ระบบแปลงให้เอง)
-- คลิปที่ต้องมี: `Idle` `Walk` `Run` · คลิปอื่นตาม `CLIP_REGISTRY` (Jog, Sprint, Pass, Shoot,
-  Tackle, Receive, Celebrate, GK_Ready, GK_Dive_Left, GK_Dive_Right, GK_Catch) ไม่มีก็เล่นได้
+- คลิปที่ต้องมี: `Idle` `Walk` `Run` · คลิปอื่นตาม `CLIP_REGISTRY` (Jog, Sprint, Turn, Pass, Shoot,
+  Tackle, Receive, Interception, Celebrate, GK_Ready, GK_Dive_Left, GK_Dive_Right, GK_Catch/GK_Save)
+  ไม่มีก็เล่นได้
 - คลิปเดิน/วิ่งต้องเป็นแบบ in place (ไม่มี root motion) และลูปเริ่มที่เท้าซ้ายแตะพื้น
+
+## แอนิเมชัน (STEP 6)
+
+ระบบเลือกคลิปจาก **สถานะ** ไม่ใช่จากชื่อคลิป: ชื่อทุกชื่ออยู่ที่เดียวใน `CLIP_REGISTRY`
+(`players/playerAssets.ts`) เทียบแบบไม่สนตัวพิมพ์เล็ก/ใหญ่
+
+- `Turn` — หมุนตัวอยู่กับที่ (ลูป in place) · ใช้ตอนยืนอยู่แล้วหันตัวเร็ว (เดิน/วิ่งจะใช้ท่าก้าวเท้าตามปกติ)
+- ท่าดีใจมีได้ 3 แบบ: `Celebrate_1` `Celebrate_2` `Celebrate_3` (ไม่มีแบบไหนจะใช้ `Celebrate`
+  ตัวเดียวแทน) — นักเตะแต่ละคนได้แบบของตัวเองตาม id
+- ท่าพุ่งเซฟ (`GK_Dive_Left/Right`) ยาว 1.1 วินาที มือถึงบอลที่ 40% ของคลิป แล้วลงพื้นและลุกขึ้น
+- คลิปไหนไม่มี จะไม่ล่มและไม่หายไปเฉย ๆ: โมเดลเล่นคลิปเดิน/วิ่งต่อ แล้วระบบวางท่า procedural
+  ทับบนกระดูกของโมเดลแทน (แจ้งใน console ครั้งเดียวตอนโหลด)
 
 ## ชุดแข่งและรูปลักษณ์ (STEP 5)
 

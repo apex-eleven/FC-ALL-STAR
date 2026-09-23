@@ -18,6 +18,7 @@ import {
 } from './Match3DAdapter';
 import { PlayerVisualAdapter } from './players/PlayerVisualAdapter';
 import { PlayerPool } from './players/PlayerPool';
+import { describeAnimation, type AnimationBody } from './players/animationDiagnostics';
 import { resolvePlayerLook, type PlayerLookSources } from './players/playerAppearance';
 import { shortestAngle } from './players/visualMath';
 import styles from './Match3DStage.module.css';
@@ -54,6 +55,14 @@ export interface Match3DStageProps {
 
 /** Set true to bring back the coordinate read-out used to prove the mapping. */
 const SHOW_DEBUG = false;
+/**
+ * Set true for the animation read-out: every player's id, locomotion state, engine
+ * speed, action and whether the GLB or the procedural body drew it. For development
+ * only — it is off in the game, like the read-out above.
+ */
+const SHOW_ANIMATION_DEBUG = false;
+/** How often the animation read-out is rewritten, real seconds. */
+const ANIMATION_DEBUG_EVERY = 0.25;
 
 /**
  * A long lens, which is what a televised match is shot on: it sits the camera well
@@ -88,6 +97,12 @@ const TURN_RATE = 12;
 const LOOK_LIMIT = 1.1;
 /** How quickly the gaze settles on a new target, per simulation second. */
 const LOOK_EASE = 6;
+/**
+ * Where each celebration take turns relative to the camera, radians: the take is the
+ * player's own (seeded from their id), so a group celebrating does not all square up
+ * to the lens at once.
+ */
+const CELEBRATION_FACING: readonly number[] = [0, 0.55, -0.5];
 
 const MARKER_COLOR = '#38e8ff';
 
@@ -105,6 +120,8 @@ function shortName(name: string): string {
 
 interface SceneProps extends Match3DStageProps {
   label: React.RefObject<HTMLDivElement>;
+  /** The animation read-out, when SHOW_ANIMATION_DEBUG is on. */
+  diagnostics: React.RefObject<HTMLPreElement>;
 }
 
 /**
@@ -133,7 +150,7 @@ function applyPose(rig: PlayerRig, pose: Pose, lookY: number): void {
  * three objects each frame — no React state, exactly as the 2D renderer writes
  * transforms onto its DOM nodes.
  */
-function MatchObjects({ engine, label, appearance }: SceneProps) {
+function MatchObjects({ engine, label, appearance, diagnostics }: SceneProps) {
   // One adapter per match. It is the only thing here that reads the engine's players.
   const adapter = useMemo(() => new PlayerVisualAdapter(engine), [engine]);
 
@@ -166,6 +183,9 @@ function MatchObjects({ engine, label, appearance }: SceneProps) {
   // Reused every frame so a match never allocates in its own loop.
   const scratch = useRef(makePoseScratch());
   const finalOut = useRef<Pose>(makePose());
+  /** The animation read-out: when it was last written, and its lines. */
+  const debugAt = useRef(-Infinity);
+  const debugLines = useRef<string[]>([]);
 
   const rigFor = (id: string): PlayerRig => {
     const found = rigs.current.get(id);
@@ -204,7 +224,7 @@ function MatchObjects({ engine, label, appearance }: SceneProps) {
     return made;
   };
 
-  useFrame(({ camera }, delta) => {
+  useFrame(({ camera, clock }, delta) => {
     adapter.update(delta);
 
     // Whoever left the pitch this frame: hide their procedural body now, rather than
@@ -226,6 +246,12 @@ function MatchObjects({ engine, label, appearance }: SceneProps) {
     const ballX = adapter.ball.x;
     const ballZ = adapter.ball.z;
     const cam = camera.position;
+    const debugNode = SHOW_ANIMATION_DEBUG ? diagnostics.current : null;
+    const describe = debugNode !== null && clock.elapsedTime - debugAt.current >= ANIMATION_DEBUG_EVERY;
+    if (describe) {
+      debugAt.current = clock.elapsedTime;
+      debugLines.current.length = 0;
+    }
 
     for (const runtime of adapter.players) {
       const visual = runtime.visual;
@@ -244,7 +270,7 @@ function MatchObjects({ engine, label, appearance }: SceneProps) {
         player.heading = command.facing.heading;
       } else {
         const want = command.action.facesCamera
-          ? Math.atan2(cam.x - x, cam.z - z)
+          ? Math.atan2(cam.x - x, cam.z - z) + (CELEBRATION_FACING[command.action.variant] ?? 0)
           : command.facing.heading;
         const most = TURN_RATE * simDelta;
         player.heading += Math.max(-most, Math.min(most, shortestAngle(player.heading, want)));
@@ -264,6 +290,13 @@ function MatchObjects({ engine, label, appearance }: SceneProps) {
 
       // The realistic body if the model is there; otherwise the procedural one.
       const modelDrawn = pool.draw(player, command, x, z, simDelta, level);
+
+      if (describe) {
+        const body: AnimationBody = modelDrawn ? (player.body?.drawnByPose ? 'GLB+POSE' : 'GLB') : 'PROCEDURAL';
+        debugLines.current.push(
+          describeAnimation({ id: runtime.id, shirtNumber: look.shirtNumber, speed: visual.speed, command, body }),
+        );
+      }
 
       const rig = rigs.current.get(runtime.id);
       const root = rig?.root;
@@ -295,6 +328,8 @@ function MatchObjects({ engine, label, appearance }: SceneProps) {
         contact.rotation.z = player.heading;
       }
     }
+
+    if (describe && debugNode) debugNode.textContent = debugLines.current.join('\n');
 
     // Height is the one thing about the ball the engine does not know, so it is the
     // one thing worked out here. Where it is and what happens to it stay the sim's.
@@ -484,6 +519,7 @@ function Match3DDebug({ engine }: Match3DStageProps) {
 
 export default function Match3DStage({ engine, appearance }: Match3DStageProps) {
   const label = useRef<HTMLDivElement>(null);
+  const diagnostics = useRef<HTMLPreElement>(null);
 
   return (
     <div className={styles.wrap}>
@@ -498,10 +534,11 @@ export default function Match3DStage({ engine, appearance }: Match3DStageProps) 
         <ambientLight intensity={0.7} />
         <Pitch3D />
         <Stadium3D />
-        <MatchObjects engine={engine} label={label} appearance={appearance} />
+        <MatchObjects engine={engine} label={label} appearance={appearance} diagnostics={diagnostics} />
       </Canvas>
       <div ref={label} className={styles.name} />
       {SHOW_DEBUG && <Match3DDebug engine={engine} />}
+      {SHOW_ANIMATION_DEBUG && <pre ref={diagnostics} className={styles.animDebug} />}
     </div>
   );
 }

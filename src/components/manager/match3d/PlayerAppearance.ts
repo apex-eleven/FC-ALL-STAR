@@ -38,6 +38,15 @@ function between(seed: string, salt: string, min: number, max: number): number {
   return min + ((hash(`${seed}:${salt}`) >>> 8) / 0x1000000) * (max - min);
 }
 
+/**
+ * A player's kicking foot, from their id: −1 left, +1 right, roughly one in four
+ * left-footed. Shared by both bodies, so a player strikes with the same foot whichever
+ * one draws them.
+ */
+export function footedOf(id: string): -1 | 1 {
+  return hash(`${id}:foot`) % 4 === 0 ? -1 : 1;
+}
+
 /** The procedural body for a resolved look. Called once per player lifecycle. */
 export function proceduralAppearance(look: PlayerLook): PlayerAppearance {
   const id = look.id;
@@ -46,6 +55,6 @@ export function proceduralAppearance(look: PlayerLook): PlayerAppearance {
     build: between(id, 'build', 0.92, 1.1),
     legLength: between(id, 'legs', 0.96, 1.05),
     armLength: between(id, 'arms', 0.96, 1.05),
-    footed: hash(`${id}:foot`) % 4 === 0 ? -1 : 1,
+    footed: footedOf(id),
   };
 }

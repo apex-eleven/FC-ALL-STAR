@@ -13,24 +13,32 @@ import { shortestAngle } from './visualMath';
  *
  *   PlayerVisualAdapter   simulation → visual data and resolved actions
  *   this                  visual data → which animation, how far in, how fast
- *   Player3D / (STEP 6)   command → joint angles today, AnimationMixer later
+ *   Player3D              command → joint angles (the procedural body)
+ *   FootballPlayer3D      command → AnimationMixer (the GLB), with the procedural pose
+ *                         laid on its bones for any state it has no clip for
  *
  * Two layers, never merged:
  *
- *   BASE LOCOMOTION   IDLE · WALK · JOG · RUN · SPRINT · GK_READY
- *                     chosen from the ENGINE'S speed with hysteresis, always running
+ *   BASE LOCOMOTION   IDLE · WALK · JOG · RUN · SPRINT · TURN · GK_READY
+ *                     chosen from the ENGINE'S speed with hysteresis, always running;
+ *                     TURN is a standing player whose engine facing is swinging
+ *                     round (a pivot), from the facing's own turn rate
  *   ONE-SHOT ACTION   PASS · RECEIVE · INTERCEPTION · SHOOT · TACKLE · CELEBRATE ·
  *                     GK_DIVE_LEFT · GK_DIVE_RIGHT · GK_CATCH
  *                     started once per adapter action (by its `seq`), layered over
  *                     the locomotion with a weight, then handed back to it
  *
- * So a player passing on the run is RUN + PASS, never "in PASS".
+ * So a player passing on the run is RUN + PASS, never "in PASS" — and when the pass is
+ * over, the body is simply back on whatever locomotion the engine's speed says now.
+ *
+ * The keeper's two save movements are GOALKEEPER_DIVE (GK_DIVE_LEFT / GK_DIVE_RIGHT,
+ * a shot wide of them) and GOALKEEPER_SAVE (GK_CATCH, a shot at them: set, reach,
+ * gather, recover). Both come from the engine's shot and save events via the adapter.
  *
  * Nothing here moves a player. Position and speed stay the engine's; the machine only
  * decides how the body that the engine is moving should look while it moves.
  *
  * Deferred on purpose, because the engine does not publish what they would need:
- *   - TURN_LEFT / TURN_RIGHT: turning stays procedural; `facing.turnRate` is exposed.
  *   - BACKPEDAL / STRAFE: engine facing always follows velocity above 0.35 m/s, so
  *     there is no authoritative "moving one way, facing another" to animate.
  *   - DRIBBLE / BALL_CONTROL: there is no per-touch signal. ON_BALL uses normal
@@ -39,7 +47,7 @@ import { shortestAngle } from './visualMath';
 
 /* ── States ─────────────────────────────────────────────────────────────────── */
 
-export type LocomotionState = 'IDLE' | 'WALK' | 'JOG' | 'RUN' | 'SPRINT' | 'GK_READY';
+export type LocomotionState = 'IDLE' | 'WALK' | 'JOG' | 'RUN' | 'SPRINT' | 'TURN' | 'GK_READY';
 
 export type AnimationAction =
   | 'PASS'
@@ -128,11 +136,17 @@ function locomotionClip(
  * phase, i.e. one breath cycle every 2π / 0.9 ≈ 7 s.
  */
 const IDLE_LOOP_SECONDS = (Math.PI * 2) / 0.9;
+/**
+ * One pivot cycle — a step with each foot — while turning on the spot. The engine
+ * turns a player at up to 9 rad/s, so a half turn takes ~0.35 s: about one cycle.
+ */
+const TURN_LOOP_SECONDS = 0.7;
 
 /** Reference speeds sit mid-band — what the clip is authored at. */
 export const LOCOMOTION_CLIPS: Readonly<Record<LocomotionState, AnimationClipMetadata>> = {
   IDLE: locomotionClip('IDLE', 0, IDLE_LOOP_SECONDS),
   GK_READY: locomotionClip('GK_READY', 0, IDLE_LOOP_SECONDS),
+  TURN: locomotionClip('TURN', 0, TURN_LOOP_SECONDS),
   WALK: locomotionClip('WALK', 1.2),
   JOG: locomotionClip('JOG', 2.8),
   RUN: locomotionClip('RUN', 4.9),
@@ -168,14 +182,26 @@ function actionMeta(
  * Ball contact is where the pose's kick swing passes through the ball (0.3 → 0.62,
  * through the middle), the tackle's reach peaks at 0.4, the catch gathers at 0.45.
  *
- * Priority follows the brief after checking the engine's sequences: a keeper's dive
- * is never cut short; a tackle beats the pass the winner may play the same instant;
- * a shot beats a pass; receiving is the least committed movement; a celebration
- * yields to anything (nothing else happens in the dead ball it plays in).
+ * The keeper's dive runs its whole course — set, push, flight, landing, back up — in
+ * 1.1 s, with the hands reaching the ball at 0.44 s: the same instant the 0.85 s dive
+ * used to meet it (0.5 × 0.85), because that instant is timed against the ball's
+ * flight by the adapter. Only the landing and getting up were added after it.
+ *
+ * Priority (higher is kept) after checking the engine's sequences:
+ *
+ *   CELEBRATE 7 > GK dive / save 6 > TACKLE 5 > SHOOT 4 > PASS 3 > RECEIVE 2 > INTERCEPTION 1
+ *
+ * then TURN and the locomotion bands beneath every action, as a layer rather than a
+ * rival. A celebration, once playing, is never cut; but it never cuts a strike short
+ * either — it waits for the action before it to reach its recovery tail (see
+ * `waitsForTurn`). A keeper's dive is never cut short. A tackle outranks a shot
+ * because the engine resolves the tackle first: the carrier who shoots in the same
+ * instant is the one being tackled, and the challenge is the event that happened.
+ * Receiving is the least committed movement.
  */
 export const ACTION_METADATA: Readonly<Record<AnimationAction, ActionMetadata>> = {
-  GK_DIVE_LEFT: actionMeta('GK_DIVE_LEFT', 0.85, 6, 0.7, { holdsHead: true, keeperOnly: true, ballContactTime: 0.5 }),
-  GK_DIVE_RIGHT: actionMeta('GK_DIVE_RIGHT', 0.85, 6, 0.7, { holdsHead: true, keeperOnly: true, ballContactTime: 0.5 }),
+  GK_DIVE_LEFT: actionMeta('GK_DIVE_LEFT', 1.1, 6, 0.75, { holdsHead: true, keeperOnly: true, ballContactTime: 0.4 }),
+  GK_DIVE_RIGHT: actionMeta('GK_DIVE_RIGHT', 1.1, 6, 0.75, { holdsHead: true, keeperOnly: true, ballContactTime: 0.4 }),
   GK_CATCH: actionMeta('GK_CATCH', 0.7, 6, 0.6, { holdsHead: true, keeperOnly: true, ballContactTime: 0.45 }),
   TACKLE: actionMeta('TACKLE', 0.75, 5, 0.6, { ballContactTime: 0.4 }),
   SHOOT: actionMeta('SHOOT', 0.62, 4, 0.62, { ballContactTime: 0.46 }),
@@ -183,8 +209,11 @@ export const ACTION_METADATA: Readonly<Record<AnimationAction, ActionMetadata>> 
   RECEIVE: actionMeta('RECEIVE', 0.55, 2, 0.5, { ballContactTime: 0.5 }),
   INTERCEPTION: actionMeta('INTERCEPTION', 0.55, 1, 0.5, { ballContactTime: 0.5 }),
   // A close-range goal lands while the SHOOT is still early; the celebration waits.
-  CELEBRATE: actionMeta('CELEBRATE', 2.0, 0, 0, { holdsHead: true, facesCamera: true, waitsForTurn: true }),
+  CELEBRATE: actionMeta('CELEBRATE', 2.0, 7, 1, { holdsHead: true, facesCamera: true, waitsForTurn: true }),
 };
+
+/** How many celebration variants there are; the adapter picks one per player per goal. */
+export const CELEBRATION_VARIANTS = 3;
 
 /* ── Speed bands ────────────────────────────────────────────────────────────── */
 
@@ -242,6 +271,34 @@ const RATE_MAX = 1.6;
 const CYCLE_WRAP = 1024;
 /** How quickly the exposed turn rate follows the heading, per simulation second. */
 const TURN_RATE_EASE = 8;
+
+/**
+ * TURN — pivoting on the spot — from the facing's smoothed turn rate, rad/s, checked
+ * against the running engine (three full matches). The engine swings a player's
+ * facing at up to 9 rad/s. At RUN and SPRINT the rate never passes 4.3 rad/s and the
+ * body leans into the curve instead; at WALK and JOG a fast swing is the walk changing
+ * direction, which the gait already steps through — letting TURN take those over made
+ * a pivot every ~5 s per player, most of them re-entered within 0.6 s. So TURN is a
+ * STANDING player's turn (the IDLE band): turning to a switch of play, or on the spot
+ * before setting off.
+ *
+ *   enter    |turn rate| ≥ 3.5, standing
+ *   leave    |turn rate| < 1.5 after at least TURN_MIN_HOLD, or on setting off
+ *   again    not until TURN_REST after the last one ended
+ *
+ * Measured with these values over six full matches (x1 and x4): 2.2 pivots per
+ * player-minute, under 1% of all player time, and 0.2 re-entries per player-minute
+ * within 0.6 s (before TURN_REST: 0.35). The gap
+ * between the two thresholds is the hysteresis: a facing that settles mid-turn does
+ * not drop out and back in. A keeper keeps the set position instead.
+ */
+const TURN_ENTER = 3.5;
+const TURN_EXIT = 1.5;
+const TURN_MIN_HOLD = 0.35;
+/** After a pivot, this long (simulation seconds) standing before another may start. */
+const TURN_REST = 0.6;
+/** The highest band (index into BANDS) a pivot can start from: IDLE. */
+const TURN_MAX_BAND = 0;
 
 /** Band order, slowest first. GK_READY stands in for IDLE and WALK on a keeper. */
 const BANDS: readonly LocomotionState[] = ['IDLE', 'WALK', 'JOG', 'RUN', 'SPRINT'];
@@ -323,6 +380,11 @@ export interface AnimationCommand {
     /** Gait cycles per simulation second — what `phase` is advancing at. */
     cyclesPerSecond: number;
     clip: AnimationClipMetadata;
+    /**
+     * Which way a TURN pivots, fixed when it starts (+1 left, −1 right, the sign of
+     * `facing.turnRate`); kept through the fade out of it; 0 once it is over.
+     */
+    turnDirection: -1 | 0 | 1;
   };
   action: {
     state: AnimationAction | null;
@@ -334,6 +396,11 @@ export interface AnimationCommand {
     weight: number;
     /** Counts actions started by this machine: a new value means restart the clip. */
     seq: number;
+    /**
+     * Which take of the action to play, 0-based (celebrations: 0..CELEBRATION_VARIANTS-1).
+     * Chosen upstream from the player's id, so it is deterministic. 0 for none.
+     */
+    variant: number;
     holdsHead: boolean;
     facesCamera: boolean;
     clip: AnimationClipMetadata | null;
@@ -358,6 +425,7 @@ interface QueuedAction {
   at: number;
   /** Engine-y offset of the shot from the keeper, for a dive. */
   dir: number;
+  variant: number;
 }
 
 function smooth01(t: number): number {
@@ -378,6 +446,7 @@ export class FootballAnimationStateMachine {
       cycle: 0,
       cyclesPerSecond: 0,
       clip: LOCOMOTION_CLIPS.IDLE,
+      turnDirection: 0,
     },
     action: {
       state: null,
@@ -385,6 +454,7 @@ export class FootballAnimationStateMachine {
       elapsed: 0,
       weight: 0,
       seq: 0,
+      variant: 0,
       holdsHead: false,
       facesCamera: false,
       clip: null,
@@ -401,15 +471,23 @@ export class FootballAnimationStateMachine {
   private bandSpeed = 0;
   private bandHeld = 0;
   private fadeTime = LOCOMOTION_CROSSFADE;
+  /** The locomotion state being shown — a band's, or TURN. */
+  private shown: LocomotionState = 'IDLE';
+  /** Pivoting, and for how long. */
+  private turning = false;
+  private turnHeld = 0;
+  /** Time since the last pivot ended. */
+  private turnRested = TURN_REST;
   private lastHeading = 0;
   private started = false;
 
   /** The adapter action last taken in, so each is started at most once. */
   private seenActionSeq = 0;
-  private queued: QueuedAction = { kind: 'PASS', at: 0, dir: 0 };
+  private queued: QueuedAction = { kind: 'PASS', at: 0, dir: 0, variant: 0 };
   private hasQueued = false;
   private active: AnimationAction | null = null;
   private activeStart = 0;
+  private activeVariant = 0;
 
   /**
    * Ground covered per gait cycle at a given speed. The procedural body's own gait
@@ -440,23 +518,31 @@ export class FootballAnimationStateMachine {
       this.fadeTime = LOCOMOTION_CROSSFADE;
       this.lastHeading = visual.heading;
       command.facing.turnRate = 0;
+      // No pivot carried across a reset either; the band's state shows at once.
+      this.turning = false;
+      this.turnHeld = 0;
+      this.turnRested = TURN_REST;
+      this.shown = this.stateOf(this.band, visual.isKeeper);
+      command.locomotion.previous = this.shown;
+      command.locomotion.turnDirection = 0;
       // Anything from the play before the reset — playing or still queued — is dropped.
       if (this.active !== null && this.activeStart <= time) this.active = null;
       if (this.hasQueued && this.queued.at <= time) this.hasQueued = false;
       this.started = true;
     }
 
-    this.takeAction(visual);
-    this.advanceAction(visual, time);
-    this.advanceLocomotion(visual, step);
-
-    // Facing: the engine's, via the adapter. Only the turn rate is derived here.
+    // Facing: the engine's, via the adapter. Only the turn rate is derived here — first,
+    // because a pivot (TURN) is chosen from it.
     const turned = shortestAngle(this.lastHeading, visual.heading);
     this.lastHeading = visual.heading;
     if (step > 0) {
       command.facing.turnRate += (turned / step - command.facing.turnRate) * Math.min(1, step * TURN_RATE_EASE);
     }
     command.facing.heading = visual.heading;
+
+    this.takeAction(visual);
+    this.advanceAction(visual, time);
+    this.advanceLocomotion(visual, step);
 
     command.effort = Math.min(visual.speed / EFFORT_FULL_SPEED, 1);
     command.fatigue = Math.max(0, Math.min(0.85, 1 - visual.stamina));
@@ -482,6 +568,7 @@ export class FootballAnimationStateMachine {
     this.queued.kind = kind;
     this.queued.at = incoming.at;
     this.queued.dir = incoming.dir;
+    this.queued.variant = incoming.variant;
     this.hasQueued = true;
   }
 
@@ -499,6 +586,7 @@ export class FootballAnimationStateMachine {
         this.active = kind;
         // A contact action is timed from its event; one that waited starts now, whole.
         this.activeStart = meta.waitsForTurn ? time : this.queued.at;
+        this.activeVariant = this.queued.variant;
         this.command.action.seq += 1;
       } else if (!meta.waitsForTurn) {
         this.hasQueued = false;
@@ -526,6 +614,7 @@ export class FootballAnimationStateMachine {
         action.holdsHead = meta.holdsHead;
         action.facesCamera = meta.facesCamera;
         action.clip = meta.clip;
+        action.variant = this.activeVariant;
         return;
       }
     }
@@ -534,6 +623,7 @@ export class FootballAnimationStateMachine {
     action.elapsed = 0;
     action.normalizedTime = 0;
     action.weight = 0;
+    action.variant = 0;
     action.holdsHead = false;
     action.facesCamera = false;
     action.clip = null;
@@ -554,6 +644,9 @@ export class FootballAnimationStateMachine {
     const meta = ACTION_METADATA[current];
     const progress = (time - this.activeStart) / meta.clip.duration;
     if (progress >= 1) return true;
+    // An action that waits its turn (a celebration) never cuts one mid-strike, however
+    // high its own priority: it starts once the one playing reaches its recovery tail.
+    if (ACTION_METADATA[next].waitsForTurn) return progress >= meta.interruptibleAfter;
     if (ACTION_METADATA[next].priority >= meta.priority) return true;
     return progress >= meta.interruptibleAfter;
   }
@@ -602,17 +695,38 @@ export class FootballAnimationStateMachine {
     const wanted = this.bandFor(visual, this.bandSpeed, this.band);
     const jump = Math.abs(wanted - this.band);
     if (jump >= 2 || (jump === 1 && this.bandHeld >= MIN_BAND_HOLD)) {
-      const before = this.stateOf(this.band, visual.isKeeper);
       this.band = wanted;
       this.bandHeld = 0;
-      const after = this.stateOf(wanted, visual.isKeeper);
-      if (after !== before) {
-        locomotion.previous = before;
-        this.fadeTime = 0;
-      }
     }
-    const state = this.stateOf(this.band, visual.isKeeper);
+
+    // A pivot: standing (the IDLE band), and the engine's facing swinging round fast.
+    const turnRate = this.command.facing.turnRate;
+    const canTurn = !visual.isKeeper && this.band <= TURN_MAX_BAND;
+    if (!this.turning) this.turnRested += step;
+    if (this.turning) {
+      this.turnHeld += step;
+      if (!canTurn || (Math.abs(turnRate) < TURN_EXIT && this.turnHeld >= TURN_MIN_HOLD)) {
+        this.turning = false;
+        this.turnRested = 0;
+      }
+    } else if (canTurn && Math.abs(turnRate) >= TURN_ENTER && this.turnRested >= TURN_REST) {
+      this.turning = true;
+      this.turnHeld = 0;
+      locomotion.turnDirection = turnRate > 0 ? 1 : -1;
+    }
+
+    // Any change of the state shown crossfades from the one before.
+    const state: LocomotionState = this.turning ? 'TURN' : this.stateOf(this.band, visual.isKeeper);
+    if (state !== this.shown) {
+      locomotion.previous = this.shown;
+      this.shown = state;
+      this.fadeTime = 0;
+    }
     this.fadeTime = Math.min(LOCOMOTION_CROSSFADE, this.fadeTime + step);
+    // The pivot's direction stays until it has faded out.
+    if (state !== 'TURN' && (locomotion.previous !== 'TURN' || this.fadeTime >= LOCOMOTION_CROSSFADE)) {
+      locomotion.turnDirection = 0;
+    }
 
     const clip = LOCOMOTION_CLIPS[state];
     const speed = visual.speed;

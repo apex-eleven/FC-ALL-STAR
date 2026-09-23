@@ -8,15 +8,19 @@ import {
   type Mesh,
   type Object3D,
 } from 'three';
+import { makePose, makePoseScratch, proceduralOverlay, turnWeight } from '../AnimationController';
+import { footedOf } from '../PlayerAppearance';
 import { LOD_FAR, type DetailLevel } from '../PlayerLOD';
 import type { KitMaterial, LookMaterials } from './KitMaterial';
 import type { HairStyle, PlayerLook } from './playerAppearance';
-import type {
-  AnimationClipId,
-  AnimationCommand,
-  LocomotionState,
+import {
+  LOCOMOTION_CLIPS,
+  type AnimationClipId,
+  type AnimationCommand,
+  type LocomotionState,
 } from './FootballAnimationStateMachine';
 import type { LoadedPlayerAsset } from './playerAssets';
+import { ProceduralSkeletonLayer } from './ProceduralSkeletonLayer';
 
 /**
  * One realistic footballer: a clone of the shared GLB with its own bones and its own
@@ -28,7 +32,7 @@ import type { LoadedPlayerAsset } from './playerAssets';
  *   locomotion   the command's state (and the one it is fading from) at the
  *                command's blend, LOCKED to the command's gait phase, so blended
  *                loops stay in step and the feet follow the ground the engine covers.
- *                Standing loops (IDLE, GK_READY) play at their own speed instead.
+ *                Standing loops (IDLE, GK_READY, TURN) play at their own speed instead.
  *   action       the command's one-shot, at its normalised time and weight over the
  *                locomotion. A new `action.seq` restarts the clip; the same seq carries
  *                on — nothing restarts per frame.
@@ -36,6 +40,13 @@ import type { LoadedPlayerAsset } from './playerAssets';
  * Every action is created and played once, paused, at construction; per frame only
  * `time` and weights change, then `mixer.update(0)` poses the bones. Nothing is
  * allocated per frame.
+ *
+ * Clips are found by logical state through the registry in playerAssets
+ * (`CLIP_REGISTRY`, `CELEBRATION_CLIP_NAMES`) — nothing here knows a clip's name. A
+ * state the model has no clip for is not dropped: the locomotion clip plays and the
+ * procedural pose for the rest (the action, or the TURN pivot) is laid over the
+ * model's bones by `ProceduralSkeletonLayer`. A celebration plays the take's own clip,
+ * or the model's one CELEBRATE clip, or the procedural take.
  *
  * The look — kit, skin, hair, boots, gloves, sleeves, number, stature — is the
  * player's `PlayerLook`, applied once here: the body gets its own `KitMaterial` when
@@ -57,7 +68,11 @@ const KEEPER_ONLY: ReadonlySet<AnimationClipId> = new Set<AnimationClipId>([
 ]);
 
 /** States whose clip plays on the spot and keeps its own time. */
-const STANDING: ReadonlySet<LocomotionState> = new Set<LocomotionState>(['IDLE', 'GK_READY']);
+const STANDING: ReadonlySet<LocomotionState> = new Set<LocomotionState>(['IDLE', 'GK_READY', 'TURN']);
+
+/** Shared by every body: an update runs start to finish before the next begins. */
+const overlayScratch = makePoseScratch();
+const overlayDelta = makePose();
 
 const LOD_SUFFIX = /_LOD([0-2])$/i;
 const HAIR_MESH = /^Hair_(Short|Buzz|Long|Curly)/i;
@@ -96,9 +111,17 @@ export class FootballPlayer3D {
   readonly hairShown: HairStyle | null;
   /** Whether the kit is drawn by a KitMaterial (the model shipped masks). */
   readonly kitApplied: boolean;
+  /** The kicking foot, from the id — the same one the procedural body uses. */
+  readonly footed: -1 | 1;
 
   /** State → action. States sharing a clip (a substitute) share its action. */
   private readonly actions = new Map<AnimationClipId, AnimationAction>();
+  /** The celebration's takes that have a clip of their own, by variant. */
+  private readonly celebrations: (AnimationAction | null)[] = [];
+  /** Procedural poses laid on the bones for what the model has no clip for. */
+  private readonly layer: ProceduralSkeletonLayer;
+  /** Whether part of last frame's pose was procedural (a missing clip), for diagnostics. */
+  drawnByPose = false;
   private readonly meshes: Mesh[] = [];
   /** Meshes per level, when the model carries _LOD0/_LOD1/_LOD2 variants. */
   private readonly lodMeshes: [Mesh[], Mesh[], Mesh[]] = [[], [], []];
@@ -119,6 +142,7 @@ export class FootballPlayer3D {
   constructor(id: string, asset: LoadedPlayerAsset, look: PlayerLook, materials: LookMaterials) {
     this.id = id;
     this.look = look;
+    this.footed = footedOf(id);
     this.standingPhase = standingOffset(id);
     this.model = asset.clone();
     this.root = new Group();
@@ -174,19 +198,31 @@ export class FootballPlayer3D {
     }
     this.kitApplied = applied;
 
+    // Measured from the bind pose, before any clip moves a bone.
+    this.layer = new ProceduralSkeletonLayer(this.root, this.model, asset.skeleton.bones);
+
     this.mixer = new AnimationMixer(this.model);
     for (const [id, clip] of asset.resolved.clips) {
       const action = this.mixer.clipAction(clip);
-      if (!this.actions.has(id)) {
-        const oneShot = !(id === 'IDLE' || id === 'WALK' || id === 'JOG' || id === 'RUN' || id === 'SPRINT' || id === 'GK_READY');
-        action.setLoop(oneShot ? LoopOnce : LoopRepeat, oneShot ? 1 : Infinity);
-        action.clampWhenFinished = true;
-        action.play();
-        action.paused = true;
-        action.setEffectiveWeight(0);
-      }
+      // A state that borrows another's clip shares its action, set up once, as a loop
+      // if any state playing it is locomotion.
+      if (!this.actions.has(id)) this.prepare(action, !(id in LOCOMOTION_CLIPS));
       this.actions.set(id, action);
     }
+    for (const clip of asset.resolved.celebrations) {
+      const action = clip ? this.mixer.clipAction(clip) : null;
+      if (action) this.prepare(action, true);
+      this.celebrations.push(action);
+    }
+  }
+
+  /** Played once, paused, at no weight: from here on only its time and weight change. */
+  private prepare(action: AnimationAction, oneShot: boolean): void {
+    action.setLoop(oneShot ? LoopOnce : LoopRepeat, oneShot ? 1 : Infinity);
+    action.clampWhenFinished = true;
+    action.play();
+    action.paused = true;
+    action.setEffectiveWeight(0);
   }
 
   private tinted(materials: LookMaterials, material: Material | Material[], color: string): Material | Material[] {
@@ -223,6 +259,8 @@ export class FootballPlayer3D {
   ): void {
     this.root.position.set(x, 0, z);
     this.root.rotation.y = heading;
+    // Last frame's procedural change comes off before the mixer poses the bones.
+    this.layer.restore();
 
     const keeper = command.isKeeper;
     const current = this.locomotionAction(command.locomotion.state, keeper);
@@ -231,7 +269,11 @@ export class FootballPlayer3D {
     // A keeper action sent to anyone else is ignored: locomotion only.
     let actionState = command.action.state;
     if (actionState !== null && KEEPER_ONLY.has(actionState) && !keeper) actionState = null;
-    const action = actionState !== null ? (this.actions.get(actionState) ?? null) : null;
+    let action = actionState !== null ? (this.actions.get(actionState) ?? null) : null;
+    if (actionState === 'CELEBRATE') action = this.celebrations[command.action.variant] ?? action;
+    // What the clips cannot show, the procedural pose will.
+    const actionByPose = actionState !== null && action === null && command.action.weight > 0;
+    const turnByPose = !this.actions.has('TURN') && turnWeight(command) > 0;
 
     // Clear last frame's weights; the three written below replace them.
     this.weighted0?.setEffectiveWeight(0);
@@ -272,6 +314,11 @@ export class FootballPlayer3D {
     }
 
     this.mixer.update(0);
+    this.drawnByPose =
+      (actionByPose || turnByPose) &&
+      this.layer.jointCount > 0 &&
+      proceduralOverlay(overlayDelta, command, this.footed, overlayScratch, turnByPose, actionByPose);
+    if (this.drawnByPose) this.layer.apply(overlayDelta);
     this.applyLevel(level);
   }
 
@@ -318,6 +365,7 @@ export class FootballPlayer3D {
     this.ownMaterials.length = 0;
     this.hiddenByLook.clear();
     this.actions.clear();
+    this.celebrations.length = 0;
     this.meshes.length = 0;
     this.weighted0 = this.weighted1 = this.weighted2 = null;
   }

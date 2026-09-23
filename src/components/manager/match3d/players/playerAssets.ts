@@ -226,22 +226,35 @@ export function validatePlayerSkeleton(scene: Object3D | null | undefined): Skel
  * artist's file arrives; nothing else needs to know the names.
  */
 export const CLIP_REGISTRY: Readonly<Record<AnimationClipId, readonly string[]>> = {
-  IDLE: ['Idle'],
-  WALK: ['Walk'],
-  JOG: ['Jog'],
-  RUN: ['Run'],
-  SPRINT: ['Sprint'],
+  IDLE: ['Idle', 'Idle_01', 'Idle01', 'Stand'],
+  WALK: ['Walk', 'Walk_01', 'Walking'],
+  JOG: ['Jog', 'Jog_01', 'Jogging'],
+  RUN: ['Run', 'Run_01', 'Running'],
+  SPRINT: ['Sprint', 'Sprint_01', 'Sprinting'],
+  TURN: ['Turn', 'Turn_In_Place', 'TurnInPlace', 'Pivot'],
   GK_READY: ['GK_Ready', 'Keeper_Ready'],
-  PASS: ['Pass'],
-  RECEIVE: ['Receive', 'Trap'],
+  PASS: ['Pass', 'Pass_01'],
+  RECEIVE: ['Receive', 'Trap', 'Control'],
   INTERCEPTION: ['Interception', 'Intercept'],
-  SHOOT: ['Shoot', 'Shot'],
-  TACKLE: ['Tackle'],
+  SHOOT: ['Shoot', 'Shot', 'Shoot_01'],
+  TACKLE: ['Tackle', 'Tackle_01'],
   CELEBRATE: ['Celebrate', 'Celebration'],
-  GK_DIVE_LEFT: ['GK_Dive_Left', 'GK_DiveLeft'],
-  GK_DIVE_RIGHT: ['GK_Dive_Right', 'GK_DiveRight'],
-  GK_CATCH: ['GK_Catch', 'Keeper_Catch'],
+  GK_DIVE_LEFT: ['GK_Dive_Left', 'GK_DiveLeft', 'Keeper_Dive_Left'],
+  GK_DIVE_RIGHT: ['GK_Dive_Right', 'GK_DiveRight', 'Keeper_Dive_Right'],
+  // GOALKEEPER_SAVE: the save made standing — set, reach, gather, recover.
+  GK_CATCH: ['GK_Catch', 'Keeper_Catch', 'GK_Save', 'Keeper_Save'],
 };
+
+/**
+ * The celebration's takes, by variant (see CELEBRATION_VARIANTS): a model may ship
+ * one clip per take. A take it lacks plays the model's single CELEBRATE clip instead,
+ * and with no celebration clip at all the procedural take is drawn on its skeleton.
+ */
+export const CELEBRATION_CLIP_NAMES: readonly (readonly string[])[] = [
+  ['Celebrate_1', 'Celebration_1', 'Celebrate_01'],
+  ['Celebrate_2', 'Celebration_2', 'Celebrate_02'],
+  ['Celebrate_3', 'Celebration_3', 'Celebrate_03'],
+];
 
 /**
  * The clips the model cannot play without. Missing any of them, the model is not
@@ -252,8 +265,9 @@ export const REQUIRED_CLIPS: readonly AnimationClipId[] = ['IDLE', 'WALK', 'RUN'
 
 /**
  * What stands in for an optional clip that is missing, in order. A state with no
- * clip and no stand-in (most one-shot actions) plays locomotion only, and says so
- * once in the console.
+ * clip and no stand-in (most one-shot actions, TURN) is drawn by the procedural pose
+ * laid over the skeleton's locomotion (see FootballPlayer3D), and the load says so
+ * once in the console — never per frame.
  */
 export const CLIP_SUBSTITUTES: Partial<Record<AnimationClipId, readonly AnimationClipId[]>> = {
   JOG: ['RUN', 'WALK'],
@@ -278,6 +292,8 @@ export interface ResolvedClips {
   /** States with no clip at all. */
   absent: AnimationClipId[];
   missingRequired: AnimationClipId[];
+  /** One entry per celebration take: its own clip, or null (see CELEBRATION_CLIP_NAMES). */
+  celebrations: (AnimationClip | null)[];
 }
 
 /** Matches the file's clips to animation states through the registry. */
@@ -300,7 +316,10 @@ export function resolveClips(
     }
   }
 
-  const result: ResolvedClips = { clips: new Map(own), substituted: new Map(), absent: [], missingRequired: [] };
+  const celebrations = CELEBRATION_CLIP_NAMES.map(
+    (names) => names.map((name) => byName.get(name.toLowerCase())).find((clip) => clip !== undefined) ?? null,
+  );
+  const result: ResolvedClips = { clips: new Map(own), substituted: new Map(), absent: [], missingRequired: [], celebrations };
   for (const id of ALL_CLIP_IDS) {
     if (own.has(id)) continue;
     const stand = CLIP_SUBSTITUTES[id]?.find((other) => own.has(other));
@@ -674,7 +693,7 @@ export function loadPlayerAsset(manifest: PlayerAssetManifest = PLAYER_ASSET_MAN
           `model v${result.asset.version} ready: ${result.asset.measuredHeight.toFixed(2)} m, ` +
             `${resolved.clips.size} states animated` +
             (borrowed ? `, borrowed ${borrowed}` : '') +
-            (resolved.absent.length ? `; no clip for ${resolved.absent.join(', ')} (locomotion only)` : ''),
+            (resolved.absent.length ? `; no clip for ${resolved.absent.join(', ')} (drawn procedurally on the skeleton)` : ''),
         );
       } else if (result.status === 'missing' || result.status === 'disabled') {
         devLog('info', `GLB player model not used (${result.reason}); drawing the procedural players.`);

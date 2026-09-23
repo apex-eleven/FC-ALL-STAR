@@ -7,6 +7,7 @@ import type {
   PlayerDecision,
 } from '@/match-engine';
 import { engineToWorldX, engineToWorldZ } from '../Match3DAdapter';
+import { CELEBRATION_VARIANTS } from './FootballAnimationStateMachine';
 import { easeFactor, lerp, lerpAngle, shortestAngle } from './visualMath';
 
 /**
@@ -67,6 +68,21 @@ const CATCH_UP_TAU = 0.35;
 const MAX_LAG = 1;
 /** Visual smoothing of the engine's facing, in simulation seconds. */
 const HEADING_TAU = 0.06;
+/**
+ * A standing (or shuffling) player's facing. Below 0.35 m/s the engine stops facing
+ * its velocity and turns to the ball instead, and a player settling onto their mark
+ * pulses between 0.1 and 0.5 m/s as they arrive — so their engine facing flips between
+ * the two targets a few times a second. Measured over a match: about 90 heading
+ * reversals per standing player-minute, a third after a swing of under 0.1 rad. So
+ * below SLOW_SPEED the body keeps the facing it has until the engine's is more than
+ * STANDING_DEADBAND away, then turns to it — smoothly, as always, and one way only —
+ * and settles again within STANDING_SETTLED. Measured with these values: back-and-forth
+ * wobbles (reversals after < 0.05 rad) fell from 28.5 to 8 per standing player-minute,
+ * while real turns to follow the ball are kept. At a walk and above it simply follows.
+ */
+const SLOW_SPEED = 1.0;
+const STANDING_DEADBAND = 0.2;
+const STANDING_SETTLED = 0.03;
 
 /** A shot this close to the keeper, across the goal, is gathered rather than dived at. Metres. */
 const CATCH_REACH = 1.5;
@@ -76,12 +92,45 @@ const SAVE_DELAY_MAX = 0.28;
 const SAVE_MEMORY = 1.2;
 /** The scorer turns away a beat after the ball crosses. */
 const CELEBRATE_DELAY = 0.15;
+/**
+ * Teammates this close to the scorer (metres) join the celebration — measured over
+ * twelve matches' goals, that is the scorer's fellow attackers, about three a goal
+ * (25 m caught fewer than one). Each starts CELEBRATE_JOIN_MIN + up to
+ * CELEBRATE_JOIN_SPREAD seconds after the scorer, so the last one still finishes its
+ * 2.0 s inside the 2.6 s the engine holds play for.
+ */
+const CELEBRATE_JOIN_RADIUS = 35;
+const CELEBRATE_JOIN_MIN = 0.12;
+const CELEBRATE_JOIN_SPREAD = 0.3;
+
+/** FNV-1a — the same hash the players' looks are seeded with. */
+function hash(text: string): number {
+  let value = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    value ^= text.charCodeAt(index);
+    value = Math.imul(value, 0x01000193);
+  }
+  return value >>> 0;
+}
+
+/** A seeded number in [0, 1). */
+function unit(seed: string): number {
+  return (hash(seed) >>> 8) / 0x1000000;
+}
+
+/** A player's take on the celebration for one goal. */
+function celebrationVariant(id: string, goal: number): number {
+  return hash(`${id}:goal${goal}:take`) % CELEBRATION_VARIANTS;
+}
 
 /* ── Public types ───────────────────────────────────────────────────────────── */
 
 /**
  * What a player is seen to DO. Each one comes from exactly one engine event and is
  * given to the player that event names — never inferred from counters or the ball.
+ * Two events reach a second player by the event's own data: a shot on target sends
+ * the defending keeper, and a goal brings the scorer's nearby teammates in to
+ * celebrate.
  *
  * 'foul' and 'booked' are not movements of their own — a foul is a tackle that went
  * wrong — so they are kept in `discipline` and never replace the body's `action`.
@@ -111,6 +160,11 @@ export interface PlayerVisualAction {
   dir: number;
   /** Tackle: the engine's 'won' | 'lost'. Otherwise null. */
   outcome: string | null;
+  /**
+   * Which take to play, 0-based: a celebration's variant, from the player's id and the
+   * goal's number, so the same match always celebrates the same way. 0 otherwise.
+   */
+  variant: number;
   /** The engine event type it came from. */
   source: string;
 }
@@ -254,6 +308,10 @@ class Runtime implements PlayerVisualRuntime {
   placedSeq = -1;
   placedShownSeq = -1;
   actionSeq = 0;
+  /** The drawn heading is turning to the engine's facing (always, on the move). */
+  headingFollows = true;
+  /** Which way a slow player's turn is going (+1 / −1), fixed when it starts. */
+  headingTurn = 0;
 
   constructor(agent: PlayerAgent, now: number) {
     this.id = agent.id;
@@ -304,6 +362,8 @@ export class PlayerVisualAdapter {
   /** The visual cursor into the engine's event history — independent of anyone else's. */
   private cursor: number;
   private placementPending = false;
+  /** Goals seen so far this match: part of each celebration's seed. */
+  private goalsSeen = 0;
   private stamp = 0;
 
   private renderT = 0;
@@ -503,7 +563,7 @@ export class PlayerVisualAdapter {
         return;
       }
       case 'goal':
-        this.trigger(event.playerId, 'celebrate', now + CELEBRATE_DELAY, 0, null, event.type);
+        this.handleGoal(event, now);
         return;
       case 'foul':
         this.trigger(event.playerId, 'foul', now, 0, null, event.type);
@@ -561,6 +621,30 @@ export class PlayerVisualAdapter {
     return undefined;
   }
 
+  /**
+   * A goal: the scorer wheels away a beat after the ball crosses, and the teammates
+   * near enough to join in follow, each a little later than the last and each with a
+   * take of their own. Who, when and which take all come from the player's id and the
+   * goal's number — the same match always celebrates the same way, and no two players
+   * move in lockstep. The keeper stays in goal; the other side does nothing.
+   */
+  private handleGoal(event: MatchSimEvent, now: number): void {
+    this.goalsSeen += 1;
+    const goal = this.goalsSeen;
+    const scorer = event.playerId ? this.byId.get(event.playerId) : undefined;
+    this.trigger(event.playerId, 'celebrate', now + CELEBRATE_DELAY, 0, null, event.type, celebrationVariant(event.playerId ?? '', goal));
+    if (!scorer) return;
+    const side = scorer.visual.side;
+    const from = scorer.agent.position2d;
+    for (const mate of this.list) {
+      if (mate === scorer || mate.visual.side !== side || mate.visual.isKeeper) continue;
+      const at = mate.agent.position2d;
+      if (Math.hypot(at.x - from.x, at.y - from.y) > CELEBRATE_JOIN_RADIUS) continue;
+      const lag = CELEBRATE_JOIN_MIN + unit(`${mate.id}:goal${goal}:lag`) * CELEBRATE_JOIN_SPREAD;
+      this.trigger(mate.id, 'celebrate', now + CELEBRATE_DELAY + lag, 0, null, event.type, celebrationVariant(mate.id, goal));
+    }
+  }
+
   private trigger(
     playerId: string | undefined,
     kind: PlayerVisualActionKind,
@@ -568,12 +652,13 @@ export class PlayerVisualAdapter {
     dir: number,
     outcome: string | null,
     source: string,
+    variant = 0,
   ): void {
     if (!playerId) return;
     const runtime = this.byId.get(playerId);
     if (!runtime) return;
     runtime.actionSeq += 1;
-    const made: PlayerVisualAction = { kind, seq: runtime.actionSeq, at, dir, outcome, source };
+    const made: PlayerVisualAction = { kind, seq: runtime.actionSeq, at, dir, outcome, source, variant };
     if (kind === 'foul' || kind === 'booked') runtime.visual.discipline = made;
     else runtime.visual.action = made;
   }
@@ -786,11 +871,34 @@ export class PlayerVisualAdapter {
     if (visual.placed) {
       runtime.placedShownSeq = runtime.placedSeq;
       visual.heading = visual.facing;
+      runtime.headingFollows = false;
       // An action that had already started belongs to the play before the reset.
       const action = visual.action;
       if (action && action.at <= this.renderT) visual.action = null;
     } else {
-      visual.heading += shortestAngle(visual.heading, visual.facing) * smoothing;
+      // Shortest way round, eased — never a snap. Standing, only past the deadband.
+      const gap = shortestAngle(visual.heading, visual.facing);
+      const slow = visual.speed < SLOW_SPEED;
+      if (!slow) {
+        runtime.headingFollows = true;
+        runtime.headingTurn = 0;
+      } else if (!runtime.headingFollows && Math.abs(gap) > STANDING_DEADBAND) {
+        runtime.headingFollows = true;
+        runtime.headingTurn = gap > 0 ? 1 : -1;
+      } else if (runtime.headingFollows && runtime.headingTurn === 0) {
+        // Slowed down mid-turn: carry on the way it was going.
+        runtime.headingTurn = gap >= 0 ? 1 : -1;
+      }
+      if (runtime.headingFollows) {
+        // A slow player's turn goes one way: if the facing swings back past the body,
+        // it stops there rather than turning back, until the deadband is crossed again.
+        const back = slow && gap * runtime.headingTurn < 0;
+        if (!back) visual.heading += gap * smoothing;
+        if (slow && (back || Math.abs(gap) < STANDING_SETTLED)) {
+          runtime.headingFollows = false;
+          runtime.headingTurn = 0;
+        }
+      }
     }
   }
 
