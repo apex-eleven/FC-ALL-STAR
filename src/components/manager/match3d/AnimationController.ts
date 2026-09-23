@@ -1,18 +1,24 @@
-import type { PlayerVisualActionKind } from './players/PlayerVisualAdapter';
+import type {
+  AnimationAction,
+  AnimationCommand,
+} from './players/FootballAnimationStateMachine';
 
 /**
- * Procedural poses — the temporary animation for the primitive `Player3D`.
+ * Procedural poses — the temporary body animation for the primitive `Player3D`.
  *
- * WHEN a pose is struck is no longer decided here. Actions come from the engine's own
- * events through `PlayerVisualAdapter`, already assigned to the player the event names
- * (the tackle to the defender who went in, not whoever has the ball). This file only
- * maps those actions onto a pose and writes the joint angles.
+ * Nothing here decides WHAT a player is doing. `FootballAnimationStateMachine` does
+ * that from the engine's data and hands over an `AnimationCommand`: a locomotion
+ * state and gait phase, an optional one-shot action with its progress and weight, and
+ * the turn rate. `commandPose()` turns that command into joint angles. When the GLB
+ * body arrives (STEP 4/6) the same command drives an AnimationMixer instead, and this
+ * file becomes the fallback.
  *
  * Nothing here is a clip — the poses are written as joint angles over a normalised
  * time, so there is no animation asset to load. Every function writes into a `Pose`
  * it is handed, so a frame with twenty-two players allocates nothing.
  */
 
+/** The poses this body knows. The state machine's actions map onto these. */
 export type PlayerAction =
   | 'pass'
   | 'shoot'
@@ -21,21 +27,6 @@ export type PlayerAction =
   | 'catch'
   | 'receive'
   | 'celebrate';
-
-/**
- * How long each one runs, in SIMULATION seconds — the stage advances actions by the
- * adapter's render clock, so at x4 they play four times as fast and stay with the ball.
- */
-export const ACTION_SECONDS: Record<PlayerAction, number> = {
-  pass: 0.5,
-  shoot: 0.62,
-  tackle: 0.75,
-  save: 0.85,
-  catch: 0.7,
-  receive: 0.55,
-  // The engine holds play for 2.6 s after a goal; this fits inside it.
-  celebrate: 2.0,
-};
 
 /**
  * Every joint the stage drives, as one plain object so blending allocates nothing.
@@ -198,18 +189,25 @@ export function stridePose(out: Pose, phase: number, effort: number, keeper: boo
   }
 }
 
+/** Written by `kickSwing` — reused so a kick allocates nothing. */
+const swingOut = { hip: 0, knee: 0 };
+
 /** A leg swinging through a ball: back, through, and back to standing. */
-function kickSwing(p: number, depth: number, through: number): { hip: number; knee: number } {
+function kickSwing(p: number, depth: number, through: number): typeof swingOut {
   if (p < 0.3) {
     const t = smooth(p / 0.3);
-    return { hip: mix(0, -depth, t), knee: mix(0.1, depth * 1.3, t) };
-  }
-  if (p < 0.62) {
+    swingOut.hip = mix(0, -depth, t);
+    swingOut.knee = mix(0.1, depth * 1.3, t);
+  } else if (p < 0.62) {
     const t = smooth((p - 0.3) / 0.32);
-    return { hip: mix(-depth, through, t), knee: mix(depth * 1.3, 0.05, t) };
+    swingOut.hip = mix(-depth, through, t);
+    swingOut.knee = mix(depth * 1.3, 0.05, t);
+  } else {
+    const t = smooth((p - 0.62) / 0.38);
+    swingOut.hip = mix(through, 0, t);
+    swingOut.knee = mix(0.05, 0.18, t);
   }
-  const t = smooth((p - 0.62) / 0.38);
-  return { hip: mix(through, 0, t), knee: mix(0.05, 0.18, t) };
+  return swingOut;
 }
 
 /** Everything relaxed, for actions that only move some of the body. */
@@ -400,7 +398,7 @@ export function actionPose(
     return;
   }
 
-  // save — off the line, arms up, thrown to one side.
+  // save — off the line, arms up, thrown to one side: dir > 0 is the keeper's RIGHT.
   const side = dir >= 0 ? 1 : -1;
   out.shoulderL = 2.3 * arc;
   out.shoulderR = 2.3 * arc;
@@ -410,8 +408,10 @@ export function actionPose(
   out.elbowR = 0.1;
   out.spineX = -0.15 * arc;
   out.spineZ = 1.05 * side * arc;
-  out.twist = 0.2 * side * arc;
-  out.neckY = 0.5 * side * arc;
+  // The lean (+spineZ) throws the body to the keeper's RIGHT; the shoulders and head
+  // turn the same way (a positive turn about Y would face them left, into the ground).
+  out.twist = -0.2 * side * arc;
+  out.neckY = -0.5 * side * arc;
   out.hipL = -0.25 * arc;
   out.hipR = -0.25 * arc;
   out.kneeL = 0.5 * arc;
@@ -447,38 +447,79 @@ export function blendPose(out: Pose, from: Pose, to: Pose, weight: number): void
   out.rootY = mix(from.rootY, to.rootY, weight);
 }
 
-/** How much of the action shows, so it eases in and hands back to the stride. */
-export function actionWeight(p: number): number {
-  if (p < 0.12) return smooth(p / 0.12);
-  if (p > 0.82) return smooth((1 - p) / 0.18);
-  return 1;
+function copyPose(out: Pose, from: Pose): void {
+  blendPose(out, from, from, 0);
 }
 
-/** Actions that hold the body still — the head keeps looking where the pose says. */
-export function actionHoldsHead(kind: PlayerAction): boolean {
-  return kind === 'celebrate' || kind === 'save' || kind === 'catch';
+/** How much a runner leans into a turn: radians of lean per radian a second. */
+const TURN_LEAN = 0.04;
+/**
+ * The gait phase fed to `stridePose` in radians. The standing sway runs at half the
+ * gait rate (sin(phase / 2)), so the phase must not wrap every cycle; the command's
+ * running cycle count wraps only every 1024 cycles, which is even and so seamless.
+ */
+const TAU = Math.PI * 2;
+
+/** The procedural pose for a state-machine action, or null for none. */
+export function proceduralActionOf(action: AnimationAction | null): PlayerAction | null {
+  switch (action) {
+    case 'PASS':
+      return 'pass';
+    case 'SHOOT':
+      return 'shoot';
+    case 'RECEIVE':
+    // An interception is drawn as the touch that brings the ball under control.
+    case 'INTERCEPTION':
+      return 'receive';
+    case 'TACKLE':
+      return 'tackle';
+    case 'CELEBRATE':
+      return 'celebrate';
+    case 'GK_DIVE_LEFT':
+    case 'GK_DIVE_RIGHT':
+      return 'save';
+    case 'GK_CATCH':
+      return 'catch';
+    default:
+      return null;
+  }
+}
+
+/** Scratch poses, one set per renderer, so composing a command allocates nothing. */
+export interface PoseScratch {
+  stride: Pose;
+  action: Pose;
+}
+
+export function makePoseScratch(): PoseScratch {
+  return { stride: makePose(), action: makePose() };
 }
 
 /**
- * The pose an adapter action is drawn with, or null for actions this body has no
- * pose for yet (a foul, a booking) — those still reach the state machine in STEP 3.
- * An interception is drawn as the touch that brings the ball under control.
+ * The whole procedural body for one command: the gait at the command's phase and
+ * effort, leaning into the turn, with the one-shot action (if any) blended over it at
+ * the command's weight. `footed` is the kicking side (−1 left, +1 right) — a property
+ * of the player's look, not of the animation state.
  */
-export function poseActionFor(kind: PlayerVisualActionKind): PlayerAction | null {
-  switch (kind) {
-    case 'pass':
-    case 'receive':
-    case 'tackle':
-    case 'save':
-    case 'catch':
-    case 'celebrate':
-      return kind;
-    case 'shoot':
-      return 'shoot';
-    case 'intercept':
-      return 'receive';
-    case 'foul':
-    case 'booked':
-      return null;
+export function commandPose(
+  out: Pose,
+  command: AnimationCommand,
+  footed: -1 | 1,
+  scratch: PoseScratch,
+): void {
+  const stride = scratch.stride;
+  stridePose(stride, command.locomotion.cycle * TAU, command.effort, command.isKeeper);
+  // Leaning into the turn: heading grows turning left, and a left lean is a negative
+  // roll of the spine.
+  stride.spineZ -= command.facing.turnRate * TURN_LEAN * command.effort;
+
+  const action = command.action;
+  const pose = proceduralActionOf(action.state);
+  if (!pose || action.weight <= 0) {
+    copyPose(out, stride);
+    return;
   }
+  const side = action.state === 'GK_DIVE_LEFT' ? -1 : 1;
+  actionPose(scratch.action, pose, action.normalizedTime, footed, side);
+  blendPose(out, stride, scratch.action, action.weight);
 }

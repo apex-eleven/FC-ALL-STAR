@@ -8,18 +8,7 @@ import Player3D, { BODY_TOP, makeRig, type PlayerRig } from './Player3D';
 import { appearanceOf, type PlayerAppearance } from './PlayerAppearance';
 import { applyDetailLevel, levelForDistance } from './PlayerLOD';
 import { CONTACT_Y } from './PlayerShadow';
-import {
-  ACTION_SECONDS,
-  actionHoldsHead,
-  actionPose,
-  actionWeight,
-  blendPose,
-  makePose,
-  poseActionFor,
-  stridePose,
-  type PlayerAction,
-  type Pose,
-} from './AnimationController';
+import { commandPose, makePose, makePoseScratch, type Pose } from './AnimationController';
 import {
   bounceHeight,
   engineToWorldX,
@@ -28,6 +17,7 @@ import {
   shotEndHeight,
 } from './Match3DAdapter';
 import { PlayerVisualAdapter } from './players/PlayerVisualAdapter';
+import { FootballAnimationStateMachine } from './players/FootballAnimationStateMachine';
 import { shortestAngle } from './players/visualMath';
 import styles from './Match3DStage.module.css';
 
@@ -40,6 +30,8 @@ import styles from './Match3DStage.module.css';
  * Everything about the players comes through `PlayerVisualAdapter`: positions
  * interpolated between the engine's 20 Hz steps, the engine's own velocity, speed,
  * facing, movement state and decision, and actions taken from the engine's events.
+ * What the body does with that is decided by one `FootballAnimationStateMachine` per
+ * player, whose `AnimationCommand` the procedural poses then draw.
  * Players are identified by id throughout — never by where they sit in an array —
  * so a substitution or a red card can never hand one player's body to another.
  *
@@ -77,25 +69,16 @@ const LOOK_HEIGHT = 1.4;
 const CAMERA_RAIL = 22;
 
 const BALL_RADIUS = 0.15;
-/** Roughly a sprint, in metres a second — the stride runs at full tilt here. */
-const TOP_SPEED = 8;
 /**
  * The fastest the drawn body turns, radians per simulation second. Above the engine's
  * own 9 rad/s, so it never holds back the engine's facing; it only paces the turns the
  * view makes on its own — to the camera for a celebration, and back again.
  */
 const TURN_RATE = 12;
-/** Metres covered per full two-step cycle, walking and flat out. */
-const STRIDE_WALK = 1.5;
-const STRIDE_RUN = 3.3;
-/** Standing still, they still breathe: stride radians per simulation second. */
-const IDLE_BREATH = 0.9;
 /** How far the head will turn to follow the ball, either way. Radians. */
 const LOOK_LIMIT = 1.1;
 /** How quickly the gaze settles on a new target, per simulation second. */
 const LOOK_EASE = 6;
-/** How much a runner leans into a turn: radians of lean per radian a second. */
-const TURN_LEAN = 0.04;
 
 const MARKER_COLOR = '#38e8ff';
 
@@ -149,6 +132,9 @@ function MatchObjects({ engine, label }: SceneProps) {
   // look seeded from their own id; a red card removes one id and moves nobody else.
   const rigs = useRef(new Map<string, PlayerRig>());
   const appearances = useRef(new Map<string, PlayerAppearance>());
+  // One animation state machine per player id, made the first frame they are seen and
+  // dropped when they leave — a substitute never starts from anyone else's state.
+  const machines = useRef(new Map<string, FootballAnimationStateMachine>());
 
   const ball = useRef<Mesh>(null);
   const sun = useRef<DirectionalLight>(null);
@@ -163,9 +149,8 @@ function MatchObjects({ engine, label }: SceneProps) {
   const project = useRef(new Vector3());
 
   // Reused every frame so a match never allocates in its own loop.
-  const strideOut = useRef(makePose());
-  const actionOut = useRef(makePose());
-  const finalOut = useRef(makePose());
+  const scratch = useRef(makePoseScratch());
+  const finalOut = useRef<Pose>(makePose());
 
   const rigFor = (id: string): PlayerRig => {
     const found = rigs.current.get(id);
@@ -195,6 +180,7 @@ function MatchObjects({ engine, label }: SceneProps) {
       if (gone?.contact) gone.contact.visible = false;
       rigs.current.delete(id);
       appearances.current.delete(id);
+      machines.current.delete(id);
     }
 
     // Everything below moves by SIMULATION time, so x2 and x4 run the legs and the
@@ -214,70 +200,38 @@ function MatchObjects({ engine, label }: SceneProps) {
       const x = visual.position.x;
       const z = visual.position.z;
 
-      // The action the engine gave this player, if it is playing at this moment.
-      let acting: PlayerAction | null = null;
-      let progress = 0;
-      const action = visual.action;
-      if (action) {
-        const kind = poseActionFor(action.kind);
-        if (kind) {
-          const into = (renderTime - action.at) / ACTION_SECONDS[kind];
-          if (into >= 0 && into < 1) {
-            acting = kind;
-            progress = into;
-          }
-        }
+      let machine = machines.current.get(runtime.id);
+      if (!machine) {
+        machine = new FootballAnimationStateMachine();
+        machines.current.set(runtime.id, machine);
       }
-
-      // 0 standing, 1 flat out — from the engine's speed, not from frame deltas.
-      const effort = Math.min(visual.speed / TOP_SPEED, 1);
+      // Visual data in, animation command out — in simulation time, so x4 plays
+      // everything four times as fast and a pause (simDelta 0) freezes it.
+      const command = machine.update(visual, renderTime, simDelta);
 
       // Facing is the engine's. The view only overrides it to turn a scorer to the
       // camera, and turns at a bounded rate so it never snaps.
       if (visual.placed) {
-        rig.heading = visual.heading;
-        rig.turning = 0;
+        rig.heading = command.facing.heading;
       } else {
-        const want =
-          acting === 'celebrate'
-            ? Math.atan2(camera.position.x - x, camera.position.z - z)
-            : visual.heading;
+        const want = command.action.facesCamera
+          ? Math.atan2(camera.position.x - x, camera.position.z - z)
+          : command.facing.heading;
         const most = TURN_RATE * simDelta;
-        const step = Math.max(-most, Math.min(most, shortestAngle(rig.heading, want)));
-        rig.heading += step;
-        if (simDelta > 0) {
-          rig.turning += (step / simDelta - rig.turning) * Math.min(1, simDelta * 8);
-        }
+        rig.heading += Math.max(-most, Math.min(most, shortestAngle(rig.heading, want)));
       }
 
-      // The head follows the ball, as far as a neck turns, unless the pose owns it.
-      const gaze =
-        acting && actionHoldsHead(acting)
-          ? 0
-          : Math.max(
-              -LOOK_LIMIT,
-              Math.min(LOOK_LIMIT, shortestAngle(rig.heading, Math.atan2(ballX - x, ballZ - z))),
-            );
+      // The head follows the ball, as far as a neck turns, unless the action owns it.
+      const gaze = command.action.holdsHead
+        ? 0
+        : Math.max(
+            -LOOK_LIMIT,
+            Math.min(LOOK_LIMIT, shortestAngle(rig.heading, Math.atan2(ballX - x, ballZ - z))),
+          );
       rig.lookY += (gaze - rig.lookY) * Math.min(1, simDelta * LOOK_EASE);
 
-      // The stride is driven by ground covered — the engine's speed over simulated
-      // time — so the feet keep up with the player instead of sliding under them.
-      const cycle = STRIDE_WALK + effort * (STRIDE_RUN - STRIDE_WALK);
-      rig.phase += ((visual.speed * simDelta) / cycle) * Math.PI * 2;
-      // The engine says they have arrived and are standing: they still breathe.
-      if (visual.state === 'IDLE') rig.phase += simDelta * IDLE_BREATH;
-
-      stridePose(strideOut.current, rig.phase, effort, visual.isKeeper);
-      // Leaning into the turn: heading grows turning left, and a left lean is a
-      // negative roll of the spine.
-      strideOut.current.spineZ -= rig.turning * TURN_LEAN * effort;
-      let pose = strideOut.current;
-
-      if (acting && action) {
-        actionPose(actionOut.current, acting, progress, appearance.footed, action.dir);
-        blendPose(finalOut.current, strideOut.current, actionOut.current, actionWeight(progress));
-        pose = finalOut.current;
-      }
+      const pose = finalOut.current;
+      commandPose(pose, command, appearance.footed, scratch.current);
 
       root.position.set(x, pose.rootY * appearance.stature, z);
       root.rotation.y = rig.heading;

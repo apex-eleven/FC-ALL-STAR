@@ -144,6 +144,8 @@ export interface PlayerVisualState {
   velocity: { x: number; z: number };
   /** The engine's speed, interpolated. Metres per simulation second. */
   speed: number;
+  /** This player's engine top speed (5.4–7.8 m/s), fixed for the match. */
+  topSpeed: number;
   /** The engine's facing, interpolated the short way round. */
   facing: number;
   /** `facing`, visually smoothed. What a body should be turned to. */
@@ -267,6 +269,7 @@ class Runtime implements PlayerVisualRuntime {
       position: { x: 0, z: 0 },
       velocity: { x: 0, z: 0 },
       speed: 0,
+      topSpeed: agent.topSpeed,
       facing: 0,
       heading: 0,
       state: agent.state,
