@@ -1,9 +1,8 @@
 import { Check, Shield, X } from 'lucide-react';
-import { availableBadges, slotOf, statusOf } from '@/features/badges/badges';
+import { availableBadges, fielded, isFielded, slotOf, statusOf } from '@/features/badges/badges';
 import { useBadges } from '@/features/badges/BadgeContext';
 import { cardToPlayer } from '@/features/draft/pool';
 import { usePlayers } from '@/features/players/PlayerContext';
-import { formationOf } from '@/features/squad/squad';
 import type { OwnedIndex, Squad } from '@/features/squad/types';
 import styles from './BadgePicker.module.css';
 
@@ -25,15 +24,11 @@ export interface BadgePickerProps {
  * to build toward, not a mistake.
  */
 export default function BadgePicker({ slot, squad, owned, onPick, onClose }: BadgePickerProps) {
-  const { config } = useBadges();
+  const { config, nameOf } = useBadges();
   const { byId } = usePlayers();
 
-  const onPitch = new Set(
-    formationOf(squad)
-      .slots.map((entry) => squad.starters[entry.id])
-      .map((cardId) => (cardId ? owned.get(cardId)?.playerId : undefined))
-      .filter((id): id is string => typeof id === 'string'),
-  );
+  // Same matching as the crest rules: the exact card or the same player by name.
+  const onPitch = fielded(squad, owned);
 
   const badges = availableBadges(config);
   const currentId = squad.badges[slot] ?? null;
@@ -66,7 +61,7 @@ export default function BadgePicker({ slot, squad, owned, onPick, onClose }: Bad
           {badges.length === 0 && <p className={styles.empty}>ยังไม่มีตราทีมให้เลือก</p>}
 
           {badges.map((badge) => {
-            const status = statusOf(badge, squad, owned);
+            const status = statusOf(badge, squad, owned, nameOf);
             const pinnedAt = slotOf(squad, badge.id);
             const here = pinnedAt === slot;
             return (
@@ -88,7 +83,7 @@ export default function BadgePicker({ slot, squad, owned, onPick, onClose }: Bad
                   <div className={styles.set}>
                     {badge.cardIds.map((cardId) => {
                       const card = byId(cardId);
-                      const has = onPitch.has(cardId);
+                      const has = isFielded(cardId, onPitch, nameOf);
                       return (
                         <span
                           key={cardId}
