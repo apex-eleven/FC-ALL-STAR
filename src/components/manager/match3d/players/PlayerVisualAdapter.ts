@@ -111,6 +111,17 @@ const LEAD = {
   catch: contactLead('GK_CATCH'),
 } as const;
 /**
+ * The actions whose contact is heard, and how long into the action it lands. A dive or
+ * gather is not here: whether the hands touch the ball is only known at the save.
+ */
+const CONTACT_SOUND: Partial<Record<PlayerVisualActionKind, readonly [SoundCueKind, number]>> = {
+  pass: ['pass', LEAD.pass],
+  shoot: ['shot', LEAD.shoot],
+  receive: ['touch', LEAD.receive],
+  intercept: ['touch', LEAD.intercept],
+  tackle: ['tackle', LEAD.tackle],
+};
+/**
  * The drawn ball waits at the kicker's foot for the strike, but for no more than this
  * share of its flight — it then travels at most 2.5× its engine speed to arrive on time.
  */
@@ -156,6 +167,13 @@ const LOOKAHEAD_STEP = 0.02;
 const COMMIT_AHEAD = 0.1;
 /** Flights kept for drawing: the one in the air, and the one just before it. */
 const MAX_WARPS = 3;
+/**
+ * Sound cues. A cue due this long ago (simulation seconds) is dropped rather than
+ * played late — the drawing jumped, or nobody is listening.
+ */
+const CUE_STALE = 0.5;
+/** A saved shot reaches the keeper's hands this long after the save (3.2 m at the shot's pace). */
+const SAVE_TO_HANDS = 0.12;
 /** A `save` event this soon after a dive has started belongs to that dive. */
 const SAVE_MEMORY = 1.2;
 /** The scorer turns away a beat after the ball crosses. */
@@ -323,6 +341,36 @@ export interface BallVisualState {
  * A pass or shot as it is DRAWN: the engine's flight, re-timed so the ball leaves the
  * foot when the kick reaches it and still arrives when the engine says it arrives.
  */
+/**
+ * Something to be heard, at a moment on the DRAWN timeline: a foot or hands meeting the
+ * ball, the referee, the crowd. The adapter only says what and when; whatever plays it
+ * takes each cue as `renderTime` reaches it (`takeCue`).
+ */
+export type SoundCueKind =
+  | 'pass'
+  | 'shot'
+  | 'touch'
+  | 'tackle'
+  | 'catch'
+  | 'whistle'
+  | 'whistle_kickoff'
+  | 'whistle_half'
+  | 'whistle_full'
+  | 'goal'
+  | 'save'
+  | 'miss';
+
+export interface SoundCue {
+  kind: SoundCueKind;
+  /** Simulation time it is heard at. */
+  at: number;
+  /** World position it comes from. */
+  x: number;
+  z: number;
+  /** 0..1: how hard (a long ball is struck harder than a lay-off). */
+  power: number;
+}
+
 export interface DrawnFlight {
   kind: 'pass' | 'shot';
   /** Engine coordinates of where it was struck and where it is going. */
@@ -351,7 +399,7 @@ interface BallWarp {
   holdX: number;
   holdZ: number;
   /** The engine's flight object, to see when it ends; null once it has. */
-  engineFlight: object | null;
+  engineFlight: BallFlight | null;
   drawn: DrawnFlight;
   /** A pass: who it is played to, and whether their receive has been sent. */
   receiverId: string | null;
@@ -491,6 +539,8 @@ export class PlayerVisualAdapter {
   private ballPlacedShownSeq = -1;
   /** Struck balls still being drawn, oldest first. */
   private readonly warps: BallWarp[] = [];
+  /** Sound cues not yet heard, in the order they are due. */
+  private readonly cues: SoundCue[] = [];
 
   /** Render-ready ball, rewritten in place. */
   readonly ball: BallVisualState = { x: 0, z: 0, ownerId: null, placed: true, flight: null };
@@ -520,6 +570,20 @@ export class PlayerVisualAdapter {
 
   get(id: string): PlayerVisualRuntime | undefined {
     return this.byId.get(id);
+  }
+
+  /**
+   * The next sound cue that is due on the drawn timeline, or null when none is. Call
+   * until it returns null, once per frame after `update`.
+   */
+  takeCue(): SoundCue | null {
+    while (this.cues.length > 0) {
+      const first = this.cues[0]!;
+      if (first.at > this.renderT) return null;
+      this.cues.shift();
+      if (first.at >= this.renderT - CUE_STALE) return first;
+    }
+    return null;
   }
 
   /** Why an id left the pitch, if the engine said so. */
@@ -573,6 +637,8 @@ export class PlayerVisualAdapter {
 
     this.advanceClock(Math.max(0, realDelta));
     this.resolve();
+    // Cues nobody took in time are gone for good.
+    while (this.cues.length > 0 && this.cues[0]!.at < this.renderT - CUE_STALE) this.cues.shift();
   }
 
   /* ── Roster ──────────────────────────────────────────────────────────────── */
@@ -649,6 +715,13 @@ export class PlayerVisualAdapter {
     switch (event.type) {
       case 'kickoff':
         this.placementPending = true;
+        this.cueAtBall('whistle_kickoff', this.eventTime());
+        return;
+      case 'half_time':
+      case 'fulltime':
+        // The engine stops here, and so will the drawn clock, a little short of it:
+        // the whistle goes now rather than at a moment the drawing never reaches.
+        this.cueAtBall(event.type === 'fulltime' ? 'whistle_full' : 'whistle_half', this.renderT);
         return;
       case 'pass':
         this.handlePass(event);
@@ -683,6 +756,8 @@ export class PlayerVisualAdapter {
         this.handleShot(event, now);
         return;
       case 'save': {
+        this.cueAtBall('catch', this.eventTime() + SAVE_TO_HANDS);
+        this.cueAtBall('save', this.eventTime() + SAVE_TO_HANDS);
         // The shot saved before its dive was sent: the dive goes now, the way it was aimed.
         const pending = this.warps.find((warp) => warp.keeperId === event.playerId && !warp.keeperSent);
         if (pending) {
@@ -703,9 +778,11 @@ export class PlayerVisualAdapter {
         return;
       }
       case 'goal':
+        this.cueAtBall('goal', this.eventTime());
         this.handleGoal(event, now);
         return;
       case 'foul':
+        this.cueAtBall('whistle', this.eventTime());
         this.trigger(event.playerId, 'foul', now, 0, null, event.type);
         return;
       case 'yellow_card':
@@ -758,7 +835,9 @@ export class PlayerVisualAdapter {
     const lead = kind === 'pass' ? LEAD.pass : LEAD.shoot;
     const kickT = own ? this.engine.t - own.elapsed : this.eventTime();
     const at = this.startFor(kickT, lead);
-    this.trigger(event.playerId, kind, at, 0, null, event.type);
+    // Struck harder the further it has to go; a shot is always struck hard.
+    const power = kind === 'shoot' ? 1 : own ? Math.min(1, Math.max(0.3, Math.hypot(own.toX - own.fromX, own.toY - own.fromY) / 40)) : 0.5;
+    this.trigger(event.playerId, kind, at, 0, null, event.type, 0, power);
     if (!own) return null;
     // The speed it left the foot at: the engine's speed now, wound back through the friction.
     const velocity = this.engine.core.ball.velocity;
@@ -850,6 +929,8 @@ export class PlayerVisualAdapter {
     const live = this.engine.ball.flight;
     for (const warp of this.warps) {
       if (warp.engineFlight === null || warp.engineFlight === live) continue;
+      // The engine has written how it ended onto the flight it let go of.
+      const finished = warp.engineFlight;
       warp.engineFlight = null;
       const ended = Math.max(warp.kickT, this.eventTime());
       if (ended < warp.end) {
@@ -857,6 +938,8 @@ export class PlayerVisualAdapter {
         warp.hold = Math.min(warp.hold, (ended - warp.kickT) * MAX_HOLD_SHARE);
       }
       warp.drawn.duration = Math.max(1e-3, ended - warp.kickT);
+      // Wide or over: the crowd groans as it goes.
+      if (finished.kind === 'shot' && finished.outcome === 'miss') this.cueAtBall('miss', ended);
       if (warp.keeperId && !warp.keeperSent) this.sendKeeper(warp, ended);
       // An interception or a loose ball: the receive the pass was waiting on never comes.
       warp.receiveSent = true;
@@ -1020,6 +1103,7 @@ export class PlayerVisualAdapter {
     outcome: string | null,
     source: string,
     variant = 0,
+    power = 0.6,
   ): void {
     if (!playerId) return;
     const runtime = this.byId.get(playerId);
@@ -1028,6 +1112,23 @@ export class PlayerVisualAdapter {
     const made: PlayerVisualAction = { kind, seq: runtime.actionSeq, at, dir, outcome, source, variant };
     if (kind === 'foul' || kind === 'booked') runtime.visual.discipline = made;
     else runtime.visual.action = made;
+    // The foot meets the ball when the action says it does, and that is when it is heard.
+    const sound = CONTACT_SOUND[kind];
+    if (sound) this.cueAt(sound[0], at + sound[1], runtime.agent.position2d.x, runtime.agent.position2d.y, power);
+  }
+
+  /** Queues a sound at simulation time `at`, from engine position (ex, ey). */
+  private cueAt(kind: SoundCueKind, at: number, ex: number, ey: number, power = 1): void {
+    const cue: SoundCue = { kind, at, x: engineToWorldX(ey), z: engineToWorldZ(ex), power };
+    let index = this.cues.length;
+    while (index > 0 && this.cues[index - 1]!.at > at) index -= 1;
+    this.cues.splice(index, 0, cue);
+  }
+
+  /** Queues a sound where the ball is. */
+  private cueAtBall(kind: SoundCueKind, at: number, power = 1): void {
+    const ball = this.engine.core.ball.position;
+    this.cueAt(kind, at, ball.x, ball.y, power);
   }
 
   /* ── Sampling ────────────────────────────────────────────────────────────── */

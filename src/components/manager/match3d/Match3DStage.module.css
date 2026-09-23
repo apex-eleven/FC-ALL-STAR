@@ -90,3 +90,18 @@
   white-space: pre;
   pointer-events: none;
 }
+
+/*
+  Sound on / off, in the bottom right corner the HUD leaves free. Styled as the HUD's
+  own icon buttons (Match3DHud.module.css .icon). Nested under .wrap so it outranks
+  IconButton's own `position: relative`.
+*/
+.wrap .sound {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}

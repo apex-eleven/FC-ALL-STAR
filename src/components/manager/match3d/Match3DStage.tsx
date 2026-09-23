@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Vector3, type DirectionalLight, type Mesh } from 'three';
 import type { EnginePlayer, MatchEngine } from '@/features/manager/matchEngine';
@@ -19,6 +20,8 @@ import {
 } from './Match3DAdapter';
 import { PlayerVisualAdapter, type DrawnFlight } from './players/PlayerVisualAdapter';
 import { PlayerPool } from './players/PlayerPool';
+import MatchAudio from './MatchAudio';
+import IconButton from '@/components/ui/IconButton';
 import { describeAnimation, type AnimationBody } from './players/animationDiagnostics';
 import { resolvePlayerLook, type PlayerLookSources } from './players/playerAppearance';
 import { shortestAngle } from './players/visualMath';
@@ -107,6 +110,15 @@ const CELEBRATION_FACING: readonly number[] = [0, 0.55, -0.5];
 
 const MARKER_COLOR = '#38e8ff';
 
+/** The opening whistle is only blown if the view is there from (about) the start. Seconds. */
+const OPENING_WHISTLE_WINDOW = 3;
+/**
+ * The crowd starts to lift once the ball is EXCITEMENT_FROM metres from the halfway
+ * line and is at full voice EXCITEMENT_SPAN further on — around the penalty spot.
+ */
+const EXCITEMENT_FROM = 22;
+const EXCITEMENT_SPAN = 20;
+
 /** How hard a loose ball bounces once it lands, in metres. */
 const SETTLE_ENERGY = 0.34;
 /** The sun follows the ball at this height; its shadow map covers SHADOW_SPAN. */
@@ -128,6 +140,8 @@ function shortName(name: string): string {
 interface SceneProps extends Match3DStageProps {
   /** The layer every player's name tag is written into. */
   names: React.RefObject<HTMLDivElement>;
+  /** The match's sound, played from the adapter's cues. */
+  audio: MatchAudio;
   /** The animation read-out, when SHOW_ANIMATION_DEBUG is on. */
   diagnostics: React.RefObject<HTMLPreElement>;
 }
@@ -158,7 +172,7 @@ function applyPose(rig: PlayerRig, pose: Pose, lookY: number): void {
  * three objects each frame — no React state, exactly as the 2D renderer writes
  * transforms onto its DOM nodes.
  */
-function MatchObjects({ engine, names, appearance, diagnostics }: SceneProps) {
+function MatchObjects({ engine, names, audio, appearance, diagnostics }: SceneProps) {
   // One adapter per match. It is the only thing here that reads the engine's players.
   const adapter = useMemo(() => new PlayerVisualAdapter(engine), [engine]);
 
@@ -189,6 +203,8 @@ function MatchObjects({ engine, names, appearance, diagnostics }: SceneProps) {
   const look = useRef(new Vector3(0, LOOK_HEIGHT, 0));
   /** Name tags by player id, and the ids tagged this frame. */
   const tags = useRef(new Map<string, HTMLDivElement>());
+  /** The opening whistle is blown once, when play first moves. */
+  const openingBlown = useRef(false);
   const tagSeen = useRef(new Set<string>());
   // A new match (or leaving the view) starts from a clean layer.
   useEffect(() => {
@@ -474,6 +490,20 @@ function MatchObjects({ engine, names, appearance, diagnostics }: SceneProps) {
         }
       }
     }
+
+    // Sound: every cue that has come due on the drawn timeline, panned to where on
+    // screen it happened, and a crowd that grows louder as the ball nears a goal.
+    for (let cue = adapter.takeCue(); cue; cue = adapter.takeCue()) {
+      project.current.set(cue.x, 0, cue.z).project(camera);
+      audio.play(cue.kind, project.current.z < 1 ? project.current.x : 0, cue.power);
+    }
+    const running = adapter.simulationRate > 0.2;
+    // The first kick-off happens before this view exists, so its whistle is blown here.
+    if (running && !openingBlown.current) {
+      openingBlown.current = true;
+      if (adapter.renderTime < OPENING_WHISTLE_WINDOW) audio.play('whistle_kickoff', 0, 1);
+    }
+    audio.frame((Math.abs(ballZ) - EXCITEMENT_FROM) / EXCITEMENT_SPAN, running);
   });
 
   return (
@@ -558,6 +588,14 @@ export default function Match3DStage({ engine, appearance }: Match3DStageProps) 
   const names = useRef<HTMLDivElement>(null);
   const diagnostics = useRef<HTMLPreElement>(null);
 
+  // One sound system per match, started with the view and closed with it.
+  const audio = useMemo(() => new MatchAudio(), [engine]);
+  const [muted, setMuted] = useState(audio.muted);
+  useEffect(() => {
+    audio.start();
+    return () => audio.dispose();
+  }, [audio]);
+
   return (
     <div className={styles.wrap}>
       <Canvas
@@ -571,9 +609,20 @@ export default function Match3DStage({ engine, appearance }: Match3DStageProps) 
         <ambientLight intensity={0.7} />
         <Pitch3D />
         <Stadium3D />
-        <MatchObjects engine={engine} names={names} appearance={appearance} diagnostics={diagnostics} />
+        <MatchObjects engine={engine} names={names} audio={audio} appearance={appearance} diagnostics={diagnostics} />
       </Canvas>
       <div ref={names} className={styles.names} />
+      <IconButton
+        label={muted ? 'เปิดเสียง' : 'ปิดเสียง'}
+        size={68}
+        className={styles.sound}
+        onClick={() => {
+          audio.setMuted(!muted);
+          setMuted(!muted);
+        }}
+      >
+        {muted ? <VolumeX size={30} /> : <Volume2 size={30} />}
+      </IconButton>
       {SHOW_DEBUG && <Match3DDebug engine={engine} />}
       {SHOW_ANIMATION_DEBUG && <pre ref={diagnostics} className={styles.animDebug} />}
     </div>
