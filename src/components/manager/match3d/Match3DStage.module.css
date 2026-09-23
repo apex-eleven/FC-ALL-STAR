@@ -26,22 +26,41 @@
 }
 
 /*
-  The carrier's name. Placed in percentages of this box, because the projection it
-  comes from is in clip space and the stage's scale must not enter into it.
+  Every player's name, under their feet. Each tag is placed in percentages of this
+  box, because the projection it comes from is in clip space and the stage's scale
+  must not enter into it. The layer covers the view and takes no pointer events.
 */
-.name {
+.names {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tag {
   position: absolute;
   left: 0;
   top: 0;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, 6px);
+  /* A dark plate behind the name, so tags that overlap still read one at a time. */
+  padding: 3px 8px 4px;
+  border-radius: 6px;
+  background: rgba(6, 12, 18, 0.55);
   font-family: var(--font-ui);
-  font-size: 26px;
+  font-size: 17px;
   font-weight: 700;
+  line-height: 1;
   color: #ffffff;
   text-shadow: var(--shadow-text);
   white-space: nowrap;
   opacity: 0;
-  pointer-events: none;
+}
+
+/* The player on the ball: the marker's colour, a touch larger, on a solid plate. */
+.tagOn {
+  color: #38e8ff;
+  font-size: 20px;
+  background: rgba(6, 12, 18, 0.85);
 }
 
 /* Development read-out of every player's animation (SHOW_ANIMATION_DEBUG); off by default. */

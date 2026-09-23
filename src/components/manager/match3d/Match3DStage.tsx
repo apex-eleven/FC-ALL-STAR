@@ -113,6 +113,12 @@ const SETTLE_ENERGY = 0.34;
 const SUN_HEIGHT = 46;
 const SHADOW_SPAN = 34;
 
+/** A player's name as the engine has it, by id — empty for an id it does not know. */
+function nameOf(engine: MatchEngine, id: string): string {
+  for (const player of engine.players) if (player.id === id) return player.name;
+  return '';
+}
+
 function shortName(name: string): string {
   const parts = name.trim().split(/\s+/);
   const last = parts[parts.length - 1] ?? name;
@@ -120,7 +126,8 @@ function shortName(name: string): string {
 }
 
 interface SceneProps extends Match3DStageProps {
-  label: React.RefObject<HTMLDivElement>;
+  /** The layer every player's name tag is written into. */
+  names: React.RefObject<HTMLDivElement>;
   /** The animation read-out, when SHOW_ANIMATION_DEBUG is on. */
   diagnostics: React.RefObject<HTMLPreElement>;
 }
@@ -151,7 +158,7 @@ function applyPose(rig: PlayerRig, pose: Pose, lookY: number): void {
  * three objects each frame — no React state, exactly as the 2D renderer writes
  * transforms onto its DOM nodes.
  */
-function MatchObjects({ engine, label, appearance, diagnostics }: SceneProps) {
+function MatchObjects({ engine, names, appearance, diagnostics }: SceneProps) {
   // One adapter per match. It is the only thing here that reads the engine's players.
   const adapter = useMemo(() => new PlayerVisualAdapter(engine), [engine]);
 
@@ -180,6 +187,17 @@ function MatchObjects({ engine, label, appearance, diagnostics }: SceneProps) {
   const settling = useRef(false);
   const settled = useRef(0);
   const look = useRef(new Vector3(0, LOOK_HEIGHT, 0));
+  /** Name tags by player id, and the ids tagged this frame. */
+  const tags = useRef(new Map<string, HTMLDivElement>());
+  const tagSeen = useRef(new Set<string>());
+  // A new match (or leaving the view) starts from a clean layer.
+  useEffect(() => {
+    const made = tags.current;
+    return () => {
+      for (const tag of made.values()) tag.remove();
+      made.clear();
+    };
+  }, [engine]);
   const project = useRef(new Vector3());
 
   // Reused every frame so a match never allocates in its own loop.
@@ -407,34 +425,54 @@ function MatchObjects({ engine, label, appearance, diagnostics }: SceneProps) {
     look.current.z += (ballZ - look.current.z) * ease;
     camera.lookAt(look.current);
 
-    // The carrier: a marker over their head and their name beside it — the carrier at
-    // the moment being drawn, so it never runs ahead of the interpolated players.
+    // The carrier: a marker over their head — the carrier at the moment being drawn,
+    // so it never runs ahead of the interpolated players.
     const carrier = ownerId ? adapter.get(ownerId) : undefined;
-    const node = label.current;
     if (marker.current) marker.current.visible = carrier !== undefined;
     if (carrier) {
-      const ox = carrier.visual.position.x;
-      const oz = carrier.visual.position.z;
       // Over the head of THIS player, however tall they are.
       const top = BODY_TOP * (appearances.current.get(carrier.id)?.stature ?? 1);
-      if (marker.current) marker.current.position.set(ox, top + 0.6, oz);
-      if (node) {
-        project.current.set(ox, top + 0.95, oz).project(camera);
-        node.style.left = `${(project.current.x * 0.5 + 0.5) * 100}%`;
-        node.style.top = `${(-project.current.y * 0.5 + 0.5) * 100}%`;
-        node.style.opacity = project.current.z < 1 ? '1' : '0';
-        let name = '';
-        for (const player of engine.players) {
-          if (player.id === carrier.id) {
-            name = player.name;
-            break;
-          }
+      if (marker.current) marker.current.position.set(carrier.visual.position.x, top + 0.6, carrier.visual.position.z);
+    }
+
+    // Every player's name, on the grass just under their feet. The carrier's is lit.
+    const layer = names.current;
+    if (layer) {
+      const shown = tagSeen.current;
+      shown.clear();
+      for (const player of adapter.players) {
+        let tag = tags.current.get(player.id);
+        if (!tag) {
+          tag = document.createElement('div');
+          tag.className = styles.tag ?? '';
+          tag.textContent = shortName(nameOf(engine, player.id));
+          layer.appendChild(tag);
+          tags.current.set(player.id, tag);
         }
-        const short = shortName(name);
-        if (node.textContent !== short) node.textContent = short;
+        shown.add(player.id);
+        project.current.set(player.visual.position.x, 0, player.visual.position.z).project(camera);
+        const onScreen =
+          project.current.z < 1 && Math.abs(project.current.x) < 1.1 && Math.abs(project.current.y) < 1.1;
+        tag.style.opacity = onScreen ? '1' : '0';
+        if (!onScreen) continue;
+        tag.style.left = `${(project.current.x * 0.5 + 0.5) * 100}%`;
+        tag.style.top = `${(-project.current.y * 0.5 + 0.5) * 100}%`;
+        const lit = player.id === carrier?.id;
+        if (tag.dataset.lit !== (lit ? '1' : '')) {
+          tag.dataset.lit = lit ? '1' : '';
+          tag.classList.toggle(styles.tagOn ?? '', lit);
+          // Painted last, so where tags crowd together the carrier's reads on top.
+          if (lit) layer.appendChild(tag);
+        }
       }
-    } else if (node) {
-      node.style.opacity = '0';
+      // Anyone who has left the pitch (substituted, sent off) takes their tag with them.
+      if (tags.current.size !== shown.size) {
+        for (const [id, tag] of tags.current) {
+          if (shown.has(id)) continue;
+          tag.remove();
+          tags.current.delete(id);
+        }
+      }
     }
   });
 
@@ -517,7 +555,7 @@ function Match3DDebug({ engine }: Match3DStageProps) {
 }
 
 export default function Match3DStage({ engine, appearance }: Match3DStageProps) {
-  const label = useRef<HTMLDivElement>(null);
+  const names = useRef<HTMLDivElement>(null);
   const diagnostics = useRef<HTMLPreElement>(null);
 
   return (
@@ -533,9 +571,9 @@ export default function Match3DStage({ engine, appearance }: Match3DStageProps) 
         <ambientLight intensity={0.7} />
         <Pitch3D />
         <Stadium3D />
-        <MatchObjects engine={engine} label={label} appearance={appearance} diagnostics={diagnostics} />
+        <MatchObjects engine={engine} names={names} appearance={appearance} diagnostics={diagnostics} />
       </Canvas>
-      <div ref={label} className={styles.name} />
+      <div ref={names} className={styles.names} />
       {SHOW_DEBUG && <Match3DDebug engine={engine} />}
       {SHOW_ANIMATION_DEBUG && <pre ref={diagnostics} className={styles.animDebug} />}
     </div>
