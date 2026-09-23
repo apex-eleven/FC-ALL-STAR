@@ -106,19 +106,13 @@ export interface PlayerRig {
   parts: DetailParts;
   /** The level currently applied, so the flags are only rewritten on a change. */
   lod: DetailLevel | -1;
-  /** Stride position, advanced by the stage from how fast the player is moving. */
+  /** Stride position, advanced by the stage from the engine's speed and the render clock. */
   phase: number;
-  /** Where they were last frame, which is where facing comes from. */
-  lastX: number;
-  lastZ: number;
   /**
-   * Velocity, smoothed. The engine walks a player towards a mark that moves with the
-   * ball and stops them dead when they reach it, so the raw frame-to-frame direction
-   * reverses constantly while the speed still reads high. Averaging it is what turns
-   * that into a person running somewhere.
+   * The heading the body is drawn at. Normally the adapter's smoothed engine facing;
+   * a celebration turns it to the camera. Position, velocity and speed are not kept
+   * here — they come from `PlayerVisualAdapter`, never from frame-to-frame deltas.
    */
-  vx: number;
-  vz: number;
   heading: number;
   /** How fast they are turning, smoothed, so the body can lean into it. */
   turning: number;
@@ -145,10 +139,6 @@ export function makeRig(): PlayerRig {
     parts: makeDetailParts(),
     lod: -1,
     phase: 0,
-    lastX: 0,
-    lastZ: 0,
-    vx: 0,
-    vz: 0,
     heading: 0,
     turning: 0,
     lookY: 0,

@@ -1,13 +1,16 @@
-import type { MatchEngine } from '@/features/manager/matchEngine';
+import type { PlayerVisualActionKind } from './players/PlayerVisualAdapter';
 
 /**
- * Poses, and the reading of the engine that decides when to strike one.
+ * Procedural poses — the temporary animation for the primitive `Player3D`.
  *
- * The engine is never asked to help: it publishes a ball, a flight and a set of
- * counters, and everything below is worked out from watching those change. Nothing
- * here is a clip — the poses are written as joint angles over a normalised time, so
- * there is no animation asset to load. Every function writes into a `Pose` it is
- * handed, so a frame with twenty-two players allocates nothing.
+ * WHEN a pose is struck is no longer decided here. Actions come from the engine's own
+ * events through `PlayerVisualAdapter`, already assigned to the player the event names
+ * (the tackle to the defender who went in, not whoever has the ball). This file only
+ * maps those actions onto a pose and writes the joint angles.
+ *
+ * Nothing here is a clip — the poses are written as joint angles over a normalised
+ * time, so there is no animation asset to load. Every function writes into a `Pose`
+ * it is handed, so a frame with twenty-two players allocates nothing.
  */
 
 export type PlayerAction =
@@ -19,7 +22,10 @@ export type PlayerAction =
   | 'receive'
   | 'celebrate';
 
-/** How long each one runs, in seconds. */
+/**
+ * How long each one runs, in SIMULATION seconds — the stage advances actions by the
+ * adapter's render clock, so at x4 they play four times as fast and stay with the ball.
+ */
 export const ACTION_SECONDS: Record<PlayerAction, number> = {
   pass: 0.5,
   shoot: 0.62,
@@ -453,76 +459,26 @@ export function actionHoldsHead(kind: PlayerAction): boolean {
   return kind === 'celebrate' || kind === 'save' || kind === 'catch';
 }
 
-export interface ActionTrigger {
-  playerId: string;
-  kind: PlayerAction;
-  /** Seconds to wait before it starts — a keeper goes as the shot is on its way. */
-  delay: number;
-  dir: number;
-}
-
-/** A save this close to the keeper is gathered, not dived at. Metres. */
-const CATCH_REACH = 1.5;
-
 /**
- * Reads the engine each frame and says who just did what.
- *
- * A pass and a shot are a new `ball.flight` appearing, which also carries the
- * outcome the engine has already rolled — so a keeper can be sent the right way
- * before the ball arrives. A flight ENDING is a receive (a pass has been taken) or a
- * celebration (a shot went in). A tackle is logged nowhere, so it is read from the
- * tackle counter going up: whoever has the ball at that moment is the one who won it.
+ * The pose an adapter action is drawn with, or null for actions this body has no
+ * pose for yet (a foul, a booking) — those still reach the state machine in STEP 3.
+ * An interception is drawn as the touch that brings the ball under control.
  */
-export class ActionWatcher {
-  private flight: MatchEngine['ball']['flight'] = null;
-  private tackles = 0;
-
-  /** Fills `out` with anything that started since the last call. */
-  poll(engine: MatchEngine, out: ActionTrigger[]): void {
-    out.length = 0;
-
-    const flight = engine.ball.flight;
-    if (flight !== this.flight) {
-      const ended = this.flight;
-      if (ended) {
-        if (ended.kind === 'pass') {
-          const owner = engine.ballOwnerId;
-          if (owner && owner !== ended.shooterId) {
-            out.push({ playerId: owner, kind: 'receive', delay: 0, dir: 1 });
-          }
-        } else if (ended.outcome === 'goal') {
-          out.push({ playerId: ended.shooterId, kind: 'celebrate', delay: 0.15, dir: 1 });
-        }
-      }
-
-      if (flight) {
-        if (flight.kind === 'pass') {
-          out.push({ playerId: flight.shooterId, kind: 'pass', delay: 0, dir: 1 });
-        } else {
-          out.push({ playerId: flight.shooterId, kind: 'shoot', delay: 0, dir: 1 });
-          if (flight.outcome === 'save') {
-            const keeper = engine.players.find(
-              (player) => player.keeper && player.side !== flight.side,
-            );
-            if (keeper) {
-              const dir = flight.toY - keeper.y;
-              out.push({
-                playerId: keeper.id,
-                kind: Math.abs(dir) < CATCH_REACH ? 'catch' : 'save',
-                delay: Math.min(0.28, flight.duration * 0.4),
-                dir,
-              });
-            }
-          }
-        }
-      }
-    }
-    this.flight = flight;
-
-    const tackles = engine.stats.home.tackles + engine.stats.away.tackles;
-    if (tackles > this.tackles && engine.ballOwnerId) {
-      out.push({ playerId: engine.ballOwnerId, kind: 'tackle', delay: 0, dir: 1 });
-    }
-    this.tackles = tackles;
+export function poseActionFor(kind: PlayerVisualActionKind): PlayerAction | null {
+  switch (kind) {
+    case 'pass':
+    case 'receive':
+    case 'tackle':
+    case 'save':
+    case 'catch':
+    case 'celebrate':
+      return kind;
+    case 'shoot':
+      return 'shoot';
+    case 'intercept':
+      return 'receive';
+    case 'foul':
+    case 'booked':
+      return null;
   }
 }
