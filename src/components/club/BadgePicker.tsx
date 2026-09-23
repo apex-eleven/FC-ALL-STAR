@@ -24,7 +24,7 @@ export interface BadgePickerProps {
  * to build toward, not a mistake.
  */
 export default function BadgePicker({ slot, squad, owned, onPick, onClose }: BadgePickerProps) {
-  const { config, nameOf } = useBadges();
+  const { config, memberOf } = useBadges();
   const { byId } = usePlayers();
 
   // Same matching as the crest rules: the exact card or the same player by name.
@@ -61,7 +61,7 @@ export default function BadgePicker({ slot, squad, owned, onPick, onClose }: Bad
           {badges.length === 0 && <p className={styles.empty}>ยังไม่มีตราทีมให้เลือก</p>}
 
           {badges.map((badge) => {
-            const status = statusOf(badge, squad, owned, nameOf);
+            const status = statusOf(badge, squad, owned, memberOf);
             const pinnedAt = slotOf(squad, badge.id);
             const here = pinnedAt === slot;
             return (
@@ -83,7 +83,7 @@ export default function BadgePicker({ slot, squad, owned, onPick, onClose }: Bad
                   <div className={styles.set}>
                     {badge.cardIds.map((cardId) => {
                       const card = byId(cardId);
-                      const has = isFielded(cardId, onPitch, nameOf);
+                      const has = isFielded(cardId, onPitch, memberOf);
                       return (
                         <span
                           key={cardId}
