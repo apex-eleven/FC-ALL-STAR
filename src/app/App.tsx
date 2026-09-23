@@ -22,6 +22,7 @@ import InboxScreen from '@/components/inbox/InboxScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
+import SyncHealthBanner from '@/components/ui/SyncHealthBanner';
 
 export default function App() {
   // Rendered beside whatever screen is up, not around it: the gate is fixed and
@@ -157,6 +158,7 @@ export default function App() {
     <>
       <MobileGate />
       <SaveErrorBanner />
+        <SyncHealthBanner />
       {screen}
       <AnnouncementOverlay />
     </>

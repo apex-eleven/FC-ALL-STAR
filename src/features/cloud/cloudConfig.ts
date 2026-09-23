@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, setDoc, type DocumentData } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, writeBatch, type DocumentData } from 'firebase/firestore';
 import {
   announceConfigChange,
   applySnapshotDetailed,
@@ -159,21 +159,23 @@ export async function pushConfigToCloud(options: { force?: boolean } = {}): Prom
   if (parts.length > MAX_PARTS) return 'too-large';
 
   try {
-    // Parts first, the index last: a reader woken by the index finds every part of
-    // this save already in place.
+    const db = cloudDb();
+    if (!db) return 'unavailable';
+    // ✅ writeBatch แทน setDoc ทีละชิ้น: Firestore การันตีว่า commit สำเร็จครบหรือล้มเหลวทั้งหมด
+    // ผู้เล่นจะไม่มีทางอ่านเจอ index กับ part ที่ savedAt ไม่ตรงกันอีก
+    const batch = writeBatch(db);
     for (const [index, data] of parts.entries()) {
       const target = partRef(index);
       if (!target) return 'unavailable';
-      await setDoc(target, { data, savedAt: snapshot.savedAt, index });
+      batch.set(target, { data, savedAt: snapshot.savedAt, index });
     }
-    // Entry count and size ride on the index so the next push can compare against
-    // them without fetching every part.
-    await setDoc(reference, {
+    batch.set(reference, {
       parts: parts.length,
       savedAt: snapshot.savedAt,
       entries: localEntries,
       chars: payload.length,
     });
+    await batch.commit();
     writeBase(snapshot.savedAt);
     lastGuard = null;
     return 'saved';
@@ -285,7 +287,12 @@ export async function pullConfigFromCloud(): Promise<PullResult> {
       reason: error instanceof Error ? error.message.split('\n')[0] ?? 'unknown' : String(error),
     };
   }
-  if (lastPull.state === 'read-failed') console.warn('[cloud] ดึงตั้งค่าจากคลาวด์ไม่สำเร็จ', lastPull.reason);
+  if (lastPull.state === 'read-failed') {
+    console.warn('[cloud] ดึงตั้งค่าจากคลาวด์ไม่สำเร็จ', lastPull.reason);
+    window.dispatchEvent(new CustomEvent('fcallstar:sync-failed', { detail: lastPull.reason }));
+  } else if (lastPull.state === 'applied') {
+    window.dispatchEvent(new Event('fcallstar:sync-ok'));
+  }
   return lastPull;
 }
 
@@ -319,7 +326,12 @@ export function watchCloudConfig(): () => void {
           // Replace, not merge: the admin's copy is the game's copy. A player's
           // browser holding yesterday's packs has to take today's.
           lastPull = applyRead(outcome);
-          if (lastPull.state === 'applied' && lastPull.applied > 0) announceConfigChange();
+          if (lastPull.state === 'applied') {
+            window.dispatchEvent(new Event('fcallstar:sync-ok'));
+            if (lastPull.applied > 0) announceConfigChange();
+          } else if (lastPull.state === 'read-failed') {
+            window.dispatchEvent(new CustomEvent('fcallstar:sync-failed', { detail: lastPull.reason }));
+          }
         })
         .catch(() => {
           // A malformed or unreadable save must not take the running game down.

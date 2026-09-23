@@ -1,0 +1,43 @@
+.banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 28px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: linear-gradient(90deg, #7b0000 0%, #b71c1c 100%);
+  border: 1px solid rgba(255, 120, 120, 0.5);
+  border-top: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from { translate: -50% -100%; }
+  to   { translate: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner { animation: none; }
+}
+
+.spin {
+  opacity: 0.7;
+  animation: spin 1.4s linear infinite;
+}
+
+@keyframes spin {
+  to { rotate: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation: none; }
+}
