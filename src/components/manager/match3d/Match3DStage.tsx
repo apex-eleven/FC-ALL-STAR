@@ -5,7 +5,7 @@ import type { EnginePlayer, MatchEngine } from '@/features/manager/matchEngine';
 import Pitch3D from './Pitch3D';
 import Stadium3D from './Stadium3D';
 import Player3D, { BODY_TOP, makeRig, type PlayerRig } from './Player3D';
-import { appearanceOf, type PlayerAppearance } from './PlayerAppearance';
+import { proceduralAppearance, type PlayerAppearance } from './PlayerAppearance';
 import { applyDetailLevel, levelForDistance } from './PlayerLOD';
 import { CONTACT_Y } from './PlayerShadow';
 import { commandPose, makePose, makePoseScratch, type Pose } from './AnimationController';
@@ -18,6 +18,7 @@ import {
 } from './Match3DAdapter';
 import { PlayerVisualAdapter } from './players/PlayerVisualAdapter';
 import { PlayerPool } from './players/PlayerPool';
+import { resolvePlayerLook, type PlayerLookSources } from './players/playerAppearance';
 import { shortestAngle } from './players/visualMath';
 import styles from './Match3DStage.module.css';
 
@@ -43,6 +44,12 @@ import styles from './Match3DStage.module.css';
 
 export interface Match3DStageProps {
   engine: MatchEngine;
+  /**
+   * Where players' looks may draw on data from outside the engine — the match's kits,
+   * team marks, per-player choices. Optional: without it, FC ALL-STAR's default kits
+   * and each player's seeded look. Read when a player first appears.
+   */
+  appearance?: PlayerLookSources;
 }
 
 /** Set true to bring back the coordinate read-out used to prove the mapping. */
@@ -126,7 +133,7 @@ function applyPose(rig: PlayerRig, pose: Pose, lookY: number): void {
  * three objects each frame — no React state, exactly as the 2D renderer writes
  * transforms onto its DOM nodes.
  */
-function MatchObjects({ engine, label }: SceneProps) {
+function MatchObjects({ engine, label, appearance }: SceneProps) {
   // One adapter per match. It is the only thing here that reads the engine's players.
   const adapter = useMemo(() => new PlayerVisualAdapter(engine), [engine]);
 
@@ -171,10 +178,28 @@ function MatchObjects({ engine, label }: SceneProps) {
   // Faces and kits are settled once per id: the same card always turns out the same.
   // Called from render (for the procedural body) and from the frame loop (for a
   // player React has not rendered yet) — both get the one seeded look.
-  const appearanceFor = (id: string, side: EnginePlayer['side'], keeper: boolean): PlayerAppearance => {
+  //
+  // The look is resolved ONCE per id, from what the engine knows about that player —
+  // side, keeper role, shirt number, bench slot — and shared by both bodies: the
+  // realistic one wears it, the procedural one adds only its limb proportions.
+  const sources = useRef(appearance ?? {});
+  sources.current = appearance ?? {};
+  const appearanceFor = (id: string): PlayerAppearance => {
     const found = appearances.current.get(id);
     if (found) return found;
-    const made = appearanceOf(id, side, keeper);
+    const agent = adapter.get(id)?.agent ?? engine.core.players.find((candidate) => candidate.id === id);
+    const seat: EnginePlayer | undefined = agent ? undefined : engine.players.find((candidate) => candidate.id === id);
+    const look = resolvePlayerLook(
+      {
+        id,
+        side: agent?.side ?? seat?.side ?? 'home',
+        isKeeper: agent ? agent.role === 'gk' : (seat?.keeper ?? false),
+        shirtNumber: agent?.shirtNumber ?? 0,
+        slotId: agent?.slotId,
+      },
+      sources.current,
+    );
+    const made = proceduralAppearance(look);
     appearances.current.set(id, made);
     return made;
   };
@@ -206,8 +231,8 @@ function MatchObjects({ engine, label }: SceneProps) {
       const visual = runtime.visual;
       const x = visual.position.x;
       const z = visual.position.z;
-      const appearance = appearanceFor(runtime.id, visual.side, visual.isKeeper);
-      const player = pool.acquire(runtime.id, appearance, visual.heading);
+      const look = appearanceFor(runtime.id);
+      const player = pool.acquire(runtime.id, look, visual.heading);
 
       // Visual data in, animation command out — in simulation time, so x4 plays
       // everything four times as fast and a pause (simDelta 0) freezes it.
@@ -247,8 +272,8 @@ function MatchObjects({ engine, label }: SceneProps) {
         root.visible = !modelDrawn;
         if (!modelDrawn) {
           const pose = finalOut.current;
-          commandPose(pose, command, appearance.footed, scratch.current);
-          root.position.set(x, pose.rootY * appearance.stature, z);
+          commandPose(pose, command, look.footed, scratch.current);
+          root.position.set(x, pose.rootY * look.stature, z);
           root.rotation.y = player.heading;
           applyPose(rig, pose, player.lookY);
           lift = Math.max(0, pose.rootY);
@@ -264,9 +289,9 @@ function MatchObjects({ engine, label }: SceneProps) {
       // feet leave the ground.
       const contact = rig?.contact;
       if (contact) {
-        const spread = appearance.stature * (1 - lift * 0.7);
+        const spread = look.stature * (1 - lift * 0.7);
         contact.position.set(x, CONTACT_Y, z);
-        contact.scale.set(spread * appearance.build, spread, 1);
+        contact.scale.set(spread * look.build, spread, 1);
         contact.rotation.z = player.heading;
       }
     }
@@ -410,7 +435,7 @@ function MatchObjects({ engine, label }: SceneProps) {
         <Player3D
           key={player.id}
           rig={rigFor(player.id)}
-          appearance={appearanceFor(player.id, player.side, player.keeper)}
+          appearance={appearanceFor(player.id)}
         />
       ))}
 
@@ -457,7 +482,7 @@ function Match3DDebug({ engine }: Match3DStageProps) {
   return <div ref={box} className={styles.debug} />;
 }
 
-export default function Match3DStage({ engine }: Match3DStageProps) {
+export default function Match3DStage({ engine, appearance }: Match3DStageProps) {
   const label = useRef<HTMLDivElement>(null);
 
   return (
@@ -473,7 +498,7 @@ export default function Match3DStage({ engine }: Match3DStageProps) {
         <ambientLight intensity={0.7} />
         <Pitch3D />
         <Stadium3D />
-        <MatchObjects engine={engine} label={label} />
+        <MatchObjects engine={engine} label={label} appearance={appearance} />
       </Canvas>
       <div ref={label} className={styles.name} />
       {SHOW_DEBUG && <Match3DDebug engine={engine} />}

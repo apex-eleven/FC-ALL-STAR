@@ -1,4 +1,16 @@
-import { Box3, Group, type AnimationClip, type Bone, type Object3D } from 'three';
+import {
+  Box3,
+  Group,
+  LinearFilter,
+  LinearMipmapLinearFilter,
+  NearestFilter,
+  NoColorSpace,
+  Texture,
+  type AnimationClip,
+  type Bone,
+  type Object3D,
+} from 'three';
+import type { KitTextures } from './KitMaterial';
 import {
   ACTION_METADATA,
   LOCOMOTION_CLIPS,
@@ -50,6 +62,13 @@ export interface PlayerAssetManifest {
    * export (≈180 tall) is corrected by 0.01; anything else must already be metres.
    */
   unitScale: number | null;
+  /** Kit masks (see KitMaterial). Both must load, or the model keeps its own materials. */
+  kitMaskAUrl: string | null;
+  kitMaskBUrl: string | null;
+  /** Ten digit glyphs 0–9 in a row, for shirt numbers. Absent: no numbers drawn. */
+  numberAtlasUrl: string | null;
+  /** Where the number area sits in the body's UVs: [u0, v0, u1, v1]. */
+  numberUvRect: readonly [number, number, number, number] | null;
   /** Per-asset clip-name overrides, checked before CLIP_REGISTRY's defaults. */
   clipNames: Partial<Record<AnimationClipId, readonly string[]>>;
   /** What draws a player when the model cannot. */
@@ -71,6 +90,10 @@ export const PLAYER_ASSET_MANIFEST: PlayerAssetManifest = {
   modelUrl: `${baseUrl()}models/players/player_v1.glb`,
   animationUrl: `${baseUrl()}models/players/animations_v1.glb`,
   metadataUrl: `${baseUrl()}models/players/animations_v1.json`,
+  kitMaskAUrl: `${baseUrl()}models/players/T_Body_MaskA.png`,
+  kitMaskBUrl: `${baseUrl()}models/players/T_Body_MaskB.png`,
+  numberAtlasUrl: `${baseUrl()}models/players/T_Numbers.png`,
+  numberUvRect: null,
   forwardAxis: '+Z',
   expectedHeight: 1.8,
   unitScale: null,
@@ -324,6 +347,8 @@ export interface LoadedPlayerAsset {
    * authored clips may slide until the strides are measured.
    */
   strideModel: ((speed: number) => number) | null;
+  /** The kit masks and number atlas, loaded once for every player. Null: no masks shipped. */
+  kit: KitTextures | null;
 }
 
 export interface PlayerAssetResult {
@@ -360,6 +385,54 @@ async function fetchGlb(url: string): Promise<{ buffer: ArrayBuffer } | { missin
     return { invalid: 'not a binary glTF (GLB) file' };
   }
   return { buffer };
+}
+
+/**
+ * An image as a texture, or null when it is not there (the same SPA-fallback check as
+ * the model). Masks are data: no colour conversion, nearest filtering so coded values
+ * arrive exact. The digit atlas is filtered normally.
+ */
+async function fetchTexture(url: string | null, kind: 'mask' | 'atlas'): Promise<Texture | null> {
+  if (!url) return null;
+  const response = await fetch(url).catch(() => null);
+  if (!response || !response.ok) return null;
+  const type = response.headers.get('content-type') ?? '';
+  const blob = await response.blob();
+  if (!type.startsWith('image/')) return null;
+  const bitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }).catch(() => null);
+  if (!bitmap) return null;
+  const texture = new Texture(bitmap);
+  // glTF UVs: the image is not flipped (ImageBitmaps are uploaded as they are).
+  texture.flipY = false;
+  texture.colorSpace = NoColorSpace;
+  if (kind === 'mask') {
+    texture.magFilter = NearestFilter;
+    texture.minFilter = NearestFilter;
+    texture.generateMipmaps = false;
+  } else {
+    texture.magFilter = LinearFilter;
+    texture.minFilter = LinearMipmapLinearFilter;
+  }
+  texture.needsUpdate = true;
+  return texture;
+}
+
+async function loadKitTextures(manifest: PlayerAssetManifest): Promise<KitTextures | null> {
+  const [maskA, maskB] = await Promise.all([
+    fetchTexture(manifest.kitMaskAUrl, 'mask'),
+    fetchTexture(manifest.kitMaskBUrl, 'mask'),
+  ]);
+  if (!maskA || !maskB) {
+    maskA?.dispose();
+    maskB?.dispose();
+    devLog('info', 'no kit masks (T_Body_MaskA/B): the model keeps its own materials; kits are not applied to it');
+    return null;
+  }
+  const numberAtlas = await fetchTexture(manifest.numberAtlasUrl, 'atlas');
+  if (!numberAtlas || !manifest.numberUvRect) {
+    devLog('info', 'no number atlas or number UV area: shirt numbers are not drawn on the model');
+  }
+  return { maskA, maskB, numberAtlas, numberUvRect: manifest.numberUvRect };
 }
 
 async function fetchJson(url: string | null): Promise<unknown> {
@@ -550,6 +623,7 @@ async function load(manifest: PlayerAssetManifest): Promise<PlayerAssetResult> {
   });
 
   const master = normalized.master;
+  const kit = await loadKitTextures(manifest);
   return {
     status: 'ready',
     reason: null,
@@ -564,6 +638,7 @@ async function load(manifest: PlayerAssetManifest): Promise<PlayerAssetResult> {
       unitScale: normalized.unitScale,
       hasLodMeshes,
       strideModel,
+      kit,
     },
   };
 }

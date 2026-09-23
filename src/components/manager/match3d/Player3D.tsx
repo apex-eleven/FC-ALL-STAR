@@ -26,7 +26,9 @@ import { contactShadowGeometry, contactShadowMaterial } from './PlayerShadow';
  * mascot. The torso is an elliptical cylinder rather than a box so it has a front, a
  * side and a top that the sun lights differently; the limbs are capsules for the
  * same reason. The `PlayerAppearance` scales the build, the limbs and the whole
- * body, and picks every colour.
+ * body; every colour, the sleeves and the gloves come from the player's resolved
+ * `PlayerLook` (players/playerAppearance.ts), the same look the realistic body wears.
+ * Kit patterns and shirt numbers are the realistic body's; this one stays plain.
  *
  * Every geometry and every material is shared by all twenty-two players: the parts
  * below are the only ones that exist, whatever the squad looks like. Nothing here
@@ -145,9 +147,9 @@ function register(list: Object3D[], node: Object3D | null): void {
 
 /** An arm, from the shoulder down. `side` is −1 for the left, +1 for the right. */
 function Arm({ rig, appearance, side }: Player3DProps & { side: Side }) {
-  const { kit, keeper, build, armLength } = appearance;
-  // Keepers wear long sleeves and gloves; everyone else is bare from the elbow.
-  const forearm = keeper ? kit.shirt : appearance.skin;
+  const { kit, longSleeves, gloves, build, armLength } = appearance;
+  // Long sleeves cover the forearm; otherwise it is bare from the elbow.
+  const forearm = longSleeves ? kit.shirt : appearance.skin;
   const upper = 0.2 * armLength;
   const lower = 0.17 * armLength;
   return (
@@ -165,7 +167,7 @@ function Arm({ rig, appearance, side }: Player3DProps & { side: Side }) {
         position={[0, -upper * 0.75, 0]}
         scale={[1, armLength, 1]}
       />
-      {!keeper && (
+      {!longSleeves && (
         <mesh
           geometry={G.cuff}
           material={mat(kit.trim)}
@@ -186,10 +188,10 @@ function Arm({ rig, appearance, side }: Player3DProps & { side: Side }) {
           position={[0, -lower * 0.75, 0]}
           scale={[1, armLength, 1]}
         />
-        {keeper ? (
+        {gloves ? (
           <mesh
             geometry={G.glove}
-            material={mat(appearance.gloves ?? '#f4f4f4')}
+            material={mat(gloves)}
             position={[0, -lower * 1.7, 0.01]}
             ref={(node) => register(rig.parts.medium, node)}
           />
@@ -241,7 +243,7 @@ function Leg({ rig, appearance, side }: Player3DProps & { side: Side }) {
         />
         <mesh
           geometry={G.sockTop}
-          material={mat(kit.trim)}
+          material={mat(kit.sockTrim)}
           position={[0, -0.07, 0]}
           ref={(node) => register(rig.parts.fine, node)}
         />
@@ -267,12 +269,12 @@ function Leg({ rig, appearance, side }: Player3DProps & { side: Side }) {
 
 function Hair({ rig, appearance }: Player3DProps) {
   const style: HairStyle = appearance.hairStyle;
-  if (style === 'bald') return null;
+  // No curly cap on this primitive body — curly hair reads as a short crop here.
   const geometry = style === 'long' ? G.hairLong : style === 'buzz' ? G.hairBuzz : G.hairShort;
   return (
     <mesh
       geometry={geometry}
-      material={mat(appearance.hair)}
+      material={mat(appearance.hairColor)}
       position={[0, style === 'long' ? 0.108 : 0.118, -0.012]}
       scale={[0.96, style === 'buzz' ? 1.0 : 0.98, 1.02]}
       ref={(node) => register(rig.parts.medium, node)}

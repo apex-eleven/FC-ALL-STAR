@@ -1,6 +1,7 @@
 import { Group } from 'three';
-import type { PlayerAppearance } from '../PlayerAppearance';
 import type { DetailLevel } from '../PlayerLOD';
+import { LookMaterials } from './KitMaterial';
+import type { PlayerLook } from './playerAppearance';
 import { FootballAnimationStateMachine, type AnimationCommand } from './FootballAnimationStateMachine';
 import { FootballPlayer3D } from './FootballPlayer3D';
 import {
@@ -15,7 +16,7 @@ import {
  * array position.
  *
  * Each player has one runtime for as long as they are on the pitch: their animation
- * state machine, their look, their heading and gaze, and — once the realistic model
+ * state machine, their `PlayerLook` (resolved once, by id), their heading and gaze, and — once the realistic model
  * has loaded — their `FootballPlayer3D`. Until then, or whenever the model is missing,
  * invalid or fails, `fallback` is true and the stage draws the procedural `Player3D`
  * for them instead; identity, animation state and heading carry across unchanged,
@@ -29,7 +30,8 @@ export interface FootballPlayerRuntime {
   readonly id: string;
   /** This player's animation state machine. A substitute gets a new one. */
   readonly machine: FootballAnimationStateMachine;
-  appearance: PlayerAppearance;
+  /** Resolved once for this id; a substitute is a new id with its own. */
+  readonly look: PlayerLook;
   isActive: boolean;
   /** Drawn by the procedural Player3D (no model, or the model cannot be used). */
   fallback: boolean;
@@ -49,6 +51,8 @@ export class PlayerPool {
 
   private readonly runtimes = new Map<string, FootballPlayerRuntime>();
   private asset: LoadedPlayerAsset | null = null;
+  /** The loaded model's shared look materials (kit textures, tinted hair and gloves). */
+  private materials: LookMaterials | null = null;
   private assetStatus: PlayerAssetStatus = 'idle';
   /** The model has been asked for (once per pool). */
   private requested = false;
@@ -94,6 +98,7 @@ export class PlayerPool {
       this.assetStatus = result.status;
       if (result.status !== 'ready' || !result.asset || this.degraded) return;
       this.asset = result.asset;
+      this.materials = new LookMaterials(result.asset.kit);
       if (!this.live) return;
       // Everyone already on the pitch changes body now, keeping id, state and heading.
       for (const runtime of this.runtimes.values()) {
@@ -111,7 +116,7 @@ export class PlayerPool {
    * The runtime for a player id, made the first time the id is seen. Allocates only
    * then — every later frame is a map lookup.
    */
-  acquire(id: string, appearance: PlayerAppearance, heading: number): FootballPlayerRuntime {
+  acquire(id: string, look: PlayerLook, heading: number): FootballPlayerRuntime {
     const found = this.runtimes.get(id);
     if (found) return found;
     const machine = new FootballAnimationStateMachine();
@@ -119,7 +124,7 @@ export class PlayerPool {
     const runtime: FootballPlayerRuntime = {
       id,
       machine,
-      appearance,
+      look,
       isActive: true,
       fallback: true,
       body: null,
@@ -170,8 +175,9 @@ export class PlayerPool {
 
   private attachBody(runtime: FootballPlayerRuntime): void {
     if (!this.asset || this.degraded || runtime.body) return;
+    if (!this.materials) this.materials = new LookMaterials(this.asset.kit);
     try {
-      const body = new FootballPlayer3D(runtime.id, this.asset, runtime.appearance);
+      const body = new FootballPlayer3D(runtime.id, this.asset, runtime.look, this.materials);
       runtime.body = body;
       this.group.add(body.root);
     } catch (error) {
@@ -194,6 +200,8 @@ export class PlayerPool {
       runtime.fallback = true;
       runtime.machine.setStrideModel(null);
     }
+    this.materials?.dispose();
+    this.materials = null;
     this.asset = null;
   }
 
@@ -209,5 +217,8 @@ export class PlayerPool {
       runtime.body = null;
     }
     this.runtimes.clear();
+    // Shared tinted materials go with the players; a later start makes them again.
+    this.materials?.dispose();
+    this.materials = this.asset ? new LookMaterials(this.asset.kit) : null;
   }
 }

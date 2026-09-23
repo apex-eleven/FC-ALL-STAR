@@ -4,11 +4,13 @@ import {
   LoopOnce,
   LoopRepeat,
   type AnimationAction,
+  type Material,
   type Mesh,
   type Object3D,
 } from 'three';
-import type { PlayerAppearance } from '../PlayerAppearance';
 import { LOD_FAR, type DetailLevel } from '../PlayerLOD';
+import type { KitMaterial, LookMaterials } from './KitMaterial';
+import type { HairStyle, PlayerLook } from './playerAppearance';
 import type {
   AnimationClipId,
   AnimationCommand,
@@ -35,6 +37,12 @@ import type { LoadedPlayerAsset } from './playerAssets';
  * `time` and weights change, then `mixer.update(0)` poses the bones. Nothing is
  * allocated per frame.
  *
+ * The look — kit, skin, hair, boots, gloves, sleeves, number, stature — is the
+ * player's `PlayerLook`, applied once here: the body gets its own `KitMaterial` when
+ * the model ships kit masks (one shared shader program for everyone), the matching
+ * `Hair_*` variant is shown and tinted, `Gloves` only on a keeper. Where the model has
+ * no masks or variants, its own materials and meshes are left as they are.
+ *
  * One mixer per player, deliberately: three can drive many roots from one mixer
  * (`clipAction(clip, root)`), but a mixer per body keeps each player's bindings
  * self-contained — `uncacheRoot` releases exactly one player, and one bad body cannot
@@ -52,6 +60,15 @@ const KEEPER_ONLY: ReadonlySet<AnimationClipId> = new Set<AnimationClipId>([
 const STANDING: ReadonlySet<LocomotionState> = new Set<LocomotionState>(['IDLE', 'GK_READY']);
 
 const LOD_SUFFIX = /_LOD([0-2])$/i;
+const HAIR_MESH = /^Hair_(Short|Buzz|Long|Curly)/i;
+const GLOVE_MESH = /^Gloves?(\b|_)/i;
+/** When the model lacks a style, the nearest it has. */
+const HAIR_FALLBACK: Record<HairStyle, readonly HairStyle[]> = {
+  short: ['short', 'buzz', 'curly', 'long'],
+  buzz: ['buzz', 'short', 'curly', 'long'],
+  long: ['long', 'curly', 'short', 'buzz'],
+  curly: ['curly', 'short', 'long', 'buzz'],
+};
 
 /**
  * Where in its standing loop a player starts, 0..1, from their id — so twenty-two
@@ -73,7 +90,12 @@ export class FootballPlayer3D {
   /** This player's clone of the model — the mixer's root. */
   readonly model: Object3D;
   readonly mixer: AnimationMixer;
-  appearance: PlayerAppearance;
+  /** The look this body wears, for its whole life on the pitch. */
+  readonly look: PlayerLook;
+  /** The hair style actually shown (the look's, or the nearest the model has). */
+  readonly hairShown: HairStyle | null;
+  /** Whether the kit is drawn by a KitMaterial (the model shipped masks). */
+  readonly kitApplied: boolean;
 
   /** State → action. States sharing a clip (a substitute) share its action. */
   private readonly actions = new Map<AnimationClipId, AnimationAction>();
@@ -81,6 +103,9 @@ export class FootballPlayer3D {
   /** Meshes per level, when the model carries _LOD0/_LOD1/_LOD2 variants. */
   private readonly lodMeshes: [Mesh[], Mesh[], Mesh[]] = [[], [], []];
   private lod: DetailLevel | -1 = -1;
+  /** Meshes the look hides (other hair styles, gloves on an outfield player). */
+  private readonly hiddenByLook = new Set<Mesh>();
+  private readonly ownMaterials: KitMaterial[] = [];
 
   /** The actions given weight last frame, cleared before the next is written. */
   private weighted0: AnimationAction | null = null;
@@ -91,17 +116,20 @@ export class FootballPlayer3D {
   private standingTime = 0;
   private readonly standingPhase: number;
 
-  constructor(id: string, asset: LoadedPlayerAsset, appearance: PlayerAppearance) {
+  constructor(id: string, asset: LoadedPlayerAsset, look: PlayerLook, materials: LookMaterials) {
     this.id = id;
-    this.appearance = appearance;
+    this.look = look;
     this.standingPhase = standingOffset(id);
     this.model = asset.clone();
     this.root = new Group();
     this.root.name = `player:${id}`;
     this.root.add(this.model);
-    // Build variation the procedural body already has; the kit itself is STEP 5.
-    this.root.scale.setScalar(appearance.stature);
+    // Stature, once: 1.00 = the model's 1.80 m.
+    this.root.scale.setScalar(look.stature);
 
+    const hair = new Map<HairStyle, Mesh[]>();
+    const gloves: Mesh[] = [];
+    const body: Mesh[] = [];
     this.model.traverse((node) => {
       const mesh = node as Mesh;
       if (!mesh.isMesh) return;
@@ -109,7 +137,42 @@ export class FootballPlayer3D {
       this.meshes.push(mesh);
       const lod = LOD_SUFFIX.exec(mesh.name);
       if (lod) this.lodMeshes[Number(lod[1]) as 0 | 1 | 2].push(mesh);
+      const hairMatch = HAIR_MESH.exec(mesh.name);
+      if (hairMatch) {
+        const style = hairMatch[1]!.toLowerCase() as HairStyle;
+        hair.set(style, [...(hair.get(style) ?? []), mesh]);
+      } else if (GLOVE_MESH.test(mesh.name)) {
+        gloves.push(mesh);
+      } else {
+        body.push(mesh);
+      }
     });
+
+    // Hair: the look's style (or the nearest the model has), tinted to the look's colour.
+    const shown = hair.size > 0 ? (HAIR_FALLBACK[look.hairStyle].find((style) => hair.has(style)) ?? null) : null;
+    this.hairShown = shown;
+    for (const [style, meshes] of hair) {
+      for (const mesh of meshes) {
+        if (style === shown) mesh.material = this.tinted(materials, mesh.material, look.hairColor);
+        else this.hideByLook(mesh);
+      }
+    }
+    // Gloves: a keeper's, in the look's colour; nobody else wears them.
+    for (const mesh of gloves) {
+      if (look.gloves) mesh.material = this.tinted(materials, mesh.material, look.gloves);
+      else this.hideByLook(mesh);
+    }
+    // The body: its own kit material over the model's maps — only if the model ships masks.
+    let applied = false;
+    for (const mesh of body) {
+      if (Array.isArray(mesh.material)) continue;
+      const kit = materials.body(mesh.material, look);
+      if (!kit) break;
+      mesh.material = kit;
+      this.ownMaterials.push(kit);
+      applied = true;
+    }
+    this.kitApplied = applied;
 
     this.mixer = new AnimationMixer(this.model);
     for (const [id, clip] of asset.resolved.clips) {
@@ -124,6 +187,15 @@ export class FootballPlayer3D {
       }
       this.actions.set(id, action);
     }
+  }
+
+  private tinted(materials: LookMaterials, material: Material | Material[], color: string): Material | Material[] {
+    return Array.isArray(material) ? material : materials.tint(material, color);
+  }
+
+  private hideByLook(mesh: Mesh): void {
+    mesh.visible = false;
+    this.hiddenByLook.add(mesh);
   }
 
   /** Whether the model has a clip (its own or a substitute's) for a state. */
@@ -229,18 +301,22 @@ export class FootballPlayer3D {
     while (chosen > 0 && sets[chosen]!.length === 0) chosen -= 1;
     while (chosen < 2 && sets[chosen]!.length === 0) chosen += 1;
     for (let index = 0; index < 3; index += 1) {
-      for (const mesh of sets[index]!) mesh.visible = index === chosen;
+      for (const mesh of sets[index]!) mesh.visible = index === chosen && !this.hiddenByLook.has(mesh);
     }
   }
 
   /**
-   * Releases this player only. Geometry and materials belong to the shared master
-   * and stay for the other players.
+   * Releases this player only. Geometry, textures and shared materials belong to the
+   * master and stay for the other players.
    */
   dispose(): void {
     this.mixer.stopAllAction();
     this.mixer.uncacheRoot(this.model);
     this.root.removeFromParent();
+    // This player's own kit material; the tinted hair/glove materials are shared.
+    for (const material of this.ownMaterials) material.dispose();
+    this.ownMaterials.length = 0;
+    this.hiddenByLook.clear();
     this.actions.clear();
     this.meshes.length = 0;
     this.weighted0 = this.weighted1 = this.weighted2 = null;
