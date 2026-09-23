@@ -50,6 +50,7 @@ export function engineToWorldPosition(
  *
  * The curve starts and ends at `rest`, so the ball never jumps when a flight begins
  * or the ball is collected. A driven shot is flatter than a ball played up the pitch.
+ * A pass rises to `loft` (from `passLoft`) — zero for one played along the ground.
  */
 export function flightHeight(
   kind: 'pass' | 'shot',
@@ -57,17 +58,66 @@ export function flightHeight(
   progress: number,
   rest: number,
   endHeight: number,
+  loft = 0,
 ): number {
   const along = Math.max(0, Math.min(1, progress));
   const rise = Math.max(0, endHeight - rest);
-  // A pass comes back down to the deck, so it is a plain arc. A shot is aimed at a
-  // height, and how much it bows depends on how high that is: a drive along the
-  // ground barely leaves it, a ball into the top corner climbs.
-  const bow =
-    kind === 'shot'
-      ? Math.min(1, distance * 0.02) * (0.25 + rise * 0.4)
-      : Math.min(2.6, Math.max(0.15, distance * 0.09));
+  // A pass comes back down to the deck, so it is a plain arc (or none at all). A shot
+  // is aimed at a height, and how much it bows depends on how high that is: a drive
+  // along the ground barely leaves it, a ball into the top corner climbs.
+  const bow = kind === 'shot' ? Math.min(1, distance * 0.02) * (0.25 + rise * 0.4) : Math.max(0, loft);
   return rest + (endHeight - rest) * along + Math.sin(along * Math.PI) * bow;
+}
+
+/** Engine metres: the penalty area's depth, and how wide of the posts it reaches. */
+const BOX_DEPTH = 16.5;
+const BOX_HALF_WIDTH = 20.16;
+/** A pass struck from this close to a touchline is played from a wide position. */
+const WIDE_BAND = 14;
+/**
+ * Pass lengths, engine metres. Shorter than GROUND_ONLY is always played along the
+ * ground; from there to LOFT_FROM the chance of lifting it grows to LOFT_MID_CHANCE;
+ * a long ball beyond that is lifted LOFT_LONG_CHANCE of the time.
+ */
+const GROUND_ONLY = 20;
+const LOFT_FROM = 32;
+const LOFT_MID_CHANCE = 0.45;
+const LOFT_LONG_CHANCE = 0.8;
+/** A cross into the box from out wide is lifted once it is at least this long. */
+const CROSS_MIN = 12;
+
+/**
+ * How high a pass is played, in metres at the top of its arc — 0 for a pass along the
+ * ground.
+ *
+ * DERIVED, NOT SIMULATED, like `shotEndHeight`: the engine's pass has a start, a
+ * target and a speed, and no height. Most passes are played on the deck — every short
+ * one, and most up to thirty-odd metres. A long ball is usually lifted, and so is a
+ * cross from out wide into the box. The choice is seeded from the pass's own numbers,
+ * so the same pass is always drawn the same way; nothing reads it back.
+ */
+export function passLoft(fromX: number, fromY: number, toX: number, toY: number): number {
+  const distance = Math.hypot(toX - fromX, toY - fromY);
+  const wide = fromY < WIDE_BAND || fromY > PITCH_WIDTH - WIDE_BAND;
+  const intoBox =
+    (toX < BOX_DEPTH || toX > PITCH_LENGTH - BOX_DEPTH) && Math.abs(toY - PITCH_HALF_WIDTH) < BOX_HALF_WIDTH;
+  let chance: number;
+  if (wide && intoBox && distance >= CROSS_MIN) chance = 1;
+  else if (distance < GROUND_ONLY) chance = 0;
+  else if (distance < LOFT_FROM) chance = ((distance - GROUND_ONLY) / (LOFT_FROM - GROUND_ONLY)) * LOFT_MID_CHANCE;
+  else chance = LOFT_LONG_CHANCE;
+  if (chance <= 0) return 0;
+
+  let seed = 0x9e3779b9;
+  for (const value of [fromX, fromY, toX, toY]) {
+    seed ^= Math.round(value * 1000) >>> 0;
+    seed = Math.imul(seed, 0x01000193) >>> 0;
+  }
+  const roll = (seed >>> 8) / 0x1000000;
+  if (roll >= chance) return 0;
+  // The longer the ball, the higher it climbs; a second roll varies it a little.
+  const vary = 0.85 + ((Math.imul(seed, 0x2c1b3c6d) >>> 8) / 0x1000000) * 0.3;
+  return Math.min(6, Math.max(1.6, distance * 0.1)) * vary;
 }
 
 /** Crossbar height. A shot on target finishes below this, one off it may not. */

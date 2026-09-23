@@ -1,4 +1,4 @@
-import type { MatchEngine } from '@/features/manager/matchEngine';
+import type { BallFlight, MatchEngine } from '@/features/manager/matchEngine';
 import type {
   MatchSide,
   MatchSimEvent,
@@ -7,7 +7,7 @@ import type {
   PlayerDecision,
 } from '@/match-engine';
 import { engineToWorldX, engineToWorldZ } from '../Match3DAdapter';
-import { CELEBRATION_VARIANTS } from './FootballAnimationStateMachine';
+import { ACTION_METADATA, CELEBRATION_VARIANTS, type AnimationAction } from './FootballAnimationStateMachine';
 import { easeFactor, lerp, lerpAngle, shortestAngle } from './visualMath';
 
 /**
@@ -86,8 +86,76 @@ const STANDING_SETTLED = 0.03;
 
 /** A shot this close to the keeper, across the goal, is gathered rather than dived at. Metres. */
 const CATCH_REACH = 1.5;
-/** A keeper goes as the shot is on its way, not when it has arrived. Simulation seconds. */
+/** How far from the keeper's body their hands meet a shot, metres (a stretched arm, not a full dive). */
+const KEEPER_HANDS_M = 1.6;
+/** The engine settles a shot on target once it is this close to the keeper (SAVE_REACH in match-engine/goalkeeper.ts, mirrored). */
+const KEEPER_SAVE_REACH_M = 3.2;
+/** With no flight to time it from, a keeper goes this long after the shot. Simulation seconds. */
 const SAVE_DELAY_MAX = 0.28;
+
+/**
+ * How long after an action starts the foot (or the hands) meets the ball: the state
+ * machine's own length and contact point for it, so body and ball share one clock.
+ */
+function contactLead(id: AnimationAction): number {
+  const clip = ACTION_METADATA[id].clip;
+  return clip.duration * (clip.ballContactTime ?? 0.5);
+}
+const LEAD = {
+  pass: contactLead('PASS'),
+  shoot: contactLead('SHOOT'),
+  receive: contactLead('RECEIVE'),
+  intercept: contactLead('INTERCEPTION'),
+  tackle: contactLead('TACKLE'),
+  dive: contactLead('GK_DIVE_LEFT'),
+  catch: contactLead('GK_CATCH'),
+} as const;
+/**
+ * The drawn ball waits at the kicker's foot for the strike, but for no more than this
+ * share of its flight — it then travels at most 2.5× its engine speed to arrive on time.
+ */
+const MAX_HOLD_SHARE = 0.6;
+/**
+ * The engine slows a loose ball exponentially: it keeps this share of its speed per
+ * simulated second (FRICTION_PER_SECOND in match-engine/ball.ts — mirrored, not
+ * imported, because the engine does not export it). A pass therefore takes longer
+ * than distance ÷ launch speed, and the longer the pass the more so.
+ */
+const BALL_KEEPS_PER_SECOND = 0.32;
+const LN_KEEPS = Math.log(BALL_KEEPS_PER_SECOND);
+
+/**
+ * Simulated seconds for a ball struck at `launchSpeed` to cover `distance` under that
+ * friction. A ball that would stop short is given the time to where it stops.
+ */
+function travelTime(distance: number, launchSpeed: number): number {
+  if (launchSpeed <= 1e-3) return 0;
+  const left = 1 + (distance * LN_KEEPS) / launchSpeed;
+  return Math.log(Math.max(left, 0.05)) / LN_KEEPS;
+}
+/**
+ * The engine hands a pass to its receiver once the ball is this close (RECEIVE_RADIUS in
+ * match-engine/MatchEngine.ts, mirrored), and the ball then reaches their foot within
+ * about one engine step (it follows the foot at 14 m/s). So a pass reaches the foot
+ * this much short of its target, a step later — measured: 0.035 s after the handover.
+ */
+const RECEIVE_RADIUS_M = 1.9;
+const HANDOVER_TO_FOOT = 0.035;
+/** A receive started at the pass and the engine's own receive event this close together are one touch. */
+const RECEIVE_MEMORY = 0.6;
+/**
+ * The receiver's touch and the keeper's hands are not settled when the ball is struck:
+ * the receiver runs to meet a pass, and a pass can die short of its target. So every
+ * frame the ball's path is run forward (LOOKAHEAD simulated seconds, LOOKAHEAD_STEP at a
+ * time) against where they are going, and the action is sent once its start is within
+ * COMMIT_AHEAD of the drawn clock — by then the meeting is a fraction of a second away
+ * and the forecast is close to exact.
+ */
+const LOOKAHEAD = 3;
+const LOOKAHEAD_STEP = 0.02;
+const COMMIT_AHEAD = 0.1;
+/** Flights kept for drawing: the one in the air, and the one just before it. */
+const MAX_WARPS = 3;
 /** A `save` event this soon after a dive has started belongs to that dive. */
 const SAVE_MEMORY = 1.2;
 /** The scorer turns away a beat after the ball crosses. */
@@ -247,6 +315,52 @@ export interface BallVisualState {
   /** Who has it at the nearest sample. */
   ownerId: string | null;
   placed: boolean;
+  /** The flight being drawn, on the drawn timeline; null while the ball is at a foot or on the ground. */
+  flight: DrawnFlight | null;
+}
+
+/**
+ * A pass or shot as it is DRAWN: the engine's flight, re-timed so the ball leaves the
+ * foot when the kick reaches it and still arrives when the engine says it arrives.
+ */
+export interface DrawnFlight {
+  kind: 'pass' | 'shot';
+  /** Engine coordinates of where it was struck and where it is going. */
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  /** A shot the engine had on target when it was struck. */
+  onTarget: boolean;
+  /** How long it is in the air, and how far into that the drawn ball is. Simulation seconds. */
+  duration: number;
+  elapsed: number;
+}
+
+/**
+ * One struck ball on the drawn timeline. Until `kickT + hold` it stays at the foot
+ * (the strike is still coming); from there it runs through the engine's own flight
+ * fast enough to reach wherever the engine has it by `end`, and from then on is the
+ * engine's ball again. Nothing about where the ball goes changes — only when, within
+ * the flight, the drawing shows it.
+ */
+interface BallWarp {
+  kickT: number;
+  hold: number;
+  end: number;
+  holdX: number;
+  holdZ: number;
+  /** The engine's flight object, to see when it ends; null once it has. */
+  engineFlight: object | null;
+  drawn: DrawnFlight;
+  /** A pass: who it is played to, and whether their receive has been sent. */
+  receiverId: string | null;
+  receiveSent: boolean;
+  /** A shot on target: the keeper facing it, which way, and whether they have been sent. */
+  keeperId: string | null;
+  keeperDir: number;
+  keeperGathers: boolean;
+  keeperSent: boolean;
 }
 
 export type RemovalReason = 'substituted' | 'sent_off' | 'left';
@@ -308,6 +422,8 @@ class Runtime implements PlayerVisualRuntime {
   placedSeq = -1;
   placedShownSeq = -1;
   actionSeq = 0;
+  /** When a receive started at the pass expects the ball, so the engine's own event does not start a second. */
+  predictedReceive = -Infinity;
   /** The drawn heading is turning to the engine's facing (always, on the move). */
   headingFollows = true;
   /** Which way a slow player's turn is going (+1 / −1), fixed when it starts. */
@@ -373,9 +489,11 @@ export class PlayerVisualAdapter {
 
   private ballPlacedSeq = -1;
   private ballPlacedShownSeq = -1;
+  /** Struck balls still being drawn, oldest first. */
+  private readonly warps: BallWarp[] = [];
 
   /** Render-ready ball, rewritten in place. */
-  readonly ball: BallVisualState = { x: 0, z: 0, ownerId: null, placed: true };
+  readonly ball: BallVisualState = { x: 0, z: 0, ownerId: null, placed: true, flight: null };
   /** Ids that took the pitch this frame. Reused; read it before the next `update`. */
   readonly spawned: string[] = [];
   /** Ids that left the pitch this frame. Reused; read it before the next `update`. */
@@ -446,6 +564,8 @@ export class PlayerVisualAdapter {
 
     this.syncRoster();
     this.readEvents();
+    this.closeWarps();
+    this.anticipate();
 
     // A new sample whenever the engine's clock moved, or a placement happened while it
     // stood still (the half-time restart runs from a button, not from a step).
@@ -531,24 +651,44 @@ export class PlayerVisualAdapter {
         this.placementPending = true;
         return;
       case 'pass':
-        this.trigger(event.playerId, 'pass', now, 0, null, event.type);
+        this.handlePass(event);
         return;
-      case 'receive':
-        this.trigger(event.playerId, 'receive', now, 0, null, event.type);
+      case 'receive': {
+        const receiver = event.playerId ? this.byId.get(event.playerId) : undefined;
+        const at = this.eventTime();
+        // Whatever pass was still waiting on this touch has it now.
+        for (const warp of this.warps) if (warp.receiverId === event.playerId) warp.receiveSent = true;
+        // Already reaching for it: the receive was sent as the ball closed in.
+        if (receiver && Math.abs(receiver.predictedReceive - at) < RECEIVE_MEMORY) return;
+        this.trigger(event.playerId, 'receive', this.startFor(at, LEAD.receive), 0, null, event.type);
         return;
+      }
       case 'interception':
-        this.trigger(event.playerId, 'intercept', now, 0, null, event.type);
+        this.trigger(event.playerId, 'intercept', this.startFor(this.eventTime(), LEAD.intercept), 0, null, event.type);
         return;
       case 'tackle': {
         // playerId is the DEFENDER who went in; secondaryPlayerId is the carrier.
         const outcome = event.detail?.outcome;
-        this.trigger(event.playerId, 'tackle', now, 0, outcome === undefined ? null : String(outcome), event.type);
+        this.trigger(
+          event.playerId,
+          'tackle',
+          this.startFor(this.eventTime(), LEAD.tackle),
+          0,
+          outcome === undefined ? null : String(outcome),
+          event.type,
+        );
         return;
       }
       case 'shot':
         this.handleShot(event, now);
         return;
       case 'save': {
+        // The shot saved before its dive was sent: the dive goes now, the way it was aimed.
+        const pending = this.warps.find((warp) => warp.keeperId === event.playerId && !warp.keeperSent);
+        if (pending) {
+          this.sendKeeper(pending, this.eventTime());
+          return;
+        }
         const keeper = event.playerId ? this.byId.get(event.playerId) : undefined;
         const current = keeper?.visual.action;
         // Already diving for this one: the save is the end of that dive, not a new one.
@@ -559,7 +699,7 @@ export class PlayerVisualAdapter {
         ) {
           return;
         }
-        this.trigger(event.playerId, 'catch', now, 0, null, event.type);
+        this.trigger(event.playerId, 'catch', this.startFor(this.eventTime(), LEAD.catch), 0, null, event.type);
         return;
       }
       case 'goal':
@@ -584,13 +724,71 @@ export class PlayerVisualAdapter {
   }
 
   /**
+   * The engine's clock when an event happened. Events carry no time of their own, and
+   * several engine steps can run in one frame (x4), so this is the middle of the steps
+   * this frame ran — within half a frame either way.
+   */
+  private eventTime(): number {
+    return (this.newestTime + this.engine.t) / 2;
+  }
+
+  /**
+   * When an action should start so its contact lands at `contact` on the drawn
+   * timeline: `lead` before it — but never in the drawn past, where it would begin
+   * part-way through.
+   */
+  private startFor(contact: number, lead: number): number {
+    return Math.max(this.renderT, contact - lead);
+  }
+
+  /**
+   * A pass or a shot is struck. The engine's flight says exactly when (its own elapsed
+   * time), so the kick is started early enough for the foot to reach the ball at that
+   * moment. What the drawing is already too late to show — it runs only a fraction of
+   * a second behind the engine — the ball makes up: it waits at the foot until the
+   * strike reaches it, then travels a little faster, and arrives when the engine says.
+   */
+  private strike(
+    event: MatchSimEvent,
+    kind: 'pass' | 'shoot',
+  ): { flight: BallFlight; kickT: number; launch: number; warp: BallWarp } | null {
+    const live = this.engine.ball.flight;
+    const own =
+      live && live.shooterId === event.playerId && live.kind === (kind === 'pass' ? 'pass' : 'shot') ? live : null;
+    const lead = kind === 'pass' ? LEAD.pass : LEAD.shoot;
+    const kickT = own ? this.engine.t - own.elapsed : this.eventTime();
+    const at = this.startFor(kickT, lead);
+    this.trigger(event.playerId, kind, at, 0, null, event.type);
+    if (!own) return null;
+    // The speed it left the foot at: the engine's speed now, wound back through the friction.
+    const velocity = this.engine.core.ball.velocity;
+    const launch = Math.hypot(velocity.x, velocity.y) / Math.pow(BALL_KEEPS_PER_SECOND, own.elapsed);
+    // A pass ends when it is handed to the receiver, short of its target; a shot at the line.
+    const reach = Math.max(0, Math.hypot(own.toX - own.fromX, own.toY - own.fromY) - (own.kind === 'pass' ? RECEIVE_RADIUS_M : 0));
+    const duration = launch > 0 ? travelTime(reach, launch) : own.duration;
+    const warp = this.beginWarp(own, kickT, at + lead - kickT, duration);
+    return { flight: own, kickT, launch, warp };
+  }
+
+  /**
+   * A pass: struck now. The player it is played to is watched from here on
+   * (`anticipate`), and starts to receive it so their foot meets the ball as it
+   * arrives — not when the engine's receive event lands with the ball already there.
+   */
+  private handlePass(event: MatchSimEvent): void {
+    const struck = this.strike(event, 'pass');
+    if (!struck || !struck.flight.receiverId) return;
+    struck.warp.receiverId = struck.flight.receiverId;
+  }
+
+  /**
    * The shooter strikes it. A shot the engine has put ON TARGET will be resolved
-   * against the defending keeper, so that keeper is sent now — as the ball travels,
-   * which way the flight is aimed — rather than when the save event lands with the
-   * ball already there. Off target, the keeper watches it go.
+   * against the defending keeper, so that keeper is marked to go as the ball closes in
+   * (`anticipate`), timed so the hands reach the line of the ball as the ball reaches
+   * the keeper. Off target, the keeper watches it go.
    */
   private handleShot(event: MatchSimEvent, now: number): void {
-    this.trigger(event.playerId, 'shoot', now, 0, null, event.type);
+    const struck = this.strike(event, 'shoot');
     if (!event.detail?.onTarget) return;
 
     const shooter = event.playerId ? this.byId.get(event.playerId) : undefined;
@@ -599,19 +797,188 @@ export class PlayerVisualAdapter {
     const keeper = this.keeperOf(side === 'home' ? 'away' : 'home');
     if (!keeper) return;
 
-    const flight = this.engine.ball.flight;
-    const aimed =
-      flight && flight.kind === 'shot' && flight.shooterId === event.playerId ? flight : null;
-    const dir = aimed ? aimed.toY - keeper.agent.position2d.y : 0;
-    const delay = aimed ? Math.min(SAVE_DELAY_MAX, aimed.duration * 0.4) : SAVE_DELAY_MAX * 0.5;
-    this.trigger(
-      keeper.id,
-      Math.abs(dir) < CATCH_REACH ? 'catch' : 'save',
-      now + delay,
-      dir,
-      null,
-      event.type,
-    );
+    if (!struck) {
+      // No flight to follow: the keeper goes half-way into the usual reaction window.
+      this.trigger(keeper.id, 'catch', now + SAVE_DELAY_MAX * 0.5, 0, null, event.type);
+      return;
+    }
+    const dir = struck.flight.toY - keeper.agent.position2d.y;
+    struck.warp.keeperId = keeper.id;
+    struck.warp.keeperDir = dir;
+    struck.warp.keeperGathers = Math.abs(dir) < CATCH_REACH;
+  }
+
+  /* ── The drawn ball ──────────────────────────────────────────────────────── */
+
+  private beginWarp(flight: BallFlight, kickT: number, wait: number, duration: number): BallWarp {
+    const hold = Math.min(Math.max(0, wait), duration * MAX_HOLD_SHARE);
+    if (this.warps.length >= MAX_WARPS) this.warps.shift();
+    const warp: BallWarp = {
+      kickT,
+      hold,
+      end: kickT + duration,
+      holdX: engineToWorldX(flight.fromY),
+      holdZ: engineToWorldZ(flight.fromX),
+      engineFlight: flight,
+      drawn: {
+        kind: flight.kind,
+        fromX: flight.fromX,
+        fromY: flight.fromY,
+        toX: flight.toX,
+        toY: flight.toY,
+        onTarget: flight.kind === 'shot' && flight.outcome !== 'miss',
+        duration,
+        elapsed: 0,
+      },
+      receiverId: null,
+      receiveSent: false,
+      keeperId: null,
+      keeperDir: 0,
+      keeperGathers: false,
+      keeperSent: false,
+    };
+    this.warps.push(warp);
+    return warp;
+  }
+
+  /**
+   * A flight the engine has finished — collected, cut out, saved, over the line —
+   * ends there on the drawn timeline too, however long it was expected to take. A
+   * keeper still waiting on it goes now (a goal gives no save event to send them).
+   */
+  private closeWarps(): void {
+    const live = this.engine.ball.flight;
+    for (const warp of this.warps) {
+      if (warp.engineFlight === null || warp.engineFlight === live) continue;
+      warp.engineFlight = null;
+      const ended = Math.max(warp.kickT, this.eventTime());
+      if (ended < warp.end) {
+        warp.end = ended;
+        warp.hold = Math.min(warp.hold, (ended - warp.kickT) * MAX_HOLD_SHARE);
+      }
+      warp.drawn.duration = Math.max(1e-3, ended - warp.kickT);
+      if (warp.keeperId && !warp.keeperSent) this.sendKeeper(warp, ended);
+      // An interception or a loose ball: the receive the pass was waiting on never comes.
+      warp.receiveSent = true;
+    }
+  }
+
+  /**
+   * Each frame, while the engine's flight is in the air: when it will reach the player
+   * it is played to (or the keeper facing it), from where the ball and that player are
+   * now and where they are heading. The flight's drawn length follows the forecast, and
+   * the action is sent once it is due to start within COMMIT_AHEAD.
+   */
+  private anticipate(): void {
+    const live = this.engine.ball.flight;
+    if (!live) return;
+    let warp: BallWarp | null = null;
+    for (const candidate of this.warps) if (candidate.engineFlight === live) warp = candidate;
+    if (!warp) return;
+    const due = Math.max(COMMIT_AHEAD, 2 * this.delta);
+    const t = this.engine.t;
+    // A shot's drawn length: to the line, from where it is now.
+    if (live.kind === 'shot') {
+      warp.drawn.duration = Math.max(warp.drawn.elapsed, t + this.passTime(live, live.toX, live.toY) - warp.kickT);
+    }
+
+    if (warp.receiverId && !warp.receiveSent) {
+      const receiver = this.byId.get(warp.receiverId);
+      const meet = receiver ? this.meetTime(receiver.agent, RECEIVE_RADIUS_M) : null;
+      if (!receiver) warp.receiveSent = true;
+      else if (meet !== null) {
+        warp.drawn.duration = Math.max(warp.drawn.elapsed, t + meet - warp.kickT);
+        // The engine ends the flight at the handover, and the drawing catches up to it
+        // there (closeWarps), so the drawn and engine arrivals agree.
+        const arrives = t + meet + HANDOVER_TO_FOOT;
+        const start = arrives - LEAD.receive;
+        if (start - this.renderT <= due) {
+          warp.receiveSent = true;
+          receiver.predictedReceive = arrives;
+          this.trigger(receiver.id, 'receive', Math.max(this.renderT, start), 0, null, 'pass');
+        }
+      }
+    }
+
+    if (warp.keeperId && !warp.keeperSent) {
+      const keeper = this.byId.get(warp.keeperId);
+      if (!keeper) {
+        warp.keeperSent = true;
+        return;
+      }
+      // Into the keeper's reach if it comes that close, else past them.
+      const reaches =
+        t + (this.meetTime(keeper.agent, KEEPER_HANDS_M) ?? this.passTime(live, keeper.agent.position2d.x, keeper.agent.position2d.y));
+      const lead = warp.keeperGathers ? LEAD.catch : LEAD.dive;
+      // A save ends the flight when the ball comes within the keeper's save reach, and
+      // the drawing catches up there; a goal does not, and the drawn ball is still
+      // running behind. Timed for the save — most shots on target are saved.
+      const saveAt = this.meetTime(keeper.agent, KEEPER_SAVE_REACH_M);
+      const contact = this.drawnTime(warp, reaches, saveAt === null ? warp.end : Math.min(warp.end, t + saveAt));
+      if (contact - lead - this.renderT <= due) this.sendKeeper(warp, contact);
+    }
+  }
+
+  /**
+   * When the drawing shows the ball where the engine has it at `t`. While the strike
+   * is being waited for and made up, the drawn ball runs behind the engine's; from
+   * `end` (the flight's drawn catch-up point) on they agree.
+   */
+  private drawnTime(warp: BallWarp, t: number, end: number): number {
+    const span = end - warp.kickT;
+    if (t >= end || span <= 1e-6) return t;
+    const hold = Math.min(warp.hold, span * MAX_HOLD_SHARE);
+    return warp.kickT + hold + ((t - warp.kickT) * (span - hold)) / span;
+  }
+
+  /** The keeper facing `warp`'s shot goes, hands meeting the ball at `contact`. */
+  private sendKeeper(warp: BallWarp, contact: number): void {
+    warp.keeperSent = true;
+    if (!warp.keeperId) return;
+    const lead = warp.keeperGathers ? LEAD.catch : LEAD.dive;
+    this.trigger(warp.keeperId, warp.keeperGathers ? 'catch' : 'save', this.startFor(contact, lead), warp.keeperDir, null, 'shot');
+  }
+
+  /**
+   * Simulated seconds until the loose ball comes within `radius` of `agent`, the ball
+   * slowing under the engine's friction and the player carrying on as they are moving.
+   * Null if that does not happen within LOOKAHEAD.
+   */
+  private meetTime(agent: PlayerAgent, radius: number): number | null {
+    const ball = this.engine.core.ball;
+    let bx = ball.position.x;
+    let by = ball.position.y;
+    let vx = ball.velocity.x;
+    let vy = ball.velocity.y;
+    let px = agent.position2d.x;
+    let py = agent.position2d.y;
+    const keep = Math.pow(BALL_KEEPS_PER_SECOND, LOOKAHEAD_STEP);
+    for (let s = 0; s <= LOOKAHEAD; s += LOOKAHEAD_STEP) {
+      if (Math.hypot(bx - px, by - py) <= radius) return s;
+      bx += vx * LOOKAHEAD_STEP;
+      by += vy * LOOKAHEAD_STEP;
+      vx *= keep;
+      vy *= keep;
+      px += agent.velocity.x * LOOKAHEAD_STEP;
+      py += agent.velocity.y * LOOKAHEAD_STEP;
+    }
+    return null;
+  }
+
+  /**
+   * Simulated seconds until a shot passes (x, y): until the ball, slowing under
+   * friction, reaches the point on its line that stands square to it.
+   */
+  private passTime(flight: BallFlight, x: number, y: number): number {
+    const ball = this.engine.core.ball;
+    const lineX = flight.toX - flight.fromX;
+    const lineY = flight.toY - flight.fromY;
+    const length = Math.max(1e-3, Math.hypot(lineX, lineY));
+    const target = Math.min(length, ((x - flight.fromX) * lineX + (y - flight.fromY) * lineY) / length);
+    const done = ((ball.position.x - flight.fromX) * lineX + (ball.position.y - flight.fromY) * lineY) / length;
+    const left = Math.max(0, target - done);
+    const speed = Math.hypot(ball.velocity.x, ball.velocity.y);
+    return travelTime(left, speed);
   }
 
   private keeperOf(side: MatchSide): Runtime | undefined {
@@ -912,5 +1279,63 @@ export class PlayerVisualAdapter {
     this.ball.ownerId = (alpha < 0.5 ? this.ballOwners[olderSlot] : this.ballOwners[newerSlot]) ?? null;
     this.ball.placed = this.ballPlacedSeq > this.ballPlacedShownSeq && newerSeq >= this.ballPlacedSeq;
     if (this.ball.placed) this.ballPlacedShownSeq = this.ballPlacedSeq;
+
+    // A struck ball in the air on the drawn timeline: shown where the re-timed flight has it.
+    this.ball.flight = null;
+    if (this.ball.placed) {
+      this.warps.length = 0;
+      return;
+    }
+    // Drawn to its end: the engine has finished with it and the drawing has caught up.
+    while (this.warps.length > 0) {
+      const first = this.warps[0]!;
+      if (first.engineFlight !== null || this.renderT < Math.max(first.end, first.kickT + first.drawn.duration)) break;
+      this.warps.shift();
+    }
+    let warp: BallWarp | null = null;
+    for (const candidate of this.warps) if (candidate.kickT <= this.renderT) warp = candidate;
+    if (!warp) return;
+    const since = this.renderT - warp.kickT;
+    let at = warp.kickT;
+    if (since < warp.hold) {
+      // The strike has not reached it yet: it is still at the foot.
+      this.ball.x = warp.holdX;
+      this.ball.z = warp.holdZ;
+    } else if (this.renderT >= warp.end) {
+      // Caught up, still in the air: the engine's ball as it is.
+      at = this.renderT;
+    } else {
+      const span = warp.end - warp.kickT;
+      at = warp.kickT + ((since - warp.hold) * span) / Math.max(1e-6, span - warp.hold);
+      this.ballAt(at);
+    }
+    warp.drawn.elapsed = at - warp.kickT;
+    this.ball.flight = warp.drawn;
+  }
+
+  /** The engine's ball at simulation time `t`, from the ring, into `this.ball`. */
+  private ballAt(t: number): void {
+    const oldestSeq = this.newestSeq - this.sampleCount + 1;
+    let olderSeq = oldestSeq;
+    let newerSeq = oldestSeq;
+    let alpha = 0;
+    if (t >= (this.times[this.slot(this.newestSeq)] ?? 0)) {
+      olderSeq = newerSeq = this.newestSeq;
+    } else {
+      for (let seq = this.newestSeq - 1; seq >= oldestSeq; seq -= 1) {
+        const time = this.times[this.slot(seq)] ?? 0;
+        if (time <= t) {
+          olderSeq = seq;
+          newerSeq = seq + 1;
+          const next = this.times[this.slot(newerSeq)] ?? time;
+          alpha = next > time ? (t - time) / (next - time) : 1;
+          break;
+        }
+      }
+    }
+    const older = this.slot(olderSeq) * BALL_FIELDS;
+    const newer = this.slot(newerSeq) * BALL_FIELDS;
+    this.ball.x = lerp(this.ballRing[older + B_X] ?? 0, this.ballRing[newer + B_X] ?? 0, alpha);
+    this.ball.z = lerp(this.ballRing[older + B_Z] ?? 0, this.ballRing[newer + B_Z] ?? 0, alpha);
   }
 }

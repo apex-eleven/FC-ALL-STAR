@@ -14,9 +14,10 @@ import {
   engineToWorldX,
   engineToWorldZ,
   flightHeight,
+  passLoft,
   shotEndHeight,
 } from './Match3DAdapter';
-import { PlayerVisualAdapter } from './players/PlayerVisualAdapter';
+import { PlayerVisualAdapter, type DrawnFlight } from './players/PlayerVisualAdapter';
 import { PlayerPool } from './players/PlayerPool';
 import { describeAnimation, type AnimationBody } from './players/animationDiagnostics';
 import { resolvePlayerLook, type PlayerLookSources } from './players/playerAppearance';
@@ -172,9 +173,10 @@ function MatchObjects({ engine, label, appearance, diagnostics }: SceneProps) {
   const sun = useRef<DirectionalLight>(null);
   const lastBall = useRef({ x: 0, z: 0 });
   const marker = useRef<Mesh>(null);
-  /** The flight being drawn, the height it is aimed at, and the settle after it. */
-  const flightSeen = useRef<object | null>(null);
+  /** The flight being drawn, the height it is aimed at (a pass: how high it is lifted), and the settle after it. */
+  const flightSeen = useRef<DrawnFlight | null>(null);
   const aimedAt = useRef(BALL_RADIUS);
+  const lofted = useRef(0);
   const settling = useRef(false);
   const settled = useRef(0);
   const look = useRef(new Vector3(0, LOOK_HEIGHT, 0));
@@ -333,25 +335,21 @@ function MatchObjects({ engine, label, appearance, diagnostics }: SceneProps) {
 
     // Height is the one thing about the ball the engine does not know, so it is the
     // one thing worked out here. Where it is and what happens to it stay the sim's.
-    // The flight is read live, so it is wound back by the adapter's lag to match the
-    // interpolated ball and players being drawn.
-    const flight = engine.ball.flight;
+    // The flight is the adapter's drawn one: on the same timeline as the ball and the
+    // players, held at the foot until the strike reaches it.
+    const flight = adapter.ball.flight;
     const ownerId = adapter.ball.ownerId;
     if (flight !== flightSeen.current) {
       if (flight) {
         aimedAt.current =
           flight.kind === 'shot'
-            ? shotEndHeight(
-                flight.fromX,
-                flight.fromY,
-                flight.toY,
-                flight.outcome !== 'miss',
-                BALL_RADIUS,
-              )
+            ? shotEndHeight(flight.fromX, flight.fromY, flight.toY, flight.onTarget, BALL_RADIUS)
             : BALL_RADIUS;
+        lofted.current = flight.kind === 'pass' ? passLoft(flight.fromX, flight.fromY, flight.toX, flight.toY) : 0;
         settling.current = false;
-      } else if (!engine.ballOwnerId) {
-        // It came down with nobody on it, so let it settle rather than stop dead.
+      } else if (!ownerId && (flightSeen.current?.kind === 'shot' || lofted.current > 0)) {
+        // It came down with nobody on it, so let it settle rather than stop dead. A pass
+        // played along the ground just rolls on.
         settling.current = true;
         settled.current = 0;
       }
@@ -364,9 +362,10 @@ function MatchObjects({ engine, label, appearance, diagnostics }: SceneProps) {
       ballY = flightHeight(
         flight.kind,
         spread,
-        Math.max(0, flight.elapsed - adapter.lag) / flight.duration,
+        flight.elapsed / flight.duration,
         BALL_RADIUS,
         aimedAt.current,
+        lofted.current,
       );
     } else if (settling.current) {
       if (ownerId) {
