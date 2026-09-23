@@ -1,0 +1,65 @@
+{
+  "source": "Mixamo (Adobe) animations, retimed for FC ALL-STAR — see README",
+  "fps": 30,
+  "clips": {
+    "IDLE": {
+      "loop": true
+    },
+    "GK_READY": {
+      "loop": true
+    },
+    "WALK": {
+      "loop": true,
+      "strideMeters": 1.85,
+      "footContacts": [
+        0,
+        0.549
+      ]
+    },
+    "RUN": {
+      "loop": true,
+      "strideMeters": 3.02,
+      "footContacts": [
+        0,
+        0.452
+      ]
+    },
+    "SPRINT": {
+      "loop": true,
+      "strideMeters": 3.29,
+      "footContacts": [
+        0,
+        0.501
+      ]
+    },
+    "JOG": {
+      "loop": true,
+      "strideMeters": 2.15,
+      "footContacts": [
+        0,
+        0.53
+      ]
+    },
+    "PASS": {
+      "ballContactTime": 0.46
+    },
+    "SHOOT": {
+      "ballContactTime": 0.46
+    },
+    "RECEIVE": {
+      "ballContactTime": 0.5
+    },
+    "TACKLE": {
+      "ballContactTime": 0.4
+    },
+    "GK_DIVE_LEFT": {
+      "ballContactTime": 0.4
+    },
+    "GK_DIVE_RIGHT": {
+      "ballContactTime": 0.4
+    },
+    "GK_CATCH": {
+      "ballContactTime": 0.45
+    }
+  }
+}

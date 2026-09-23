@@ -131,15 +131,21 @@ const FRAGMENT_APPLY = /* glsl */ `
   diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * kitTint, clamp(kitW, 0.0, 1.0));
 
   // Shirt number: one or two glyphs from the shared digit atlas, inside the number area.
+  // The mip level is taken from the continuous coordinate, never from fract(): its jump at a
+  // glyph's edge would otherwise pick the blurriest mip there and draw a line beside the
+  // digit. Derivatives are taken here, outside the mask test, where they are defined.
+  vec2 kitLocal = (vKitUv - uKitNumberRect.xy) / max(uKitNumberRect.zw - uKitNumberRect.xy, vec2(1e-5));
+  bool kitTwo = uKitDigits.x >= 0.0;
+  float kitX = kitTwo ? kitLocal.x * 2.0 : (kitLocal.x - 0.25) * 2.0;
+  vec2 kitSmooth = vec2(kitX / 10.0, kitLocal.y);
+  vec2 kitDx = dFdx(kitSmooth);
+  vec2 kitDy = dFdy(kitSmooth);
   if (uKitHasNumber > 0.5 && kitFull(kitB.a) > 0.5) {
-    vec2 kitLocal = (vKitUv - uKitNumberRect.xy) / max(uKitNumberRect.zw - uKitNumberRect.xy, vec2(1e-5));
     if (all(greaterThanEqual(kitLocal, vec2(0.0))) && all(lessThanEqual(kitLocal, vec2(1.0)))) {
-      bool kitTwo = uKitDigits.x >= 0.0;
-      float kitX = kitTwo ? kitLocal.x * 2.0 : (kitLocal.x - 0.25) * 2.0;
       float kitDigit = kitTwo ? (kitLocal.x < 0.5 ? uKitDigits.x : uKitDigits.y) : uKitDigits.y;
       float kitCell = fract(kitX);
       float kitInside = step(0.0, kitX) * step(kitX, kitTwo ? 2.0 : 1.0);
-      float kitInk = texture2D(uKitNumberAtlas, vec2((kitDigit + kitCell) / 10.0, kitLocal.y)).a * kitInside;
+      float kitInk = textureGrad(uKitNumberAtlas, vec2((kitDigit + kitCell) / 10.0, kitLocal.y), kitDx, kitDy).a * kitInside;
       diffuseColor.rgb = mix(diffuseColor.rgb, uKitNumber, kitInk);
     }
   }

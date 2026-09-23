@@ -93,7 +93,8 @@ export const PLAYER_ASSET_MANIFEST: PlayerAssetManifest = {
   kitMaskAUrl: `${baseUrl()}models/players/T_Body_MaskA.png`,
   kitMaskBUrl: `${baseUrl()}models/players/T_Body_MaskB.png`,
   numberAtlasUrl: `${baseUrl()}models/players/T_Numbers.png`,
-  numberUvRect: null,
+  // The upper back of player_v1's shirt, measured from the model's own UVs (upright, not mirrored).
+  numberUvRect: [0.09, 0.735, 0.19, 0.84],
   forwardAxis: '+Z',
   expectedHeight: 1.8,
   unitScale: null,
