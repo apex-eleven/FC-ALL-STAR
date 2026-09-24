@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Vector3, type DirectionalLight, type Mesh } from 'three';
 import type { EnginePlayer, MatchEngine } from '@/features/manager/matchEngine';
@@ -21,7 +20,7 @@ import {
 import { PlayerVisualAdapter, type DrawnFlight } from './players/PlayerVisualAdapter';
 import { PlayerPool } from './players/PlayerPool';
 import MatchAudio from './MatchAudio';
-import IconButton from '@/components/ui/IconButton';
+import { drawMinimap, MINIMAP_RESOLUTION, type MinimapPlayer } from './MatchMinimap';
 import { describeAnimation, type AnimationBody } from './players/animationDiagnostics';
 import { resolvePlayerLook, type PlayerLookSources } from './players/playerAppearance';
 import { shortestAngle } from './players/visualMath';
@@ -69,26 +68,51 @@ const SHOW_ANIMATION_DEBUG = false;
 const ANIMATION_DEBUG_EVERY = 0.25;
 
 /**
- * A long lens, which is what a televised match is shot on: it sits the camera well
- * back outside the touchline and still fills the frame with the players, and it
- * flattens the pitch the way the reference shot is flattened.
+ * The broadcast camera, fitted to the reference frame rather than chosen by eye: 13
+ * pitch landmarks in the reference (penalty box, six-yard box, the D, the posts, the
+ * far corner) were matched by least squares to a pinhole camera, and it reproduces them
+ * to 3.6 px RMS (7 px worst) on the 2048 x 942 stage. It stands 69 m back from the near
+ * touchline and 33 m up, on a long lens — so the pitch fills the frame, the far stand
+ * is a strip along the top, and the near touchline is out of shot.
  */
-const CAMERA_FOV = 26;
-/** Outside the touchline (−34) and low, the way a touchline camera sits. */
-const CAMERA_X = -44;
-const CAMERA_Y = 11;
-/** How much of the ball's across-pitch position the camera leans into. */
-const CAMERA_LEAN = 0.15;
+const CAMERA_FOV = 10.95;
+const CAMERA_X = -103.31;
+const CAMERA_Y = 33.17;
+/**
+ * The camera looks slightly along the pitch (0.69 deg in the fit): it stands this far
+ * behind the point it aims at, measured along the touchline.
+ */
+const CAMERA_TRAIL = 1.27;
+/**
+ * Where it aims, on the grass. Along the pitch it keeps level with the ball but stops
+ * AIM_END metres from either goal line — the reference frame is that stop, with the
+ * ball 4 m past it. Across the pitch it holds the reference tilt (aim AIM_FAR, the far
+ * touchline at y 133 with the stand a strip above it) and only tilts down once the
+ * ball comes into the near half: it then aims AIM_AHEAD metres beyond the ball, which
+ * keeps the ball at or above y 530 — above the minimap — until AIM_NEAR, where a ball
+ * on the near touchline still sits at y 760.
+ */
+const AIM_END = 52.5 - 40.3;
+const AIM_AHEAD = 3;
+const AIM_FAR = 1.84;
+const AIM_NEAR = -22;
 /** Bigger follows harder; the ball is quick and an undamped camera is unwatchable. */
 const FOLLOW = 2.4;
-/** Chest height, so the players sit in the middle of the frame. */
-const LOOK_HEIGHT = 1.4;
 /**
- * How far along the touchline the camera may slide. A televised match is shot from
- * one position near the halfway line that pans to the corners rather than running
- * along with the ball, and panning keeps the pitch in frame where tracking does not.
+ * From this far back the near stand (Stadium3D: X -42 to -61, up to 17 m with its
+ * roof) stands between the camera and the pitch. A real broadcast camera sits on a
+ * gantry above it; here the near clip plane does the same job: everything of the near
+ * stand is within 69 m of the lens along the view, while the nearest thing that must be
+ * seen — the near advertising boards — is 73 m away at the lowest aim (the touchline
+ * 76 m). So nothing between the two is lost.
  */
-const CAMERA_RAIL = 22;
+const CAMERA_NEAR = 70;
+/**
+ * The detail levels (PlayerLOD) were set for a 26 deg lens. This lens magnifies by
+ * tan(13)/tan(5.475), so a player is judged by the distance at which the old lens would
+ * have shown them the same size.
+ */
+const LOD_LENS = Math.tan((CAMERA_FOV / 2) * (Math.PI / 180)) / Math.tan(13 * (Math.PI / 180));
 
 const BALL_RADIUS = 0.15;
 /**
@@ -108,10 +132,32 @@ const LOOK_EASE = 6;
  */
 const CELEBRATION_FACING: readonly number[] = [0, 0.55, -0.5];
 
-const MARKER_COLOR = '#38e8ff';
+/** The carrier's marker over their head, and the ring at their feet (sampled from the reference). */
+const MARKER_COLOR = '#0f9a78';
+const RING_COLOR = '#f0dc1a';
+/**
+ * Whose names are shown under them: 'all' (everyone), or 'focus' — the reference's own
+ * choice, the player on the ball and the two keepers.
+ */
+const NAME_TAGS: 'all' | 'focus' = 'all';
+/** The minimap on the stage (reference: 375 x 220 px at x 838, y 644). */
+const MINIMAP_W = 375;
+const MINIMAP_H = 220;
+/**
+ * The stage, and the minimap-and-bar panel on it (x 832-1222, from y 644 down): a name
+ * tag that would fall behind the panel is hidden rather than shown through it.
+ */
+const STAGE_W = 2048;
+const STAGE_H = 942;
+const PANEL_LEFT = 832 - 60;
+const PANEL_RIGHT = 1222 + 60;
+const PANEL_TOP = 644;
+const TAG_HEIGHT = 34;
 
 /** The opening whistle is only blown if the view is there from (about) the start. Seconds. */
 const OPENING_WHISTLE_WINDOW = 3;
+/** The carrier's ring sits just off the grass so it never flickers into it. */
+const RING_Y = 0.03;
 /**
  * The crowd starts to lift once the ball is EXCITEMENT_FROM metres from the halfway
  * line and is at full voice EXCITEMENT_SPAN further on — around the penalty spot.
@@ -137,9 +183,17 @@ function shortName(name: string): string {
   return last.length > 12 ? `${last.slice(0, 11)}…` : last;
 }
 
-interface SceneProps extends Match3DStageProps {
-  /** The layer every player's name tag is written into. */
+interface StageOverlay {
   names: React.RefObject<HTMLDivElement>;
+  minimap: React.RefObject<HTMLCanvasElement>;
+  barPosition: React.RefObject<HTMLSpanElement>;
+  barNumber: React.RefObject<HTMLSpanElement>;
+  barName: React.RefObject<HTMLSpanElement>;
+}
+
+interface SceneProps extends Match3DStageProps {
+  /** The DOM drawn over the 3D view: name tags, minimap and the ball-carrier bar. */
+  overlay: StageOverlay;
   /** The match's sound, played from the adapter's cues. */
   audio: MatchAudio;
   /** The animation read-out, when SHOW_ANIMATION_DEBUG is on. */
@@ -172,7 +226,7 @@ function applyPose(rig: PlayerRig, pose: Pose, lookY: number): void {
  * three objects each frame — no React state, exactly as the 2D renderer writes
  * transforms onto its DOM nodes.
  */
-function MatchObjects({ engine, names, audio, appearance, diagnostics }: SceneProps) {
+function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: SceneProps) {
   // One adapter per match. It is the only thing here that reads the engine's players.
   const adapter = useMemo(() => new PlayerVisualAdapter(engine), [engine]);
 
@@ -194,13 +248,17 @@ function MatchObjects({ engine, names, audio, appearance, diagnostics }: ScenePr
   const sun = useRef<DirectionalLight>(null);
   const lastBall = useRef({ x: 0, z: 0 });
   const marker = useRef<Mesh>(null);
+  const ring = useRef<Mesh>(null);
+  /** Minimap points, reused every frame; and who the carrier bar shows. */
+  const dots = useRef<MinimapPlayer[]>([]);
+  const barShows = useRef<string | null>(null);
   /** The flight being drawn, the height it is aimed at (a pass: how high it is lifted), and the settle after it. */
   const flightSeen = useRef<DrawnFlight | null>(null);
   const aimedAt = useRef(BALL_RADIUS);
   const lofted = useRef(0);
   const settling = useRef(false);
   const settled = useRef(0);
-  const look = useRef(new Vector3(0, LOOK_HEIGHT, 0));
+  const look = useRef(new Vector3(AIM_FAR, 0, 0));
   /** Name tags by player id, and the ids tagged this frame. */
   const tags = useRef(new Map<string, HTMLDivElement>());
   /** The opening whistle is blown once, when play first moves. */
@@ -322,7 +380,7 @@ function MatchObjects({ engine, names, audio, appearance, diagnostics }: ScenePr
       player.lookY += (gaze - player.lookY) * Math.min(1, simDelta * LOOK_EASE);
 
       // Detail by distance, the same thresholds for either body.
-      const level = levelForDistance(Math.hypot(cam.x - x, cam.y, cam.z - z));
+      const level = levelForDistance(Math.hypot(cam.x - x, cam.y, cam.z - z) * LOD_LENS);
 
       // The realistic body if the model is there; otherwise the procedural one.
       const modelDrawn = pool.draw(player, command, x, z, simDelta, level);
@@ -433,26 +491,27 @@ function MatchObjects({ engine, names, audio, appearance, diagnostics }: ScenePr
     // Camera: fixed on its own side, sliding along the pitch with the play. Eased in
     // real time — it is the viewer's eye, not part of the match.
     const ease = 1 - Math.exp(-FOLLOW * delta);
-    const railZ = Math.max(-CAMERA_RAIL, Math.min(CAMERA_RAIL, ballZ * 0.55));
-    camera.position.x += (CAMERA_X + ballX * CAMERA_LEAN - camera.position.x) * ease;
-    camera.position.y += (CAMERA_Y - camera.position.y) * ease;
-    camera.position.z += (railZ - camera.position.z) * ease;
-    look.current.x += (ballX * 0.8 - look.current.x) * ease;
-    look.current.z += (ballZ - look.current.z) * ease;
+    const aimZ = Math.max(AIM_END - 52.5, Math.min(52.5 - AIM_END, ballZ));
+    const aimX = Math.max(AIM_NEAR, Math.min(AIM_FAR, ballX + AIM_AHEAD));
+    look.current.x += (aimX - look.current.x) * ease;
+    look.current.z += (aimZ - look.current.z) * ease;
+    camera.position.set(CAMERA_X, CAMERA_Y, look.current.z - CAMERA_TRAIL);
     camera.lookAt(look.current);
 
     // The carrier: a marker over their head — the carrier at the moment being drawn,
     // so it never runs ahead of the interpolated players.
     const carrier = ownerId ? adapter.get(ownerId) : undefined;
     if (marker.current) marker.current.visible = carrier !== undefined;
+    if (ring.current) ring.current.visible = carrier !== undefined;
     if (carrier) {
+      if (ring.current) ring.current.position.set(carrier.visual.position.x, RING_Y, carrier.visual.position.z);
       // Over the head of THIS player, however tall they are.
       const top = BODY_TOP * (appearances.current.get(carrier.id)?.stature ?? 1);
       if (marker.current) marker.current.position.set(carrier.visual.position.x, top + 0.6, carrier.visual.position.z);
     }
 
-    // Every player's name, on the grass just under their feet. The carrier's is lit.
-    const layer = names.current;
+    // Names on the grass just under the players, as the reference writes them.
+    const layer = overlay.names.current;
     if (layer) {
       const shown = tagSeen.current;
       shown.clear();
@@ -466,20 +525,21 @@ function MatchObjects({ engine, names, audio, appearance, diagnostics }: ScenePr
           tags.current.set(player.id, tag);
         }
         shown.add(player.id);
+        const wanted = NAME_TAGS === 'all' || player.visual.isKeeper || player.id === carrier?.id;
         project.current.set(player.visual.position.x, 0, player.visual.position.z).project(camera);
+        const sx = (project.current.x * 0.5 + 0.5) * STAGE_W;
+        const sy = (-project.current.y * 0.5 + 0.5) * STAGE_H;
+        const underPanel = sx > PANEL_LEFT && sx < PANEL_RIGHT && sy > PANEL_TOP - TAG_HEIGHT;
         const onScreen =
-          project.current.z < 1 && Math.abs(project.current.x) < 1.1 && Math.abs(project.current.y) < 1.1;
+          wanted &&
+          !underPanel &&
+          project.current.z < 1 &&
+          Math.abs(project.current.x) < 1.1 &&
+          Math.abs(project.current.y) < 1.1;
         tag.style.opacity = onScreen ? '1' : '0';
         if (!onScreen) continue;
         tag.style.left = `${(project.current.x * 0.5 + 0.5) * 100}%`;
         tag.style.top = `${(-project.current.y * 0.5 + 0.5) * 100}%`;
-        const lit = player.id === carrier?.id;
-        if (tag.dataset.lit !== (lit ? '1' : '')) {
-          tag.dataset.lit = lit ? '1' : '';
-          tag.classList.toggle(styles.tagOn ?? '', lit);
-          // Painted last, so where tags crowd together the carrier's reads on top.
-          if (lit) layer.appendChild(tag);
-        }
       }
       // Anyone who has left the pitch (substituted, sent off) takes their tag with them.
       if (tags.current.size !== shown.size) {
@@ -489,6 +549,31 @@ function MatchObjects({ engine, names, audio, appearance, diagnostics }: ScenePr
           tags.current.delete(id);
         }
       }
+    }
+
+    // The minimap: everyone where they are being drawn, and the ball.
+    const map = overlay.minimap.current?.getContext('2d');
+    if (map) {
+      const list = dots.current;
+      let count = 0;
+      for (const player of adapter.players) {
+        const dot = list[count] ?? (list[count] = { x: 0, z: 0, home: true });
+        dot.x = player.visual.position.x;
+        dot.z = player.visual.position.z;
+        dot.home = player.visual.side === 'home';
+        count += 1;
+      }
+      list.length = count;
+      drawMinimap(map, list, ballX, ballZ);
+    }
+
+    // The bar under it: whoever last had the ball — their position, shirt number, name.
+    if (carrier && carrier.id !== barShows.current) {
+      barShows.current = carrier.id;
+      const seat = engine.players.find((player) => player.id === carrier.id);
+      if (overlay.barPosition.current) overlay.barPosition.current.textContent = seat?.position ?? '';
+      if (overlay.barNumber.current) overlay.barNumber.current.textContent = String(carrier.agent.shirtNumber || '');
+      if (overlay.barName.current) overlay.barName.current.textContent = shortName(seat?.name ?? '');
     }
 
     // Sound: every cue that has come due on the drawn timeline, panned to where on
@@ -550,6 +635,12 @@ function MatchObjects({ engine, names, audio, appearance, diagnostics }: ScenePr
         <coneGeometry args={[0.32, 0.5, 4]} />
         <meshBasicMaterial color={MARKER_COLOR} />
       </mesh>
+
+      {/* The ring at the carrier's feet: 1.6 m across in the reference. */}
+      <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+        <ringGeometry args={[0.7, 0.8, 48]} />
+        <meshBasicMaterial color={RING_COLOR} transparent opacity={0.95} depthWrite={false} />
+      </mesh>
     </>
   );
 }
@@ -585,12 +676,16 @@ function Match3DDebug({ engine }: Match3DStageProps) {
 }
 
 export default function Match3DStage({ engine, appearance }: Match3DStageProps) {
-  const names = useRef<HTMLDivElement>(null);
   const diagnostics = useRef<HTMLPreElement>(null);
+  const names = useRef<HTMLDivElement>(null);
+  const minimap = useRef<HTMLCanvasElement>(null);
+  const barPosition = useRef<HTMLSpanElement>(null);
+  const barNumber = useRef<HTMLSpanElement>(null);
+  const barName = useRef<HTMLSpanElement>(null);
+  const overlay = useMemo<StageOverlay>(() => ({ names, minimap, barPosition, barNumber, barName }), []);
 
   // One sound system per match, started with the view and closed with it.
   const audio = useMemo(() => new MatchAudio(), [engine]);
-  const [muted, setMuted] = useState(audio.muted);
   useEffect(() => {
     audio.start();
     return () => audio.dispose();
@@ -600,7 +695,7 @@ export default function Match3DStage({ engine, appearance }: Match3DStageProps) 
     <div className={styles.wrap}>
       <Canvas
         shadows
-        camera={{ position: [CAMERA_X, CAMERA_Y, 0], fov: CAMERA_FOV, near: 0.1, far: 600 }}
+        camera={{ position: [CAMERA_X, CAMERA_Y, -CAMERA_TRAIL], fov: CAMERA_FOV, near: CAMERA_NEAR, far: 700 }}
       >
         <color attach="background" args={['#0b1014']} />
         {/* Fill from the sky above and the grass below, so a body's top surfaces
@@ -609,20 +704,24 @@ export default function Match3DStage({ engine, appearance }: Match3DStageProps) 
         <ambientLight intensity={0.7} />
         <Pitch3D />
         <Stadium3D />
-        <MatchObjects engine={engine} names={names} audio={audio} appearance={appearance} diagnostics={diagnostics} />
+        <MatchObjects engine={engine} overlay={overlay} audio={audio} appearance={appearance} diagnostics={diagnostics} />
       </Canvas>
       <div ref={names} className={styles.names} />
-      <IconButton
-        label={muted ? 'เปิดเสียง' : 'ปิดเสียง'}
-        size={68}
-        className={styles.sound}
-        onClick={() => {
-          audio.setMuted(!muted);
-          setMuted(!muted);
-        }}
-      >
-        {muted ? <VolumeX size={30} /> : <Volume2 size={30} />}
-      </IconButton>
+      <canvas
+        ref={minimap}
+        className={styles.minimap}
+        width={MINIMAP_W * MINIMAP_RESOLUTION}
+        height={MINIMAP_H * MINIMAP_RESOLUTION}
+      />
+      <div className={styles.carrierBar}>
+        <span className={styles.carrierBadges}>
+          <span ref={barPosition} className={`${styles.diamond} ${styles.diamondGold}`} />
+          <span ref={barNumber} className={`${styles.diamond} ${styles.diamondSilver}`} />
+        </span>
+        <span className={styles.carrierName}>
+          <span ref={barName} />
+        </span>
+      </div>
       {SHOW_DEBUG && <Match3DDebug engine={engine} />}
       {SHOW_ANIMATION_DEBUG && <pre ref={diagnostics} className={styles.animDebug} />}
     </div>

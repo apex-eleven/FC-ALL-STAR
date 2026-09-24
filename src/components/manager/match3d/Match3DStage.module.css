@@ -18,7 +18,8 @@
   from what it measured, and an in-flow canvas carrying that size can push its own
   container around, which feeds straight back into the next measurement.
 */
-.wrap canvas {
+/* (The minimap is a canvas of its own and keeps its own size.) */
+.wrap canvas:not(.minimap) {
   position: absolute !important;
   inset: 0;
   width: 100% !important;
@@ -26,9 +27,10 @@
 }
 
 /*
-  Every player's name, under their feet. Each tag is placed in percentages of this
-  box, because the projection it comes from is in clip space and the stage's scale
-  must not enter into it. The layer covers the view and takes no pointer events.
+  Every player's name, under their feet, written the way the reference writes them:
+  plain white, no plate. Each tag is placed in percentages of this box, because the
+  projection it comes from is in clip space and the stage's scale must not enter into
+  it. The layer covers the view and takes no pointer events.
 */
 .names {
   position: absolute;
@@ -41,26 +43,99 @@
   position: absolute;
   left: 0;
   top: 0;
-  transform: translate(-50%, 6px);
-  /* A dark plate behind the name, so tags that overlap still read one at a time. */
-  padding: 3px 8px 4px;
-  border-radius: 6px;
-  background: rgba(6, 12, 18, 0.55);
+  transform: translate(-50%, 14px);
   font-family: var(--font-ui);
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   line-height: 1;
-  color: #ffffff;
+  color: #f2faec;
   text-shadow: var(--shadow-text);
   white-space: nowrap;
   opacity: 0;
 }
 
-/* The player on the ball: the marker's colour, a touch larger, on a solid plate. */
-.tagOn {
-  color: #38e8ff;
-  font-size: 20px;
-  background: rgba(6, 12, 18, 0.85);
+/*
+  The minimap and the ball-carrier bar, centred under the play as in the reference
+  (2048 x 942 stage): minimap x 838-1213, y 644-864; bar y 874-934, its left part
+  x 832-1021 (a navy edge 832-840, two badges from 850), its right part x 1029-1222
+  (a white tick 1210-1216, y 881-926).
+*/
+.minimap {
+  position: absolute;
+  left: 838px;
+  top: 644px;
+  width: 375px;
+  height: 220px;
+  pointer-events: none;
+}
+
+.carrierBar {
+  position: absolute;
+  left: 832px;
+  top: 874px;
+  display: flex;
+  gap: 8px;
+  height: 60px;
+  pointer-events: none;
+}
+
+.carrierBadges,
+.carrierName {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.carrierBadges {
+  width: 189px;
+  gap: 5px;
+  padding-left: 18px;
+  border-left: 8px solid #07122a;
+}
+
+.diamond {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 44px;
+  padding-bottom: 8px;
+  clip-path: polygon(18% 0, 82% 0, 100% 32%, 50% 100%, 0 32%);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+  color: #1b1b1b;
+}
+
+.diamondGold {
+  background: linear-gradient(160deg, #fbe7a6 0%, #e2b85a 55%, #b8862e 100%);
+}
+
+.diamondSilver {
+  background: linear-gradient(160deg, #ffffff 0%, #d6dce6 55%, #9aa6b8 100%);
+}
+
+.carrierName {
+  justify-content: center;
+  width: 193px;
+  padding-right: 18px;
+  font-family: var(--font-ui);
+  font-size: 23px;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.carrierName::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  top: 7px;
+  width: 6px;
+  height: 45px;
+  background: #ececec;
 }
 
 /* Development read-out of every player's animation (SHOW_ANIMATION_DEBUG); off by default. */
@@ -91,17 +166,3 @@
   pointer-events: none;
 }
 
-/*
-  Sound on / off, in the bottom right corner the HUD leaves free. Styled as the HUD's
-  own icon buttons (Match3DHud.module.css .icon). Nested under .wrap so it outranks
-  IconButton's own `position: relative`.
-*/
-.wrap .sound {
-  position: absolute;
-  right: 24px;
-  bottom: 24px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #ffffff;
-}

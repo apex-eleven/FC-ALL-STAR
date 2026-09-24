@@ -35,6 +35,19 @@ const WHISTLES: Record<'whistle' | 'whistle_kickoff' | 'whistle_half' | 'whistle
 
 /** Muting is kept for the session, across matches (nothing is written to storage). */
 let sessionMuted = false;
+/** Every sound system that is playing, so a mute from the HUD reaches it. */
+const live = new Set<MatchAudio>();
+
+/** Whether match sound is muted for this session. */
+export function isMatchSoundMuted(): boolean {
+  return sessionMuted;
+}
+
+/** Mutes or unmutes match sound, now and for the rest of the session. */
+export function setMatchSoundMuted(muted: boolean): void {
+  sessionMuted = muted;
+  for (const audio of live) audio.applyMute();
+}
 
 type AudioContextCtor = typeof AudioContext;
 
@@ -52,10 +65,6 @@ export default class MatchAudio {
     if (this.ctx?.state === 'running') this.removeUnlock();
   };
 
-  get muted(): boolean {
-    return sessionMuted;
-  }
-
   start(): void {
     if (this.ctx || typeof window === 'undefined') return;
     const Ctor: AudioContextCtor | undefined =
@@ -68,6 +77,7 @@ export default class MatchAudio {
       return;
     }
     this.ctx = ctx;
+    live.add(this);
 
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -10;
@@ -108,6 +118,7 @@ export default class MatchAudio {
   }
 
   dispose(): void {
+    live.delete(this);
     this.removeUnlock();
     for (const source of this.loops) {
       try {
@@ -121,13 +132,13 @@ export default class MatchAudio {
     this.ctx = null;
   }
 
-  setMuted(muted: boolean): void {
-    sessionMuted = muted;
+  /** Brings this system in line with the session's mute. */
+  applyMute(): void {
     const ctx = this.ctx;
     if (!ctx || !this.master) return;
     this.master.gain.cancelScheduledValues(ctx.currentTime);
-    this.master.gain.setTargetAtTime(muted ? 0 : MASTER, ctx.currentTime, 0.05);
-    if (!muted) void ctx.resume();
+    this.master.gain.setTargetAtTime(sessionMuted ? 0 : MASTER, ctx.currentTime, 0.05);
+    if (!sessionMuted) void ctx.resume();
   }
 
   /**

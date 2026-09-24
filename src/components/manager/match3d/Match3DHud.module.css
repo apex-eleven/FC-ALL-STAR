@@ -1,8 +1,17 @@
 /*
-  Overlay for the full-screen 3D match, laid out on the 2048x942 stage after the
-  reference shot: score bar hard against the top left, the clock chip tucked under
-  its right half, and the CUSTOM menu with the substitution and leave buttons in the
-  top right corner.
+  Overlay for the full-screen 3D match, laid out on the 2048 x 942 stage after the
+  live-match reference shot. Every position, size and colour below was measured on
+  that shot scaled to the stage (it is the same aspect, 2.174:1): the reference keeps
+  a ~162 px margin at either side for the phone's rounded corners, and so does this.
+
+    scoreboard  x 162-698, y 29-88   home badge 162-227 · plate 227-633
+                                     (codes 227-341 / 518-633, score 341-518)
+                                     away badge 633-692 · light edge 692-698
+    clock       x 707-825, y 29-88   #0bf266, black digits
+    formation   x 1375-1715          arrows 1387-1428 · text from 1439 ·
+                                     divider 1658 · caret 1677-1694
+    subs        x 1739-1797
+    menu        x 1801-1880          icon centred on 1850
 */
 .hud {
   position: absolute;
@@ -14,214 +23,268 @@
   pointer-events: auto;
 }
 
-/* ---- score ---- */
-.score {
+/* ---- scoreboard ---- */
+.scoreboard {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: 162px;
+  top: 29px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  height: 76px;
-  padding: 0 26px 0 18px;
-  border-bottom-right-radius: var(--radius-lg);
-  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  height: 59px;
 }
 
-.crest {
-  flex: none;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
+.badge {
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+
+.badge img {
+  display: block;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.35);
 }
 
-.team {
-  min-width: 128px;
-  font-family: var(--font-ui);
-  font-size: 30px;
+.badgeHome {
+  width: 65px;
+  background: #06122c;
+}
+
+.badgeHome img {
+  width: 52px;
+  height: 52px;
+  border: 2px solid #c9dcff;
+}
+
+.badgeAway {
+  width: 59px;
+  background: #000000;
+}
+
+.badgeAway img {
+  width: 52px;
+  height: 52px;
+}
+
+.plate {
+  display: flex;
+  width: 406px;
+  height: 100%;
+  background: linear-gradient(180deg, #efeee9 0%, #d7d7d8 55%, #c4bcc0 100%);
+}
+
+.code {
+  display: grid;
+  place-items: center;
+  width: 114px;
+  font-family: var(--font-display);
+  font-size: 42px;
   font-weight: 800;
-  color: #ffffff;
-  text-align: center;
-  text-shadow: var(--shadow-text);
+  line-height: 1;
+  color: #1b1b1b;
 }
 
-.goals {
+.score {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 2px 20px;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.08);
+  justify-content: space-between;
+  width: 178px;
+  padding: 0 22px;
+  border-left: 1px solid #b4b4b4;
+  border-right: 1px solid #b4b4b4;
+  background: linear-gradient(180deg, #f2f2f2 0%, #e2e2e2 60%, #cfc7ca 100%);
 }
 
-.goals b {
+.score b {
+  width: 34px;
   font-family: var(--font-display);
-  font-size: 40px;
+  font-size: 46px;
   font-weight: 900;
   line-height: 1;
-  color: #ffffff;
+  color: #1b1b1b;
+  text-align: center;
 }
 
-.goals i {
-  font-style: normal;
-  font-size: 26px;
-  color: rgba(255, 255, 255, 0.45);
+/* A neutral double slash between the scores (the reference's publisher logo is not ours to use). */
+.mark {
+  width: 26px;
+  height: 30px;
+  background: #1b1b1b;
+  clip-path: polygon(30% 0, 50% 0, 20% 100%, 0 100%, 30% 0, 80% 0, 100% 0, 70% 100%, 50% 100%, 80% 0);
 }
 
-/* Sits under the bar, aligned with the score the way the reference has it. */
+.edge {
+  width: 6px;
+  height: 100%;
+  background: #e9f4ed;
+}
+
 .clock {
   position: absolute;
-  left: 150px;
-  top: 76px;
-  min-width: 190px;
-  padding: 5px 0 7px;
-  border-bottom-left-radius: var(--radius-sm);
-  border-bottom-right-radius: var(--radius-sm);
-  background: #1faa4b;
+  left: 707px;
+  top: 29px;
+  display: grid;
+  place-items: center;
+  width: 118px;
+  height: 59px;
+  background: #0bf266;
   font-family: var(--font-display);
-  font-size: 30px;
+  font-size: 42px;
   font-weight: 800;
-  color: #ffffff;
-  text-align: center;
-  letter-spacing: 1px;
+  line-height: 1;
+  color: #0b0b0b;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- top right ---- */
-.controls {
+.formation,
+.square {
   position: absolute;
-  right: 24px;
-  top: 18px;
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-
-.custom {
-  position: relative;
-}
-
-.customButton {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 68px;
-  padding: 0 20px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  font-family: var(--font-ui);
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: 2px;
+  top: 29px;
+  height: 59px;
+  background: rgba(10, 12, 16, 0.58);
   color: #ffffff;
 }
 
-.customButton span {
-  min-width: 150px;
-  text-align: left;
+.formation {
+  left: 1375px;
+  width: 340px;
 }
 
-.customOpen {
-  border-color: #43e0c8;
+.arrows {
+  position: absolute;
+  left: 11px;
+  top: 7px;
+  color: #3bef0d;
+}
+
+.formationText {
+  position: absolute;
+  left: 64px;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-ui);
+  font-size: 27px;
+  font-weight: 400;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.divider {
+  position: absolute;
+  left: 283px;
+  top: 11px;
+  width: 1px;
+  height: 37px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.caret {
+  position: absolute;
+  left: 302px;
+  top: 23px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 14px solid #ffffff;
 }
 
 .caretUp {
   transform: rotate(180deg);
 }
 
-.menu {
+.square {
+  display: grid;
+  place-items: center;
+}
+
+.square:disabled {
+  opacity: 0.4;
+}
+
+.subs {
+  left: 1739px;
+  width: 58px;
+}
+
+.menuButton {
+  left: 1801px;
+  width: 79px;
+  padding-left: 19px;
+}
+
+/* ---- drop-down panels ---- */
+.panel {
   position: absolute;
-  right: 0;
-  top: 78px;
+  top: 96px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 420px;
-  padding: 18px 20px 20px;
-  border-radius: var(--radius-md);
-  background: rgba(12, 16, 24, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  gap: 12px;
+  padding: 16px 18px 18px;
+  background: rgba(10, 12, 16, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  pointer-events: auto;
 }
 
-.menuTitle {
+.tacticsPanel {
+  left: 1375px;
+  width: 340px;
+}
+
+.menuPanel {
+  right: 168px;
+  width: 340px;
+}
+
+.panelTitle {
   font-family: var(--font-ui);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  color: #a4a9b0;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.tactics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.tactic {
-  height: 60px;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.07);
-  border: 2px solid rgba(255, 255, 255, 0.14);
-  font-family: var(--font-ui);
-  font-size: 26px;
-  font-weight: 700;
-  color: #d6d9de;
-}
-
-.tacticOn {
-  background: linear-gradient(180deg, #43e0c8 0%, #1fa892 100%);
-  border-color: #6ff0da;
-  color: #06201c;
-}
-
-.tactic:disabled {
-  opacity: 0.45;
-}
-
-.speeds {
+.row {
   display: flex;
   gap: 10px;
+}
+
+.chip,
+.wide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .chip {
-  display: grid;
-  place-items: center;
-  min-width: 78px;
-  height: 54px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.16);
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 800;
-  color: #d6d9de;
+  flex: 1;
+}
+
+.wide {
+  flex: 1;
+  justify-content: flex-start;
+  padding: 0 16px;
 }
 
 .chipOn {
-  background: rgba(198, 242, 58, 0.18);
-  border-color: #c6f23a;
-  color: #ffffff;
+  border-color: #0bf266;
+  background: rgba(11, 242, 102, 0.18);
 }
 
-.icon {
-  display: grid;
-  place-items: center;
-  width: 68px;
-  height: 68px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(18, 24, 36, 0.94) 0%, rgba(10, 14, 22, 0.94) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #ffffff;
-}
-
-.icon:disabled {
+.chip:disabled,
+.wide:disabled {
   opacity: 0.4;
 }
 
 .leave {
-  background: rgba(229, 52, 63, 0.3);
   border-color: rgba(255, 91, 91, 0.6);
+  background: rgba(229, 52, 63, 0.3);
 }
