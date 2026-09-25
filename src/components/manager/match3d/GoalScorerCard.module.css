@@ -1,0 +1,147 @@
+/*
+  The scorer's card after a goal. The live screen's GOAL! flash fills the middle of the
+  stage (180 px type, about x 760-1290), so the card stands to its right, level with
+  it: art 340 x 340 (the card images are 256 x 256, transparent round the card) from
+  x 1330, y 200, and the name plate under it. It slides in from the right and leaves
+  the same way.
+*/
+.card {
+  position: absolute;
+  left: 1330px;
+  top: 200px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: arrive 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+.leaving {
+  animation: leave 0.28s ease-in both;
+}
+
+.home {
+  --accent: #c6f23a;
+}
+
+.away {
+  --accent: #ff6b6b;
+}
+
+/* A soft light behind the card in the scoring side's colour. */
+.glow {
+  position: absolute;
+  left: -40px;
+  top: -30px;
+  width: 420px;
+  height: 400px;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 45%, transparent), transparent);
+}
+
+.art {
+  position: relative;
+  display: block;
+  width: 340px;
+  height: 340px;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.55));
+}
+
+/* Drawn card, for a player with no art: the same footprint, rating, position and name. */
+.fallback {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 250px;
+  height: 320px;
+  margin: 10px 0;
+  border: 3px solid var(--accent);
+  border-radius: 22px;
+  background: linear-gradient(170deg, #26324a 0%, #111827 70%);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);
+}
+
+.rating {
+  font-family: var(--font-display);
+  font-size: 92px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: var(--shadow-text);
+}
+
+.position {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--accent);
+  text-shadow: var(--shadow-text);
+}
+
+.fallbackName {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: var(--shadow-text);
+}
+
+.plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 280px;
+  margin-top: 4px;
+  padding: 8px 22px 10px;
+  border-bottom: 4px solid var(--accent);
+  background: rgba(8, 12, 18, 0.86);
+}
+
+.plate b {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 30px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.plate span {
+  font-family: var(--font-ui);
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateX(120px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes leave {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(80px) scale(0.92);
+  }
+}

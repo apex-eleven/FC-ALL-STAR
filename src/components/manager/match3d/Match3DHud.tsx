@@ -3,6 +3,7 @@ import { ArrowRightLeft, LogOut, Menu, MoveHorizontal, Pause, Play, Volume2, Vol
 import { SPEEDS } from '@/features/manager/constants';
 import { MAX_SUBS, type MatchEngine, type Tactic } from '@/features/manager/matchEngine';
 import { isMatchSoundMuted, setMatchSoundMuted } from './MatchAudio';
+import GoalScorerCard from './GoalScorerCard';
 import styles from './Match3DHud.module.css';
 
 /**
@@ -12,7 +13,8 @@ import styles from './Match3DHud.module.css';
  *   top left   — the scoreboard: both managers' profile pictures, three-letter team
  *                codes and the score on one light plate, and the clock in its green chip;
  *   top right  — the formation bar (it opens the tactics), substitutions, and the menu
- *                that holds speed, pause, sound and leaving.
+ *                that holds speed, pause, sound and leaving;
+ *   after a goal — the scorer's card (GoalScorerCard), the restart held until it is seen.
  *
  * The minimap and the ball-carrier bar are drawn by Match3DStage, which has the
  * positions every frame.
@@ -116,6 +118,9 @@ export default function Match3DHud({
 
   return (
     <div className={styles.hud}>
+      {/* ---- the scorer's card after a goal (holds the restart until it has been seen) ---- */}
+      <GoalScorerCard engine={engine} paused={paused} onPause={onPause} />
+
       {/* ---- scoreboard ---- */}
       <div className={styles.scoreboard}>
         <span className={`${styles.badge} ${styles.badgeHome}`}>
