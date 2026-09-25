@@ -10,7 +10,7 @@ import {
 import { CONFIG_CHANGED_EVENT } from '@/features/backup/backup';
 import type { OwnedIndex, Squad } from '@/features/squad/types';
 import { usePlayers } from '@/features/players/PlayerContext';
-import { cardToPlayer } from '@/features/draft/pool';
+import { refOf } from '@/features/club/identity';
 import { bonusOf, slotStatuses, teamRating, type MemberLookup } from './badges';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './badgeConfigStore';
 import { defaultBadges } from './constants';
@@ -56,14 +56,7 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => replace(defaultBadges()), [replace]);
 
   const { byId } = usePlayers();
-  const memberOf = useCallback<MemberLookup>(
-    (cardId) => {
-      const card = byId(cardId);
-      if (!card) return undefined;
-      return { code: card.code, name: card.name, portrait: cardToPlayer(card).portrait };
-    },
-    [byId],
-  );
+  const memberOf = useCallback<MemberLookup>((cardId) => refOf(byId(cardId)), [byId]);
 
   const value = useMemo<BadgeValue>(
     () => ({

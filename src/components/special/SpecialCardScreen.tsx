@@ -74,10 +74,10 @@ export default function SpecialCardScreen() {
   };
 
   const special = offer ? byId(offer.cardId) : undefined;
-  const slots = offer ? slotsOf(offer, players) : [];
-  const filled = offer ? filledCount(offer, players) : 0;
+  const slots = offer ? slotsOf(offer, players, byId) : [];
+  const filled = offer ? filledCount(offer, players, byId) : 0;
   const bought = offer ? isBought(progress, offer) : false;
-  const blocked = offer ? refuse(config, offer, account) : 'closed';
+  const blocked = offer ? refuse(config, offer, account, byId) : 'closed';
 
   function purchase() {
     if (!offer) return;
@@ -123,7 +123,7 @@ export default function SpecialCardScreen() {
               const card = byId(entry.cardId);
               const art = artOf(entry.cardId);
               const done = isBought(progress, entry);
-              const count = filledCount(entry, players);
+              const count = filledCount(entry, players, byId);
               return (
                 <button
                   type="button"

@@ -1,4 +1,5 @@
 import type { Account } from '@/features/auth/types';
+import { isSameCard, keyOf, refOf } from '@/features/club/identity';
 import type { OwnedPlayer } from '@/features/club/types';
 import { appendEntry, debit } from '@/features/currencies/wallet';
 import { deliverRewards, type CardLookup, type ShopStamp } from '@/features/shop/shop';
@@ -27,32 +28,41 @@ export function isComplete(offer: SpecialOffer): boolean {
   return offer.requiredIds.length === REQUIRED_CARDS && offer.cardId !== '';
 }
 
-/** Catalogue ids the club holds at least one copy of. */
-export function ownedCatalogueIds(players: readonly OwnedPlayer[]): Set<string> {
-  return new Set(players.map((card) => card.playerId));
-}
+const noLookup: CardLookup = () => undefined;
 
 /**
  * Each of the offer's eleven slots, in order: the catalogue id it asks for and the
  * club's copy that fills it (the highest plus, so the slot shows the player's best),
  * or null while the club has none.
+ *
+ * A copy counts by `isSameCard`, not by catalogue id alone: a card pulled before the
+ * admin deleted and re-added that player still has the old id, and must still count.
+ * Pass the catalogue lookup — without it only exact ids match.
  */
 export function slotsOf(
   offer: SpecialOffer,
   players: readonly OwnedPlayer[],
+  lookup: CardLookup = noLookup,
 ): { cardId: string; owned: OwnedPlayer | null }[] {
-  const best = new Map<string, OwnedPlayer>();
-  for (const card of players) {
-    const held = best.get(card.playerId);
-    if (!held || (card.plus ?? 0) > (held.plus ?? 0)) best.set(card.playerId, card);
-  }
-  return offer.requiredIds.map((cardId) => ({ cardId, owned: best.get(cardId) ?? null }));
+  const keyed = players.map((card) => ({ card, key: keyOf(card) }));
+  return offer.requiredIds.map((cardId) => {
+    const ref = refOf(lookup(cardId));
+    let best: OwnedPlayer | null = null;
+    for (const { card, key } of keyed) {
+      if (!isSameCard(cardId, ref, key)) continue;
+      if (!best || (card.plus ?? 0) > (best.plus ?? 0)) best = card;
+    }
+    return { cardId, owned: best };
+  });
 }
 
 /** How many of the eleven the club holds. */
-export function filledCount(offer: SpecialOffer, players: readonly OwnedPlayer[]): number {
-  const owned = ownedCatalogueIds(players);
-  return offer.requiredIds.filter((id) => owned.has(id)).length;
+export function filledCount(
+  offer: SpecialOffer,
+  players: readonly OwnedPlayer[],
+  lookup: CardLookup = noLookup,
+): number {
+  return slotsOf(offer, players, lookup).filter((slot) => slot.owned !== null).length;
 }
 
 /** Why this account cannot buy the offer right now, or null when it can. */
@@ -60,12 +70,13 @@ export function refuse(
   config: SpecialConfig,
   offer: SpecialOffer,
   account: Pick<Account, 'special' | 'club' | 'wallet'>,
+  lookup: CardLookup = noLookup,
 ): SpecialError | null {
   if (!config.enabled) return 'closed';
   if (!offer.enabled) return 'disabled';
   if (!isComplete(offer)) return 'unset';
   if (isBought(progressOf(account), offer)) return 'bought';
-  if (filledCount(offer, account.club.players) < REQUIRED_CARDS) return 'locked';
+  if (filledCount(offer, account.club.players, lookup) < REQUIRED_CARDS) return 'locked';
   if (account.wallet.special < offer.price) return 'insufficient-funds';
   return null;
 }
@@ -97,7 +108,7 @@ export function buy(account: Account, input: BuyInput): BuyOutcome {
   const offer = config.offers.find((entry) => entry.id === offerId) ?? null;
   if (!offer) return failed(account, 'disabled', null);
 
-  const refused = refuse(config, offer, account);
+  const refused = refuse(config, offer, account, lookup);
   if (refused) return failed(account, refused, offer);
   // The card for sale must still exist in the catalogue.
   if (!lookup(offer.cardId)) return failed(account, 'card-missing', offer);
