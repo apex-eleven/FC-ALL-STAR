@@ -18,13 +18,15 @@ export interface CardRef {
   /** Card number the admin assigned (`PlayerCard.code`), '' when none yet. */
   code: string;
   name: string;
+  /** Printed OVR, without rank-up. */
+  rating: number;
   /** Art URL as `cardToPlayer` builds it. */
   portrait: string;
 }
 
 export function refOf(card: PlayerCard | undefined): CardRef | undefined {
   if (!card) return undefined;
-  return { code: card.code, name: card.name, portrait: cardToPlayer(card).portrait };
+  return { code: card.code, name: card.name, rating: card.rating, portrait: cardToPlayer(card).portrait };
 }
 
 /** Same identity rule the squad uses to refuse two cards of one player on the pitch. */
@@ -58,14 +60,19 @@ export interface OwnedKey {
   playerId: string;
   code: string;
   name: string;
+  /** Printed OVR (`OwnedPlayer.rating` never includes the rank-up bonus). */
+  rating: number;
   art: string;
 }
 
-export function keyOf(card: Pick<OwnedPlayer, 'playerId' | 'name' | 'portrait' | 'code'>): OwnedKey {
+export function keyOf(
+  card: Pick<OwnedPlayer, 'playerId' | 'name' | 'rating' | 'portrait' | 'code'>,
+): OwnedKey {
   return {
     playerId: card.playerId,
     code: card.code ?? '',
     name: card.name ? nameKey(card.name) : '',
+    rating: card.rating,
     art: artKey(card.portrait ?? ''),
   };
 }
@@ -74,26 +81,32 @@ export function keyOf(card: Pick<OwnedPlayer, 'playerId' | 'name' | 'portrait' |
  * Whether an owned card is the catalogue card `cardId`.
  *
  * 1. Same catalogue id — always the right card.
- * 2. Both carry a card number — the number decides, and nothing else. This is what
- *    tells two cards of one player apart (a 90 and a 122 MBAPPE are different cards).
+ * 2. Both carry a card number — the number decides, and nothing else.
  * 3. Either side has no number yet (cards made or pulled before numbers existed) —
- *    fall back to the same player name or the same art file.
+ *    the same *card*, not merely the same player: the same OVR, and the same art file
+ *    (or, only when either side has no real art, the same name). A player's name alone
+ *    is never enough — a MESSI 117 from fusion is not the MESSI 122 an offer asks for.
  */
 export function isSameCard(cardId: string, ref: CardRef | undefined, owned: OwnedKey): boolean {
   if (owned.playerId === cardId) return true;
   if (!ref) return false;
   if (ref.code && owned.code) return ref.code === owned.code;
-  if (ref.name && owned.name === nameKey(ref.name)) return true;
+  if (ref.rating !== owned.rating) return false;
   const art = artKey(ref.portrait);
-  return art !== '' && owned.art === art;
+  if (art !== '' && owned.art !== '') return art === owned.art;
+  return ref.name !== '' && owned.name === nameKey(ref.name);
 }
 
 /**
  * A key under which two catalogue entries count as one card: the number when there
- * is one, else the name, else the id itself.
+ * is one, else OVR + art (or OVR + name without art), else the id itself. Mirrors
+ * `isSameCard`, so two versions of one player are never folded together.
  */
 export function groupKey(cardId: string, ref: CardRef | undefined): string {
-  if (ref?.code) return `c:${ref.code}`;
-  if (ref?.name) return `n:${nameKey(ref.name)}`;
+  if (!ref) return `i:${cardId}`;
+  if (ref.code) return `c:${ref.code}`;
+  const art = artKey(ref.portrait);
+  if (art) return `a:${ref.rating}:${art}`;
+  if (ref.name) return `n:${ref.rating}:${nameKey(ref.name)}`;
   return `i:${cardId}`;
 }

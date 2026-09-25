@@ -1,5 +1,6 @@
 import type { Account } from '@/features/auth/types';
 import { isSameCard, keyOf, refOf } from '@/features/club/identity';
+import { syncOwned } from '@/features/club/sync';
 import type { OwnedPlayer } from '@/features/club/types';
 import { appendEntry, debit } from '@/features/currencies/wallet';
 import { deliverRewards, type CardLookup, type ShopStamp } from '@/features/shop/shop';
@@ -76,7 +77,10 @@ export function refuse(
   if (!offer.enabled) return 'disabled';
   if (!isComplete(offer)) return 'unset';
   if (isBought(progressOf(account), offer)) return 'bought';
-  if (filledCount(offer, account.club.players, lookup) < REQUIRED_CARDS) return 'locked';
+  // Synced like the screen does, so the buy check sees the same card numbers, names
+  // and ratings the player sees and the two can never disagree.
+  const players = syncOwned(account.club.players, lookup);
+  if (filledCount(offer, players, lookup) < REQUIRED_CARDS) return 'locked';
   if (account.wallet.special < offer.price) return 'insufficient-funds';
   return null;
 }

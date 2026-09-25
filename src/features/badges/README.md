@@ -18,12 +18,13 @@ badges/
   `equipped()` resolves them against the live config on every read, so a crest the
   admin deletes or disables simply reads as an empty slot.
 - **Active = enough of the set on the pitch.** Only the starting eleven counts. A
-  set member is matched by, in order: the exact catalogue id; the **card number**
-  (`PlayerCard.code`, typed by the admin, stamped on owned cards at pull time) — when
-  both sides have one it alone decides, so a 90 and a 122 of the same player are
-  different cards; and only when either side has no number yet, the same player name
-  or art file. Any rank-up level qualifies. `need` = 0 means the whole set. Two set
-  entries sharing a number count as one member.
+  set member is matched by `isSameCard` (features/club/identity.ts), shared with the
+  special-card offers: the exact catalogue id; else the **card number**
+  (`PlayerCard.code`) — when both sides have one it alone decides; else, only when
+  either side has no number yet, the same OVR **and** the same art file (the name
+  stands in for art only when a side has no real art). A player's name alone never
+  matches — two versions of one player are different cards. Any rank-up level
+  qualifies. `need` = 0 means the whole set.
 - **One rating everywhere.** `teamRating` = `squadRating` + active bonuses. The home
   tile, club panel, league and manager mode all read it through `useBadges().ratingOf`,
   never `squadRating` directly.
