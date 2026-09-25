@@ -40,5 +40,6 @@ export const bottomNavItems: BottomNavItem[] = [
   { id: 'nav-cup', label: 'ถ้วยรางวัล', icon: 'cup' },
   { id: 'nav-contracts', label: 'การเซ็นสัญญา', icon: 'contracts' },
   { id: 'nav-rankup', label: 'ตีบวกการ์ด', icon: 'rankup' },
+  { id: 'nav-special', label: 'การ์ดพิเศษ', icon: 'special' },
   { id: 'nav-store', label: 'ร้านค้า', icon: 'store', active: true },
 ];

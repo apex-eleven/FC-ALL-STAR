@@ -1,6 +1,7 @@
 import {
   ChevronsUp,
   Crosshair,
+  Gem,
   ShoppingCart,
   Trophy,
   UserPlus,
@@ -11,6 +12,7 @@ import { useCup } from '@/features/cup/CupContext';
 import { useMissions } from '@/features/missions/MissionContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { useRankUp } from '@/features/rankup/RankUpContext';
+import { useSpecial } from '@/features/special/SpecialContext';
 import { useTransfer } from '@/features/transfers/TransferContext';
 import type { BottomNavIcon } from '@/features/navigation/types';
 import styles from './BottomNavigation.module.css';
@@ -21,6 +23,7 @@ const ICONS: Record<BottomNavIcon, typeof Crosshair> = {
   cup: Trophy,
   contracts: UserPlus,
   rankup: ChevronsUp,
+  special: Gem,
   store: ShoppingCart,
 };
 
@@ -30,6 +33,7 @@ export default function BottomNavigation() {
   const { config: transfer } = useTransfer();
   const { config: missions } = useMissions();
   const { config: cup } = useCup();
+  const { config: special } = useSpecial();
 
   /**
    * Which tabs actually go somewhere.
@@ -41,6 +45,7 @@ export default function BottomNavigation() {
     ...(missions.enabled ? { missions: () => navigate('missions') } : {}),
     ...(cup.enabled ? { cup: () => navigate('cup') } : {}),
     ...(rankup.enabled ? { rankup: () => navigate('rankup') } : {}),
+    ...(special.enabled ? { special: () => navigate('special') } : {}),
     ...(transfer.enabled ? { contracts: () => navigate('transfer') } : {}),
     store: () => navigate('shop'),
   };

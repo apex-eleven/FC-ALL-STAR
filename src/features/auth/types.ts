@@ -13,6 +13,7 @@ import type { Inventory } from '@/features/items/types';
 import type { FusionState } from '@/features/fusion/types';
 import type { GachaState } from '@/features/gacha/types';
 import type { RedeemProgress } from '@/features/redeem/types';
+import type { SpecialProgress } from '@/features/special/types';
 import type { InboxProgress } from '@/features/notifications/types';
 import type { DailyLoginProgress } from '@/features/dailylogin/types';
 import type { ShareProgress } from '@/features/share/types';
@@ -81,6 +82,8 @@ export interface Account extends Entity {
   fusion?: FusionState;
   /** Redeem codes this account has used, keyed by code id. Absent until the first one. */
   redeem?: RedeemProgress;
+  /** Special-card offers this account has bought, keyed by offer id. Absent until the first one. */
+  special?: SpecialProgress;
   /** Mails opened, collected and deleted. Absent until the first mail is opened. */
   inbox?: InboxProgress;
   /** Daily login calendar: this run's claimed days and the streak. Absent until the first claim. */

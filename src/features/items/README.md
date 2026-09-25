@@ -40,6 +40,6 @@ mutator that runs twice gives the same result both times.
 ## Special Point
 
 Not an item: a currency (`special`) on the wallet, granted from the admin wallet
-tab or any reward list, shown on the bag screen. Nothing spends it yet.
+tab or any reward list, shown on the bag screen. It is spent on special cards (การ์ดพิเศษ, `features/special`): own the eleven cards an offer names, then buy its card with Special Point.
 
 Rules: this folder must not import from `src/components/`. See CLAUDE.md.

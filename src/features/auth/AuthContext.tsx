@@ -24,6 +24,7 @@ import { normalizeDisplayName, normalizeInventory } from '@/features/items/items
 import { normalizeState as normalizeFusion } from '@/features/fusion/fusionConfigStore';
 import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigStore';
 import { normalizeProgress as normalizeRedeem } from '@/features/redeem/redeemConfigStore';
+import { normalizeProgress as normalizeSpecial } from '@/features/special/specialConfigStore';
 import { normalizeProgress as normalizeInbox } from '@/features/notifications/inboxConfigStore';
 import { normalizeProgress as normalizeLogin } from '@/features/dailylogin/dailyloginConfigStore';
 import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/leveling';
@@ -144,6 +145,7 @@ function toPublic(stored: StoredAccount): Account {
     ...(account.gacha === undefined ? {} : { gacha: normalizeGacha(account.gacha) }),
     ...(account.fusion === undefined ? {} : { fusion: normalizeFusion(account.fusion) }),
     ...(account.redeem === undefined ? {} : { redeem: normalizeRedeem(account.redeem) }),
+    ...(account.special === undefined ? {} : { special: normalizeSpecial(account.special) }),
     ...(account.inbox === undefined ? {} : { inbox: normalizeInbox(account.inbox) }),
     ...(account.login === undefined ? {} : { login: normalizeLogin(account.login) }),
     ...(normalizeDisplayName(account.displayName) === undefined

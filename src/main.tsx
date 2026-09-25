@@ -12,6 +12,7 @@ import { ItemsProvider } from '@/features/items/ItemsContext';
 import { GachaProvider } from '@/features/gacha/GachaContext';
 import { FusionProvider } from '@/features/fusion/FusionContext';
 import { RedeemProvider } from '@/features/redeem/RedeemContext';
+import { SpecialProvider } from '@/features/special/SpecialContext';
 import { InboxProvider } from '@/features/notifications/InboxContext';
 import { DailyLoginProvider } from '@/features/dailylogin/DailyLoginContext';
 import { DraftProvider } from '@/features/draft/DraftContext';
@@ -60,6 +61,7 @@ function render() {
                   <StarPassProvider>
                     <GachaProvider>
                       <RedeemProvider>
+                      <SpecialProvider>
                         <InboxProvider>
                           <DailyLoginProvider>
                             <ItemsProvider>
@@ -90,6 +92,7 @@ function render() {
                             </ItemsProvider>
                           </DailyLoginProvider>
                         </InboxProvider>
+                      </SpecialProvider>
                       </RedeemProvider>
                     </GachaProvider>
                   </StarPassProvider>

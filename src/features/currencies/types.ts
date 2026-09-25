@@ -60,7 +60,9 @@ export type WalletReason =
   /** A day claimed on the daily login calendar. */
   | 'login'
   /** The once-a-day reward for sharing the team to Facebook. */
-  | 'share';
+  | 'share'
+  /** Special Point spent on a special card (การ์ดพิเศษ). */
+  | 'special';
 
 export interface WalletEntry extends Entity {
   kind: CurrencyKind;

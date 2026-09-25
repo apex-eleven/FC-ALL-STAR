@@ -31,6 +31,7 @@ import { normalizeDisplayName, normalizeInventory } from '@/features/items/items
 import { normalizeState as normalizeFusion } from '@/features/fusion/fusionConfigStore';
 import { normalizeState as normalizeGacha } from '@/features/gacha/gachaConfigStore';
 import { normalizeProgress as normalizeRedeem } from '@/features/redeem/redeemConfigStore';
+import { normalizeProgress as normalizeSpecial } from '@/features/special/specialConfigStore';
 import { normalizeProgress as normalizeInbox } from '@/features/notifications/inboxConfigStore';
 import { normalizeProgress as normalizeLogin } from '@/features/dailylogin/dailyloginConfigStore';
 import { normalizeShareProgress as normalizeShare } from '@/features/share/share';
@@ -111,6 +112,7 @@ function toAccount(uid: string, raw: Record<string, unknown>): Account {
     gacha: data.gacha === undefined ? undefined : normalizeGacha(data.gacha),
     fusion: data.fusion === undefined ? undefined : normalizeFusion(data.fusion),
     redeem: data.redeem === undefined ? undefined : normalizeRedeem(data.redeem),
+    special: data.special === undefined ? undefined : normalizeSpecial(data.special),
     inbox: data.inbox === undefined ? undefined : normalizeInbox(data.inbox),
     login: data.login === undefined ? undefined : normalizeLogin(data.login),
     share: data.share === undefined ? undefined : normalizeShare(data.share),

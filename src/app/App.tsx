@@ -19,6 +19,7 @@ import GachaScreen from '@/components/gacha/GachaScreen';
 import FusionScreen from '@/components/fusion/FusionScreen';
 import RedeemScreen from '@/components/redeem/RedeemScreen';
 import InboxScreen from '@/components/inbox/InboxScreen';
+import SpecialCardScreen from '@/components/special/SpecialCardScreen';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import HomePage from './HomePage';
@@ -135,6 +136,12 @@ export default function App() {
     screen = (
       <Stage>
         <InboxScreen />
+      </Stage>
+    );
+  } else if (route === 'special') {
+    screen = (
+      <Stage>
+        <SpecialCardScreen />
       </Stage>
     );
   } else if (route === 'club') {

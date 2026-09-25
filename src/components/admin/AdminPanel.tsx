@@ -33,6 +33,7 @@ import AdminGacha from './AdminGacha';
 import AdminFusion from './AdminFusion';
 import AdminSaveErrors from './AdminSaveErrors';
 import AdminRedeem from './AdminRedeem';
+import AdminSpecial from './AdminSpecial';
 import AdminInbox from './AdminInbox';
 import AdminDailyLogin from './AdminDailyLogin';
 import AdminBadges from './AdminBadges';
@@ -58,6 +59,7 @@ type Tab =
   | 'rates'
   | 'cup'
   | 'rankup'
+  | 'special'
   | 'transfer'
   | 'shop'
   | 'manager'
@@ -86,6 +88,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'rates', label: 'อัตราสุ่ม' },
   { id: 'cup', label: 'ถ้วยรางวัล' },
   { id: 'rankup', label: 'ตีบวกการ์ด' },
+  { id: 'special', label: 'การ์ดพิเศษ' },
   { id: 'transfer', label: 'เซ็นสัญญา' },
   { id: 'shop', label: 'ร้านค้าไอเท็ม' },
   { id: 'manager', label: 'เมเนเจอร์โหมด' },
@@ -273,6 +276,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'rates' && <AdminDraftRates />}
         {tab === 'cup' && <AdminCup />}
         {tab === 'rankup' && <AdminRankUp />}
+        {tab === 'special' && <AdminSpecial />}
         {tab === 'transfer' && <AdminTransfer />}
         {tab === 'shop' && <AdminShop />}
         {tab === 'manager' && <AdminManager />}
