@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { goldPlusProps } from '@/features/rankup/constants';
+import { goldNameProps, goldPlusProps } from '@/features/rankup/constants';
 import { X } from 'lucide-react';
 import type { OwnedPlayer } from '@/features/club/types';
 import { PLAYER_SETS, type PlayerSet } from '@/features/draft/types';
@@ -140,7 +140,9 @@ export default function CardPicker({
                 {/* Shown in every mode, not just the XI filter — it is the warning
                     that matters most when picking a card to burn as material. */}
                 {starter && <span className={styles.xi}>XI</span>}
-                <span className={styles.cellName}>{card.name}</span>
+                <span className={styles.cellName} {...goldNameProps(card.plus)}>
+                  {card.name}
+                </span>
                 <span className={styles.cellMeta}>
                   {ratingWithPlus(card)} · {card.position}
                   {plus > 0 && (

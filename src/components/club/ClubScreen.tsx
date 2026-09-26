@@ -207,6 +207,7 @@ export default function ClubScreen() {
           rating: player.rating,
           plus: player.plus ?? 0,
           portrait: player.portrait,
+          ...(player.oneOfOne?.length ? { oneOfOne: player.oneOfOne } : {}),
         },
       ];
     });

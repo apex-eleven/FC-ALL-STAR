@@ -37,6 +37,12 @@ export interface OwnedPlayer extends Entity {
    * re-added under a new id. Absent on cards pulled before numbers existed.
    */
   code?: string;
+  /**
+   * 1 OF 1: the plus levels (9 and/or 10) at which this copy was the first of its
+   * card anywhere on the server — claimed once, at the moment of the rank-up, and
+   * never taken back (see features/rankup/oneOfOne.ts). Absent on everything else.
+   */
+  oneOfOne?: number[];
 }
 
 export interface Club {
@@ -58,4 +64,6 @@ export interface DisplayCard {
   position: string;
   portrait: string;
   plus?: number;
+  /** See `OwnedPlayer.oneOfOne`. Drawn as the gold 1 OF 1 plate. */
+  oneOfOne?: number[];
 }

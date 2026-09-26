@@ -15,6 +15,8 @@ export interface LeaderboardCard {
   rating: number;
   plus: number;
   portrait: string;
+  /** 1 OF 1 levels, when the card holds any — so other players see the plate too. */
+  oneOfOne?: number[];
 }
 
 /**

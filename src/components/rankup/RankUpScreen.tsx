@@ -3,6 +3,7 @@ import { ChevronRight, Plus } from 'lucide-react';
 import { ASSETS } from '@/assets/assetMap';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount, useAuth } from '@/features/auth/AuthContext';
+import { displayNameOf } from '@/features/auth/constants';
 import { syncOwned } from '@/features/club/sync';
 import type { OwnedPlayer } from '@/features/club/types';
 import { formatCurrency } from '@/features/currencies/constants';
@@ -10,8 +11,15 @@ import { useWallet } from '@/features/currencies/useWallet';
 import { useMissions } from '@/features/missions/MissionContext';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { usePlayers } from '@/features/players/PlayerContext';
-import { MAX_PLUS, plusTone } from '@/features/rankup/constants';
+import { MAX_PLUS, goldNameProps, plusTone } from '@/features/rankup/constants';
 import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
+import { claimOneOfOne } from '@/features/rankup/claimOneOfOne';
+import {
+  isOneOfOneLevel,
+  oneOfOneKey,
+  withOneOfOne,
+  type OneOfOneRecord,
+} from '@/features/rankup/oneOfOne';
 import { useRankUp } from '@/features/rankup/RankUpContext';
 import { FAIL_LABEL, attempt, checkReady, isMaterial } from '@/features/rankup/rankup';
 import type { RankUpOutcome } from '@/features/rankup/types';
@@ -20,7 +28,7 @@ import { isInSquad, removeFromSquad } from '@/features/squad/squad';
 import SquadCard from '@/components/club/SquadCard';
 import CardPicker from './CardPicker';
 import RankFrame from './RankFrame';
-import RankUpResult from './RankUpResult';
+import RankUpResult, { type OneOfOneState } from './RankUpResult';
 import styles from './RankUpScreen.module.css';
 
 /**
@@ -56,6 +64,10 @@ export default function RankUpScreen() {
   const [picking, setPicking] = useState<Picking | null>(null);
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState<{ outcome: RankUpOutcome; card: OwnedPlayer } | null>(null);
+  // The 1 OF 1 claim for the try on screen. Settled after the result opens: the
+  // register may be a network away, and the player should not wait on it to see
+  // whether the rank-up itself landed.
+  const [oneOfOne, setOneOfOne] = useState<OneOfOneState>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   // Cleared on unmount so a roll that is still pending cannot write to a screen the
@@ -193,6 +205,37 @@ export default function RankUpScreen() {
       setRolling(false);
       setResult({ outcome, card: snapshot });
       play(outcome.success ? 'tear' : 'error');
+
+      if (outcome.success && isOneOfOneLevel(outcome.to)) {
+        setOneOfOne('checking');
+        const record: OneOfOneRecord = {
+          key: oneOfOneKey(snapshot, outcome.to),
+          level: outcome.to,
+          uid: account.id,
+          username: displayNameOf(account),
+          cardId: snapshot.id,
+          playerId: snapshot.playerId,
+          code: snapshot.code ?? '',
+          name: snapshot.name,
+          at: new Date().toISOString(),
+        };
+        void claimOneOfOne(record).then((claimed) => {
+          if (claimed === 'won') {
+            // Written to the copy only if it is still in the club — it cannot have
+            // been used as material in the second or so the claim took, but a save
+            // restored from another device might not have it.
+            updateAccount((current) =>
+              current.club.players.some((card) => card.id === snapshot.id)
+                ? { ...current, club: { players: withOneOfOne(current.club.players, snapshot.id, outcome.to) } }
+                : current,
+            );
+            play('tear');
+          }
+          setOneOfOne(claimed);
+        });
+      } else {
+        setOneOfOne(null);
+      }
     }, ROLL_MS);
   }
 
@@ -288,7 +331,9 @@ export default function RankUpScreen() {
                 <span className={styles.targetRating}>{ratingWithPlus(target)}</span>
                 <span className={styles.targetPosition}>{target.position}</span>
               </span>
-              <span className={styles.targetName}>{target.name}</span>
+              <span className={styles.targetName} {...goldNameProps(target.plus)}>
+                {target.name}
+              </span>
             </>
           ) : (
             <span className={styles.emptyTarget}>
@@ -457,6 +502,7 @@ export default function RankUpScreen() {
         <RankUpResult
           outcome={result.outcome}
           card={result.card}
+          oneOfOne={oneOfOne}
           onClose={() => setResult(null)}
         />
       )}

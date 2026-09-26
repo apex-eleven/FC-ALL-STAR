@@ -105,4 +105,5 @@ export const PATHS = {
   gachaFeed: 'gachaFeed',
   saveErrors: 'saveErrors',
   chat: 'chat',
+  oneOfOne: 'oneOfOne',
 } as const;

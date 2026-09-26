@@ -1,3 +1,4 @@
+import { normalizeOneOfOne } from '@/features/rankup/oneOfOne';
 import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
 import { CLUB_CAPACITY, SQUAD_SIZE } from './constants';
 import type { Club, OwnedPlayer } from './types';
@@ -31,7 +32,15 @@ export function normalizeClub(value: unknown): Club {
   const players = source.players
     .filter(isOwnedPlayer)
     .slice(0, CLUB_CAPACITY)
-    .map((player) => (player.plus === undefined ? player : { ...player, plus: clampPlus(player.plus) }));
+    .map((player) => (player.plus === undefined ? player : { ...player, plus: clampPlus(player.plus) }))
+    // The 1 OF 1 title is a claim on a shared register; a hand-edited one is dropped
+    // down to levels that can carry a title, and dropped entirely if none are left.
+    .map((player) => {
+      if (player.oneOfOne === undefined) return player;
+      const { oneOfOne, ...rest } = player;
+      const levels = normalizeOneOfOne(oneOfOne);
+      return levels ? { ...rest, oneOfOne: levels } : rest;
+    });
 
   return { players };
 }

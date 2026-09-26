@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { goldPlusProps } from '@/features/rankup/constants';
+import { goldNameProps, goldPlusProps } from '@/features/rankup/constants';
 import { Check, ChevronLeft, Home, Search } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
@@ -201,7 +201,9 @@ export default function BagScreen() {
                       +{card.plus}
                     </span>
                   )}
-                  <span className={styles.cardName}>{card.name}</span>
+                  <span className={styles.cardName} {...goldNameProps(card.plus)}>
+                    {card.name}
+                  </span>
                 </button>
               ))}
             </div>

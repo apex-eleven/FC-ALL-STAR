@@ -150,3 +150,18 @@ button {
     0 0 12px rgba(255, 196, 50, 0.8),
     inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
 }
+
+/*
+  A +9/+10 card's name, in gold. Text filled with the same metallic gradient as the
+  badge, with a warm glow so it still reads on the dark pitch. Spread with
+  `goldNameProps(plus)`.
+*/
+[data-name-gold] {
+  background: linear-gradient(180deg, #fff6c9 0%, #ffd964 45%, #d49a1f 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none !important;
+  filter: drop-shadow(0 0 6px rgba(255, 196, 50, 0.85)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9));
+}

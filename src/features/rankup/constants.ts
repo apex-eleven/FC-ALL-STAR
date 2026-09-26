@@ -23,6 +23,14 @@ export function goldPlusProps(plus: number): { 'data-plus-gold'?: '' } {
   return isGoldPlus(plus) ? { 'data-plus-gold': '' } : {};
 }
 
+/**
+ * The same, for a card's name: a +9/+10 card's name is written in gold wherever a
+ * name is printed beside the card (`[data-name-gold]` in globals.css).
+ */
+export function goldNameProps(plus: number | undefined): { 'data-name-gold'?: '' } {
+  return isGoldPlus(plus ?? 0) ? { 'data-name-gold': '' } : {};
+}
+
 /** Guard rails for the admin inputs. Hand-edited storage is clamped to these too. */
 export const MAX_MATERIALS = 8;
 export const MAX_COST = 100_000_000;

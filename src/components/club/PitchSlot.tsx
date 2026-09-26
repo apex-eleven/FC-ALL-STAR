@@ -1,5 +1,6 @@
 import type { PointerEvent } from 'react';
 import type { DisplayCard } from '@/features/club/types';
+import { goldNameProps } from '@/features/rankup/constants';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
 import { effectiveRating, positionPenalty } from '@/features/squad/rating';
 import type { FormationSlot } from '@/features/squad/types';
@@ -68,7 +69,11 @@ export default function PitchSlot({
           too, but at this size it is a few pixels tall and unreadable — this is the
           line you actually read when scanning the eleven. */}
       <span className={styles.caption}>
-        {player && <span className={styles.name}>{player.name}</span>}
+        {player && (
+          <span className={styles.name} {...goldNameProps(player.plus)}>
+            {player.name}
+          </span>
+        )}
         <span className={styles.tag}>{slot.position}</span>
       </span>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { goldNameProps } from '@/features/rankup/constants';
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -298,7 +299,9 @@ export default function FusionScreen() {
                   </span>
                   <span className={`${styles.face} ${styles.faceFront}`}>
                     <img className={styles.slotArt} src={detail.icon} alt="" />
-                    <span className={styles.slotName}>{pick.name}</span>
+                    <span className={styles.slotName} {...goldNameProps(pick.reward.kind === 'card' ? pick.reward.plus : 0)}>
+                      {pick.name}
+                    </span>
                     <span className={styles.slotCount}>{detail.count}</span>
                     <span className={styles.slotRarity}>{RARITY_LABEL[pick.rarity]}</span>
                     {mine ? <span className={styles.mineTag}>เก็บใบนี้</span> : null}

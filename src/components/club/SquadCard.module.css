@@ -105,3 +105,34 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
+
+/*
+  1 OF 1 plate, bottom left — on the plus badge's baseline, so the two read as a
+  pair ([1 OF 1] … [+9]). Not the top: the pitch puts its out-of-position rating
+  badge across the top edge, and it would sit right on top of the plate. Sized off the
+  card's own width (--card-w, set inline) so it reads the same on the bench, the pitch
+  and the big result card. Gold lettering on a black plate with a gold rim.
+*/
+.oneOfOne {
+  position: absolute;
+  left: 4%;
+  bottom: 4%;
+  z-index: 3;
+  padding: calc(var(--card-w) * 0.012) calc(var(--card-w) * 0.06);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, rgba(20, 14, 4, 0.95) 0%, rgba(0, 0, 0, 0.92) 100%);
+  border: 1px solid #f2c230;
+  box-shadow: 0 0 calc(var(--card-w) * 0.08) rgba(255, 196, 50, 0.7);
+  font-family: var(--font-display);
+  font-size: max(7px, calc(var(--card-w) * 0.1));
+  font-style: italic;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 0.06em;
+  color: #ffe38a;
+  text-shadow:
+    0 0 6px rgba(255, 196, 50, 0.9),
+    0 1px 0 #8a5a00;
+  white-space: nowrap;
+  pointer-events: none;
+}

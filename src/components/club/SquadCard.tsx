@@ -3,7 +3,8 @@ import type { DisplayCard } from '@/features/club/types';
 import { fxLevel } from '@/features/fx/fx';
 import { useStill } from '@/features/images/stills';
 import { playerThumbSrc } from '@/features/players/artManifest';
-import { goldPlusProps, plusTone } from '@/features/rankup/constants';
+import { goldNameProps, goldPlusProps, plusTone } from '@/features/rankup/constants';
+import { hasOneOfOne } from '@/features/rankup/oneOfOne';
 import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
 import styles from './SquadCard.module.css';
@@ -76,12 +77,12 @@ export default function SquadCard({
       className={`${styles.card} ${interactive ? styles.interactive : ''} ${
         dragging ? styles.dragging : ''
       }`}
-      style={{ width, height }}
+      style={{ width, height, '--card-w': `${width}px` } as CSSProperties}
       onPointerDown={onPointerDown}
       role={interactive ? 'button' : undefined}
       aria-label={`${player.name} ${ratingWithPlus(player)} ${player.position}${
         plus > 0 ? ` +${plus}` : ''
-      }`}
+      }${hasOneOfOne(player) ? ' 1 OF 1' : ''}`}
     >
       {/*
         A card whose art is missing used to render as an invisible <img> — the slot
@@ -106,7 +107,9 @@ export default function SquadCard({
         <span className={styles.fallback}>
           <span className={styles.fallbackRating}>{ratingWithPlus(player)}</span>
           <span className={styles.fallbackPosition}>{player.position}</span>
-          <span className={styles.fallbackName}>{player.name}</span>
+          <span className={styles.fallbackName} {...goldNameProps(player.plus)}>
+            {player.name}
+          </span>
         </span>
       )}
 
@@ -120,6 +123,16 @@ export default function SquadCard({
           {...goldPlusProps(plus)}
         >
           +{plus}
+        </span>
+      )}
+
+      {/* 1 OF 1: the first copy of this card on the server to reach +9 or +10. */}
+      {hasOneOfOne(player) && (
+        <span
+          className={styles.oneOfOne}
+          title={`1 OF 1 · ใบแรกของเซิร์ฟที่ตีติด ${player.oneOfOne!.map((level) => `+${level}`).join(' และ ')}`}
+        >
+          1 OF 1
         </span>
       )}
     </div>
