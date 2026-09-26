@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, RefreshCw, Shield, Trophy, Users } from 'lucide-react';
+import { ChevronDown, LayoutGrid, Plus, RefreshCw, Shield, Trophy, Users } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import type { BadgeStatus } from '@/features/badges/types';
 import { formatCurrency } from '@/features/currencies/constants';
@@ -23,6 +23,8 @@ export interface ClubPanelProps {
   onToggleCollection(): void;
   onOpenLeaderboard(): void;
   onBadgeClick(index: number): void;
+  /** Opens the formation picker. */
+  onFormationClick(): void;
 }
 
 export default function ClubPanel({
@@ -39,6 +41,7 @@ export default function ClubPanel({
   onToggleCollection,
   onOpenLeaderboard,
   onBadgeClick,
+  onFormationClick,
 }: ClubPanelProps) {
   return (
     <>
@@ -59,7 +62,17 @@ export default function ClubPanel({
 
         <div className={styles.divider} />
 
-        <p className={styles.formation}>{formationName}</p>
+        <button
+          type="button"
+          className={styles.formation}
+          onClick={onFormationClick}
+          title="เปลี่ยนแผนการเล่น"
+          aria-label={`แผนการเล่น ${formationName} — กดเพื่อเปลี่ยน`}
+        >
+          <LayoutGrid className={styles.formationIcon} size={22} strokeWidth={2.6} />
+          {formationName}
+          <ChevronDown className={styles.formationChevron} size={22} strokeWidth={2.8} />
+        </button>
         <div className={styles.value}>
           {/* Team value is counted in coins, so it gets the coin rather than the
               wallet's FC point icon. Drop-in art, with the old icon as the fallback. */}

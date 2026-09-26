@@ -23,6 +23,7 @@ import {
 import {
   autoBuild,
   canPlace,
+  changeFormation,
   formationOf,
   duplicateOf,
   indexOwned,
@@ -34,9 +35,10 @@ import {
 } from '@/features/squad/squad';
 import type { FormationSlot, PlacementCheck } from '@/features/squad/types';
 import { useCardDrag, type DropTarget } from '@/hooks/useCardDrag';
-import { CARD_WIDTH } from '@/features/squad/constants';
+import { CARD_WIDTH, FORMATIONS } from '@/features/squad/constants';
 import IconButton from '@/components/ui/IconButton';
 import BadgePicker from './BadgePicker';
+import FormationPicker from './FormationPicker';
 import ClubPanel from './ClubPanel';
 import PitchSlot from './PitchSlot';
 import BenchStrip from './BenchStrip';
@@ -69,6 +71,7 @@ export default function ClubScreen() {
   const [picking, setPicking] = useState<Picking | null>(null);
   // Which crest slot is open, or null.
   const [badgeSlot, setBadgeSlot] = useState<number | null>(null);
+  const [formationOpen, setFormationOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // A drag that ends on the slot it started from still fires a click. Without this
   // the picker would open every time a card was put back where it came from.
@@ -346,6 +349,7 @@ export default function ClubScreen() {
         onToggleCollection={() => setCollectionOpen((open) => !open)}
         onOpenLeaderboard={() => setLeaderboardOpen(true)}
         onBadgeClick={(index) => setBadgeSlot(index)}
+        onFormationClick={() => setFormationOpen(true)}
       />
 
       {formation.slots.map((slot) => {
@@ -441,6 +445,25 @@ export default function ClubScreen() {
         )}
 
       {toast && <div className={styles.toast}>{toast}</div>}
+
+      {formationOpen && (
+        <FormationPicker
+          current={squad.formation}
+          onPick={(id) => {
+            updateAccount((current) => ({
+              ...current,
+              squad: changeFormation(
+                current.squad,
+                id,
+                indexOwned(syncOwned(current.club.players, byId)),
+              ),
+            }));
+            setFormationOpen(false);
+            setToast(`เปลี่ยนแผนเป็น ${FORMATIONS[id].name}`);
+          }}
+          onClose={() => setFormationOpen(false)}
+        />
+      )}
 
       {badgeSlot !== null && (
         <BadgePicker

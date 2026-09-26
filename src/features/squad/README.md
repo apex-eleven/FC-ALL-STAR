@@ -5,7 +5,7 @@ The starting eleven and the bench.
 ```
 squad/
   types.ts      Squad, Formation, FormationSlot, PlacementCheck
-  constants.ts  4-3-3 slot coordinates, bench size, card size
+  constants.ts  every formation's slot coordinates + engine spots, bench size, card size
   squad.ts      PURE logic — placement, swapping, auto-build, rating, repair
 ```
 
@@ -120,11 +120,35 @@ exactly at any stage scale.
 Dropping outside every target removes the card from the squad — the whole screen is a
 remove target sitting behind all the others.
 
+## Formations
+
+28 of them (`FORMATION_LIST`), grouped by back line — four, three or five — and picked
+from the formation button in the club panel (`components/club/FormationPicker`).
+
+Each slot carries two positions: `x`/`y`/`scale` on the club stage, and `pitch`, the
+spot the match engine stands that player on (metres from his own goal, metres from
+the left touchline). The stage is a squeezed trapezoid beside a panel, so the two
+cannot be derived from each other exactly; `pitchSpot` takes a depth per position and
+the lane from the card's x. 4-3-3 Attack keeps the spots the engine was tuned on.
+
+Three-line formations use the original rows (y199 / 375 / 559 / 749). Four-line ones
+use a second grid (y186 / 334 / 430 / 590 / 760) with smaller cards up top and the two
+midfield rows staggered. Every formation is checked for overlapping cards and for
+cards outside the touchlines or under the panel.
+
+Switching (`changeFormation`) keeps the eleven and arranges them for the highest total
+effective rating in the new shape — an optimal assignment (Hungarian algorithm), not a
+greedy pass, which drifted: a greedy switch that once parked a midfielder at right back
+kept him there on every switch after. Ties go to the same slot id, then to the slot
+nearest across the pitch, so switching away and back returns the squad as it was.
+
+The engine plays whatever formation the squad is in; a published leaderboard eleven
+plays in the formation it was published in, and an unknown one falls back to 4-3-3
+Attack. Bots still line up in 4-3-3 Attack, exactly as before.
+
 ## Not done yet
 
-Other formations (`FORMATIONS` is a map, so adding one is data), the three crest slots
-under the team value, chemistry, position ratings for out-of-position players, and
-naming or saving multiple squads.
+Chemistry, and naming or saving multiple squads.
 
 ## Swap-screen stats (`stats.ts`)
 

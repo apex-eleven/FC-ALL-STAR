@@ -1,9 +1,17 @@
 import type { OwnedPlayer } from '@/features/club/types';
 import { ratingWithPlus } from '@/features/rankup/plus';
-import { BADGE_SLOTS, BENCH_SIZE, DEFAULT_FORMATION, FORMATIONS, STARTER_COUNT } from './constants';
+import {
+  BADGE_SLOTS,
+  BENCH_SIZE,
+  DEFAULT_FORMATION,
+  FORMATIONS,
+  STARTER_COUNT,
+  isFormationId,
+} from './constants';
 import { effectiveRating } from './rating';
 import type {
   Formation,
+  FormationId,
   OwnedIndex,
   PlacementCheck,
   Squad,
@@ -43,10 +51,7 @@ export function normalizeSquad(value: unknown, owned: OwnedIndex): Squad {
   if (typeof value !== 'object' || value === null) return base;
 
   const source = value as Partial<Squad>;
-  const formation =
-    typeof source.formation === 'string' && source.formation in FORMATIONS
-      ? (source.formation as Squad['formation'])
-      : DEFAULT_FORMATION;
+  const formation = isFormationId(source.formation) ? source.formation : DEFAULT_FORMATION;
 
   const seen = new Set<string>();
   const take = (id: unknown): string | null => {
@@ -364,4 +369,129 @@ export function isInSquad(squad: Squad, cardId: string): boolean {
   return (
     Object.values(squad.starters).includes(cardId) || squad.bench.includes(cardId)
   );
+}
+
+/**
+ * Maximum-weight assignment of rows to columns (Hungarian algorithm, O(n³)).
+ *
+ * `score` is square. Returns, for each row, the column it gets. Eleven slots is far
+ * too many to try every arrangement (10! for the outfield alone), and a greedy pass
+ * drifts: once it parks a midfielder at right back it keeps him there on every later
+ * switch. This finds the arrangement the whole eleven is best in, every time.
+ */
+function bestAssignment(score: number[][]): number[] {
+  const n = score.length;
+  const max = Math.max(0, ...score.flat());
+  // Minimise cost = max - score; potentials u/v, 1-indexed as in the textbook form.
+  const cost = (i: number, j: number) => max - score[i - 1]![j - 1]!;
+  const u = new Array<number>(n + 1).fill(0);
+  const v = new Array<number>(n + 1).fill(0);
+  const match = new Array<number>(n + 1).fill(0);
+  const way = new Array<number>(n + 1).fill(0);
+
+  for (let i = 1; i <= n; i += 1) {
+    match[0] = i;
+    let j0 = 0;
+    const minv = new Array<number>(n + 1).fill(Infinity);
+    const used = new Array<boolean>(n + 1).fill(false);
+    do {
+      used[j0] = true;
+      const i0 = match[j0]!;
+      let delta = Infinity;
+      let j1 = 0;
+      for (let j = 1; j <= n; j += 1) {
+        if (used[j]) continue;
+        const current = cost(i0, j) - u[i0]! - v[j]!;
+        if (current < minv[j]!) {
+          minv[j] = current;
+          way[j] = j0;
+        }
+        if (minv[j]! < delta) {
+          delta = minv[j]!;
+          j1 = j;
+        }
+      }
+      for (let j = 0; j <= n; j += 1) {
+        if (used[j]) {
+          u[match[j]!] = u[match[j]!]! + delta;
+          v[j] = v[j]! - delta;
+        } else {
+          minv[j] = minv[j]! - delta;
+        }
+      }
+      j0 = j1;
+    } while (match[j0] !== 0);
+    do {
+      const j1 = way[j0]!;
+      match[j0] = match[j1]!;
+      j0 = j1;
+    } while (j0 !== 0);
+  }
+
+  const result = new Array<number>(n).fill(-1);
+  for (let j = 1; j <= n; j += 1) {
+    if (match[j]! > 0) result[match[j]! - 1] = j - 1;
+  }
+  return result;
+}
+
+/** Score for a placement the rules refuse (a keeper outfield, anyone else in goal). */
+const REFUSED = -1_000_000;
+
+/**
+ * Switches formation and keeps the eleven.
+ *
+ * Nobody is dropped: every formation has one keeper and ten outfield slots, so the
+ * same eleven always fits. They are arranged so the team is as strong as it can be
+ * in the new shape — the arrangement with the highest total effective rating, which
+ * puts every player in a slot of his own position wherever the formation has one.
+ * Between arrangements that are equally strong, a player who can keep the same slot
+ * id (left back to left back, left CM to left CM) does, so switching away and back
+ * returns the squad as it was.
+ *
+ * Pure and deterministic, so the preview and the saved squad agree. The bench and
+ * the crests are untouched.
+ */
+export function changeFormation(squad: Squad, next: FormationId, owned: OwnedIndex): Squad {
+  if (!isFormationId(next) || next === squad.formation) return squad;
+  const target = FORMATIONS[next];
+
+  const eleven = formationOf(squad)
+    .slots.map((slot) => ({ from: slot.id, x: slot.x, id: squad.starters[slot.id] ?? null }))
+    .filter((entry): entry is { from: string; x: number; id: string } => entry.id !== null && owned.has(entry.id));
+
+  // Rows: the players, padded with empty rows up to the slot count. Ratings are
+  // scaled by 1000 so the tie-break below can never outweigh a single point of OVR:
+  // the same slot id first, then the slot nearest across the pitch to where he stood,
+  // which keeps a left-sided player on the left through formations that rename slots.
+  const score = target.slots.map((_, row) =>
+    target.slots.map((slot) => {
+      const entry = eleven[row];
+      if (!entry) return 0;
+      const player = owned.get(entry.id)!;
+      if (!canPlace(slot.position, player).ok) return REFUSED;
+      const sameSlot = entry.from === slot.id ? 600 : 0;
+      const nearby = 300 - Math.min(300, Math.round(Math.abs(entry.x - slot.x) / 4));
+      return effectiveRating(player, slot.position) * 1000 + sameSlot + nearby;
+    }),
+  );
+  const assigned = bestAssignment(score);
+
+  const starters: Record<string, string | null> = Object.fromEntries(
+    target.slots.map((slot) => [slot.id, null]),
+  );
+  const bench = [...squad.bench];
+  eleven.forEach((entry, row) => {
+    const column = assigned[row] ?? -1;
+    if (column >= 0 && score[row]![column]! > REFUSED) {
+      starters[target.slots[column]!.id] = entry.id;
+      return;
+    }
+    // Only a squad that broke the keeper rule before it was saved gets here: the
+    // player goes to a free bench seat rather than vanish.
+    const seat = bench.indexOf(null);
+    if (seat >= 0) bench[seat] = entry.id;
+  });
+
+  return { ...squad, formation: next, starters, bench };
 }
