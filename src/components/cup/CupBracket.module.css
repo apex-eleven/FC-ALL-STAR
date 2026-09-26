@@ -168,3 +168,63 @@
   border: 1px solid var(--color-gold);
   color: #ffe6ae;
 }
+
+/* ---- tie status --------------------------------------------------------
+   The chip on the player's own road through the board. Only their ties carry one:
+   the rest of the bracket is context, and eight chips would drown the one that
+   says where they stand. */
+
+/* The column holding the tie to play next. */
+.roundNow {
+  color: var(--color-green);
+}
+
+.chip {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 3px 2px;
+  padding: 2px 9px 2px 7px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.chipLocked {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-dim);
+}
+
+.chipAvailable {
+  background: var(--color-green);
+  color: #06210f;
+}
+
+.chipLive {
+  background: #e5343f;
+  color: #fff;
+}
+
+.chipWon {
+  background: rgba(43, 224, 140, 0.2);
+  color: #9df7c9;
+}
+
+.chipLost {
+  background: rgba(229, 52, 63, 0.22);
+  color: #ff9aa1;
+}
+
+/* A round the player has not reached yet — still theirs, visibly not open. */
+.tieLocked {
+  border-style: dashed;
+  background: rgba(217, 164, 65, 0.05);
+}
+
+.tieLost {
+  border-color: rgba(229, 52, 63, 0.5);
+  background: rgba(229, 52, 63, 0.08);
+}

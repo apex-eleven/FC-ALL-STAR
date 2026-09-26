@@ -4,14 +4,31 @@
 
 ```
 cup/
-  types.ts           CupConfig, CupCompetition, CupRun, CupTie, CupState
-  constants.ts       storage key, sizes, round names, defaults, forfeit score
+  types.ts           CupConfig, CupCompetition, CupRun, CupTie, CupState, statuses
+  constants.ts       storage key, sizes, round names, defaults, forfeit score, isTitleBand
   bracket.ts         PURE — seeding, the empty board, where a winner goes next
-  cup.ts             PURE — window clocks, buildRun(), playRound(), rewards
-  play.ts            PURE — enterCup() and playCupRound(): everything touching an Account
+  cup.ts             PURE — window clocks, buildRun(), playRound(), tieStatus(), rewards
+  play.ts            PURE — enterCup(), kickOffTie(), playCupRound(), claimCupReward()
   cupConfigStore.ts  the only file here that touches localStorage; normalizers
-  CupContext.tsx     CupProvider, useCup()
+  CupContext.tsx     CupProvider, useCup() — the tournament layer the screen talks to
 ```
+
+## The flow
+
+```
+NEW CUP ─▶ enterCup      charge the entry, draw the bracket          run: running
+PLAY MATCH ─▶ kickOffTie write `pending` before a ball is kicked
+          ─▶ ManagerLiveMatch + MatchEngine (manager mode's, unchanged)
+          ─▶ playCupRound(live score)      or   จำลองผล ─▶ playCupRound(simulate)
+             win  → next round AVAILABLE, round reward paid   run: running
+             loss → bracket plays out to a champion           run: out
+             final won → title reward held                    run: champion
+CLAIM REWARD ─▶ claimCupReward  pays the title band           run: completed
+NEW CUP ─▶ … a new run; the old one is never reset by itself
+```
+
+`CupRun.status` is the source of truth. The screen reads it and `tieStatus()` (LOCKED /
+AVAILABLE / LIVE / WON / ELIMINATED on the player's road) and decides nothing itself.
 
 ## Why the league went
 
@@ -39,10 +56,14 @@ competition set to all seven cannot walk backwards forever.
 
 ## Nothing happens on a clock
 
-The league derived its fixtures from time having passed. A cup round happens because
-the player pressed a button — which is the whole difference. The only thing the
-clock decides is which window is open and when the entry count resets, and both are
-read when somebody looks rather than ticked.
+A round happens because the player pressed PLAY MATCH or จำลองผล. The clock only
+decides which window is open and when the entry count resets, and both are read when
+somebody looks rather than ticked.
+
+(Until STEP 1 of the cup rework, rounds played themselves at fixed kickoff times —
+round one the moment you entered, the rest two or three hours apart — so the player
+never actually played a tie. That scheduler, `kickoffs` on the run and the admin's
+`roundGapMinutes` are gone; old saves and settings are read without them.)
 
 ## The draw
 
@@ -58,19 +79,28 @@ playing towards, which is the only reason to draw one.
 
 ## Two ways a tie is played
 
-Simulated outright, or watched with the real match engine — the player picks per
-tie. Either way the other ties in that round are simulated, so the round resolves as
-one thing.
+PLAY MATCH watches it in manager mode's live engine (`ManagerLiveMatch`, fed a
+`LiveMatch` built in `CupContext.kickOff`). จำลองผล decides it with `playTie`, the
+quick simulation. Either way the other ties in that round are simulated, so the round
+resolves as one thing. Both are seeded off the run id and round, so they are the same
+fixture.
 
-`playRound` takes an optional `result`, exactly as `playManagerMatch` does: supplied,
-the engine decided it; absent, `playTie` did. A watched tie that ends level goes to
-penalties by the same rule an unwatched one does, because watching a match must not
-change what kind of result it is allowed to have.
+A watched tie that ends level goes to penalties by the same rule an unwatched one does
+(`shootoutFor`), because watching a match must not change what kind of result it is
+allowed to have. A live score that arrives malformed is not a retry either: it falls
+back to the quick simulation.
 
 Once the player is out, the rest of the bracket plays through to its final anyway.
 Somebody wins this cup whether or not the player is still in it, and "ตกรอบ" with no
 idea who lifted it is a worse ending than losing to the eventual champion and being
 told so.
+
+## Double presses
+
+Every play call names the run and round it is for (`RoundRef`). A replayed mutator, or a
+second tap that lands after the first already moved the bracket on, finds a different
+round and is refused as `stale` instead of playing the next tie by mistake. Claiming
+is idempotent the same way: the run is `completed` in the same write that pays it.
 
 ## The upset is the point
 
@@ -91,27 +121,43 @@ against it.
 
 Keyed by **wins**, not by round index, so an admin changing the bracket size cannot
 shift a reward onto a different round mid-run. `run.claimed` holds the same win
-numbers, which is what stops a reload from paying a round twice.
+numbers, which is what stops a reload from paying a band twice.
 
-The bracket and the payout are one write (`playCupRound`). A player who closed the
-tab between the two would otherwise come back to a round they had won and no prize,
-which is indistinguishable from a prize already taken.
+Every band short of the title is paid in the same write as the tie that earned it,
+through `deliverRewards` (reason `'cup'`) like every other payout in the game. The
+title band — `wins === roundCount(run.size)` — is held until CLAIM REWARD.
 
 A payout there is no room for — a full club, a wallet at its cap — refuses **the
-payout**, not the round: the tie is still played and filed, and the reward stays
-unclaimed so the next round or the admin can pay it. Losing a bracket because the
-club was full would be a far worse trade than a late prize.
+payout**, not the round: the tie is still played and filed, and the band stays
+unclaimed. The champion claim pays everything still owed, so nothing is lost.
+
+### Cup Token
+
+Each band also carries `tokens`, added to `CupState.tokens`. It is a counter on the cup
+state, not a seventh wallet currency: nothing spends it yet (the cup shop is a later
+step). Settings saved before tokens existed take the default amount for the same win
+count; an explicit 0 stays 0.
 
 ## Leaving a watched tie
 
-Settles as a 0-3 loss. The entry is spent and the draw is made, so quitting has to
-settle the tie — otherwise closing the tab at 0-1 would be a free retry.
+Settles as a 0-3 loss, the same as a ranked manager match. `pending` is written at
+kick-off; the leave button settles it, and a pending tie found on load that this page
+did not start (tab closed, refresh mid-match) is settled the same way. Otherwise
+closing the tab at 0-1 would be a free retry. A forfeit counts toward no mission.
+
+## Windows and unfinished runs
+
+At the window roll the entry count resets and a finished run (`out`, `completed`) is
+cleared. A `running` run, or a `champion` one with the title unclaimed, is kept: the
+entry is paid for, and a cup must not vanish because the player came back the next day.
 
 ## Repair on read
 
-`normalizeProgress` drops a run whose shape disagrees with itself: seats pointing
-outside the team list, a board with the wrong number of rounds, no seat marked as the
-player's. A patched bracket is a bracket nobody drew, and the entry it cost is spent
-either way — losing it beats playing a run that cannot resolve.
+Both account stores run `normalizeProgress` on load. It drops a run whose shape
+disagrees with itself: seats pointing outside the team list, a board with the wrong
+number of rounds or ties, no seat marked as the player's, a running run with no round
+left. A patched bracket is a bracket nobody drew, and the entry it cost is spent either
+way — losing it beats playing a run that cannot resolve. A `pending` that is not the
+current round is cleared.
 
 Rules: this folder must not import from `src/components/`. See CLAUDE.md.

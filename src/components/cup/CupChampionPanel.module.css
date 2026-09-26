@@ -1,0 +1,175 @@
+/*
+  The champion panel. Sits over the bracket board only — the header, the wallet and
+  the side panel stay visible, because the run is still the thing on this screen.
+  Same card language as CupResultOverlay's gold receipt.
+*/
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-panel);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(circle at 50% 40%, rgba(217, 164, 65, 0.22) 0%, rgba(3, 4, 12, 0.84) 62%);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 620px;
+  padding: 30px 44px 26px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(170deg, rgba(34, 30, 58, 0.98) 0%, rgba(12, 12, 28, 0.98) 100%);
+  border: 1px solid var(--color-gold);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(217, 164, 65, 0.5),
+    0 0 80px rgba(217, 164, 65, 0.28);
+  text-align: center;
+}
+
+.close {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-muted);
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+}
+
+.crown {
+  display: grid;
+  place-items: center;
+  height: 96px;
+  color: var(--color-gold);
+  filter: drop-shadow(0 4px 22px rgba(217, 164, 65, 0.65));
+}
+
+.trophyArt {
+  max-width: 120px;
+  max-height: 96px;
+  object-fit: contain;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #ffe6ae;
+  text-shadow: var(--shadow-text);
+}
+
+.subtitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 900;
+  color: var(--color-text);
+}
+
+.cupName {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.rewards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+/* Taken: kept on the card so the player sees what they got, dimmed like a paid band. */
+.rewardsTaken {
+  opacity: 0.55;
+}
+
+.reward {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(217, 164, 65, 0.35);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.rewardArt {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.tokenIcon {
+  color: var(--color-gold);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.claim,
+.next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 34px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 900;
+}
+
+.claim {
+  background: linear-gradient(180deg, #f4d283 0%, var(--color-gold) 100%);
+  color: #1d1204;
+  box-shadow: 0 8px 22px rgba(217, 164, 65, 0.4);
+}
+
+.next {
+  background: var(--gradient-play);
+  color: #08210f;
+  box-shadow: 0 8px 22px rgba(43, 224, 140, 0.32);
+}
+
+.claim:disabled,
+.next:disabled {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-dim);
+  box-shadow: none;
+}
+
+.hint {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}

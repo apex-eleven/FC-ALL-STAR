@@ -4,7 +4,7 @@ import type { LeaderboardEntry } from '@/features/leaderboard/types';
 import { RIVAL_NAMES } from '@/features/sim/constants';
 import { playTie, seeded, shootoutFor } from '@/features/sim/seeded';
 import { advanceSlot, emptyBoard, isHome, tieOf } from './bracket';
-import { HISTORY_LIMIT, YOU_ID, roundCount } from './constants';
+import { HISTORY_LIMIT, MAX_CUP_TOKENS, YOU_ID, isTitleBand, roundCount } from './constants';
 import type {
   CupCompetition,
   CupConfig,
@@ -15,6 +15,7 @@ import type {
   CupState,
   CupTeam,
   CupTie,
+  CupTieStatus,
 } from './types';
 
 /**
@@ -114,17 +115,30 @@ export function emptyCup(): CupState {
     used: { daily: 0, weekend: 0 },
     runs: { daily: null, weekend: null },
     trophies: { daily: 0, weekend: 0 },
+    tokens: 0,
     history: [],
   };
 }
 
 /**
- * The account's cups as of `now`: a window that has turned over clears its entry
- * count and its run.
+ * A run that still owes the player something: a tie to play, or a title to claim.
  *
- * A finished run is kept until the window rolls, so someone who wins at 23:00 still
- * sees the bracket they won when they come back at 23:05 — but never so long that
- * yesterday's trophy is still sitting on today's screen.
+ * These outlive the window they were entered in. The entry is paid for and the
+ * bracket is theirs; a run cleared at the daily reset would take a half-played cup —
+ * or an unclaimed trophy — away from somebody who simply came back the next day.
+ */
+export function isUnfinished(run: CupRun | null): boolean {
+  return run !== null && (run.status === 'running' || run.status === 'champion');
+}
+
+/**
+ * The account's cups as of `now`: a window that has turned over clears its entry
+ * count, and its run once that run is over.
+ *
+ * A finished run (out, or completed) is kept until the window rolls, so someone who
+ * lost at 23:00 still sees the bracket when they come back at 23:05 — but never so
+ * long that yesterday's result is still sitting on today's screen. An unfinished one
+ * is kept across the roll: see `isUnfinished`.
  */
 export function currentCup(saved: CupState | undefined, config: CupConfig, now: Date): CupState {
   const state = saved ?? emptyCup();
@@ -133,6 +147,7 @@ export function currentCup(saved: CupState | undefined, config: CupConfig, now: 
     used: { ...state.used },
     runs: { ...state.runs },
     trophies: { ...state.trophies },
+    tokens: state.tokens ?? 0,
     history: state.history ?? [],
   };
 
@@ -141,7 +156,7 @@ export function currentCup(saved: CupState | undefined, config: CupConfig, now: 
     if (next.periodKey[kind] === key) continue;
     next.periodKey[kind] = key;
     next.used[kind] = 0;
-    next.runs[kind] = null;
+    if (!isUnfinished(next.runs[kind])) next.runs[kind] = null;
   }
 
   return next;
@@ -160,14 +175,59 @@ export function yourSeat(run: CupRun): number {
 /**
  * The account's tie in the round about to be played, or null once they are out.
  *
- * This is the one the "ดูสด" button watches and the one `playRound` settles with a
- * live score — the same tie either way, which is why both go through here.
+ * This is the one PLAY MATCH watches and the one `playRound` settles with a live
+ * score — the same tie either way, which is why both go through here.
  */
 export function tieForYou(run: CupRun): CupTie | null {
+  if (run.status !== 'running') return null;
   const ties = run.rounds[run.round];
   if (!ties) return null;
   const index = tieOf(ties, yourSeat(run));
   return index >= 0 ? (ties[index] ?? null) : null;
+}
+
+/** The side facing the account in a tie they are in. */
+export function opponentIn(run: CupRun, tie: CupTie): CupTeam | undefined {
+  const seat = yourSeat(run);
+  const other = tie.a === seat ? tie.b : tie.a;
+  return other >= 0 ? run.teams[other] : undefined;
+}
+
+/**
+ * Which tie of `round` lies on the account's road through the bracket.
+ *
+ * Known before the seat is filled: the first-round tie index halves each round
+ * (`advanceSlot`), so a locked semi-final can be drawn as theirs before anybody has
+ * won the quarter-final that feeds it.
+ */
+export function pathTie(run: CupRun, round: number): number {
+  const first = tieOf(run.rounds[0] ?? [], yourSeat(run));
+  return first < 0 ? -1 : first >> round;
+}
+
+/**
+ * How one tie reads on the bracket. Derived from the run, never stored — the
+ * bracket cannot disagree with the tournament it draws.
+ */
+export function tieStatus(run: CupRun, round: number, index: number): CupTieStatus {
+  const tie = run.rounds[round]?.[index];
+  if (!tie) return 'waiting';
+
+  const seat = yourSeat(run);
+  const yours = tie.a === seat || tie.b === seat;
+
+  if (tie.played) {
+    if (!yours) return 'played';
+    return tie.winner === seat ? 'won' : 'lost';
+  }
+
+  // Unplayed ties on the road ahead only belong to the player while they are still
+  // in the cup to reach them.
+  if (run.status === 'running' && pathTie(run, round) === index) {
+    if (round === run.round) return run.pending === round ? 'live' : 'available';
+    if (round > run.round) return 'locked';
+  }
+  return 'waiting';
 }
 
 /** Ties the account has won in this run. Its position on the reward ladder. */
@@ -275,8 +335,8 @@ export function buildRun(input: BuildRunInput): CupRun {
     teams,
     rounds: emptyBoard(size),
     round: 0,
-    kickoffs: kickoffsFor(input.now, roundCount(size), competition.roundGapMinutes),
     status: 'running',
+    pending: null,
     claimed: [],
     startedAt: input.now.toISOString(),
   };
@@ -426,7 +486,8 @@ export function playRound(run: CupRun, input: PlayRoundInput): PlayRoundOutcome 
     }
   }
 
-  const after: CupRun = { ...run, rounds, round: round + 1, status };
+  // Whatever was kicked off in this round is settled now.
+  const after: CupRun = { ...run, rounds, round: round + 1, status, pending: null };
   const won = roundsWon(after);
 
   return {
@@ -448,15 +509,32 @@ export function playRound(run: CupRun, input: PlayRoundInput): PlayRoundOutcome 
 }
 
 /**
- * Reward lines the account has earned in this run and not yet been paid.
+ * Reward bands the account has earned in this run and not yet been paid.
  *
  * Keyed by wins rather than by round index so an admin who changes the bracket size
  * cannot shift a reward onto a different round mid-run. `claimed` holds the same
- * `wins` numbers, which is what stops a reload from paying a round twice.
+ * `wins` numbers, which is what stops a reload — or a second press — from paying a
+ * band twice.
  */
 export function unpaidRewards(run: CupRun, competition: CupCompetition): CupRoundReward[] {
   const won = roundsWon(run);
   return competition.rewards.filter((band) => band.wins <= won && !run.claimed.includes(band.wins));
+}
+
+/**
+ * The unpaid bands a played round pays straight away: everything short of the title.
+ *
+ * Title bands wait for CLAIM REWARD. Decided by the run's own size, fixed at the
+ * draw, so an admin resizing the bracket mid-run cannot turn a semi-final prize into
+ * a title one.
+ */
+export function roundRewardsDue(run: CupRun, competition: CupCompetition): CupRoundReward[] {
+  return unpaidRewards(run, competition).filter((band) => !isTitleBand(band.wins, run.size));
+}
+
+/** Title bands for this run's size — what CLAIM REWARD will pay. */
+export function titleRewards(run: CupRun, competition: CupCompetition): CupRoundReward[] {
+  return competition.rewards.filter((band) => band.wins === roundCount(run.size));
 }
 
 /** The next reward still ahead in this run, for the "ชนะอีกนัดได้…" line. */
@@ -467,7 +545,19 @@ export function nextReward(run: CupRun, competition: CupCompetition): CupRoundRe
 
 export function withClaimed(run: CupRun, paid: readonly CupRoundReward[]): CupRun {
   if (paid.length === 0) return run;
-  return { ...run, claimed: [...run.claimed, ...paid.map((band) => band.wins)] };
+  return { ...run, claimed: [...new Set([...run.claimed, ...paid.map((band) => band.wins)])] };
+}
+
+/** Adds Cup Tokens, clamped. */
+export function withTokens(state: CupState, amount: number): CupState {
+  if (amount <= 0) return state;
+  return { ...state, tokens: Math.min(MAX_CUP_TOKENS, (state.tokens ?? 0) + amount) };
+}
+
+/** The winner of the final, once it has been played. */
+export function championOf(run: CupRun): CupTeam | undefined {
+  const final = run.rounds[run.rounds.length - 1]?.[0];
+  return final && final.winner >= 0 ? run.teams[final.winner] : undefined;
 }
 
 export function withHistory(state: CupState, result: CupResult): CupState {
@@ -483,41 +573,6 @@ export function withHistory(state: CupState, result: CupResult): CupState {
 /** Cups won across both competitions — the number the trophy cabinet shows. */
 export function totalTrophies(state: CupState): number {
   return (state.trophies.daily ?? 0) + (state.trophies.weekend ?? 0);
-}
-
-/**
- * The clock for a whole bracket, fixed at the draw.
- *
- * Round 0 kicks off the moment the player enters — making them wait two hours to
- * play the round they just paid for would be an odd way to start. Every round after
- * that is one gap further on.
- */
-export function kickoffsFor(startedAt: Date, rounds: number, gapMinutes: number): string[] {
-  const gap = Math.max(1, Math.round(gapMinutes)) * 60_000;
-  return Array.from({ length: rounds }, (_, index) =>
-    new Date(startedAt.getTime() + index * gap).toISOString(),
-  );
-}
-
-/**
- * When a round kicks off, or null when the run predates kickoff times.
- *
- * Null means "playable now" everywhere it is read. A run drawn before this existed
- * would otherwise be stuck forever, which is a worse outcome than it finishing on
- * the old rules.
- */
-export function kickoffAt(run: CupRun, round: number): Date | null {
-  const iso = run.kickoffs[round];
-  if (!iso) return null;
-  const at = Date.parse(iso);
-  return Number.isNaN(at) ? null : new Date(at);
-}
-
-/** Has the next round's time come round yet? */
-export function roundDue(run: CupRun, now: Date): boolean {
-  if (run.status !== 'running' || run.round >= run.rounds.length) return false;
-  const at = kickoffAt(run, run.round);
-  return at === null || now.getTime() >= at.getTime();
 }
 
 /** "2 วัน 04:11" down to zero. Never negative. */

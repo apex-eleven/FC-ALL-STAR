@@ -45,7 +45,19 @@ export interface CupTie {
   live: boolean;
 }
 
-export type CupRunStatus = 'running' | 'out' | 'champion';
+/**
+ * Where a run stands. The tournament's own state is the only source of truth for
+ * this — no screen decides that someone is champion.
+ *
+ * - `running`   in progress: there is a tie to play.
+ * - `out`       eliminated. Terminal.
+ * - `champion`  won the final; the title reward is waiting for CLAIM REWARD.
+ * - `completed` champion with the title reward claimed. Terminal.
+ *
+ * `champion` is its own status rather than a flag because it is the one state that
+ * blocks a new entry: a run nobody has claimed must not be replaced by the next one.
+ */
+export type CupRunStatus = 'running' | 'out' | 'champion' | 'completed';
 
 /**
  * One trip through a bracket.
@@ -66,16 +78,17 @@ export interface CupRun {
   rounds: CupTie[][];
   /** Which round is next to play. Equals `rounds.length` once the run is over. */
   round: number;
-  /**
-   * When each round kicks off, ISO, one per round.
-   *
-   * Fixed at the draw rather than derived on read: a run that recomputed its times
-   * from the competition's gap would move every remaining round the moment an admin
-   * retuned it, including rounds a player had already been told the time of.
-   */
-  kickoffs: string[];
   status: CupRunStatus;
-  /** Round indexes whose reward has been paid. Never paid twice. */
+  /**
+   * The round whose tie the player kicked off live and has not finished, or null.
+   *
+   * Written at kick-off, before a ball is kicked — the same rule manager mode's
+   * ranked `pending` follows. Full time clears it; a pending tie found on load that
+   * this page did not start was abandoned (tab closed, refresh) and settles as a
+   * forfeit, so closing the tab at 0-1 is never a free retry.
+   */
+  pending: number | null;
+  /** Win counts (`CupRoundReward.wins`) whose reward has been paid. Never paid twice. */
   claimed: number[];
   startedAt: string;
 }
@@ -101,6 +114,14 @@ export interface CupState {
   runs: Record<CupKind, CupRun | null>;
   /** Cups won, all time. */
   trophies: Record<CupKind, number>;
+  /**
+   * Cup Tokens held — the cup's own reward, paid beside the round rewards.
+   *
+   * A counter on the cup state, not a wallet currency: nothing spends it yet (the
+   * cup shop is a later step), and a seventh `CurrencyKind` would put it in every
+   * wallet, ledger, top bar and admin mint for no use today.
+   */
+  tokens: number;
   /** Newest first, capped. */
   history: CupResult[];
 }
@@ -116,6 +137,8 @@ export interface CupRoundReward {
   /** Rounds won to earn this. 1 = through the first tie. */
   wins: number;
   rewards: ShopReward[];
+  /** Cup Tokens paid with this band. 0 for none. */
+  tokens: number;
 }
 
 /** One competition's settings. */
@@ -137,14 +160,6 @@ export interface CupCompetition {
   days: number[];
   /** Rating spread the padding bots are drawn around the player's own OVR. */
   botSpread: number;
-  /**
-   * Minutes between one round kicking off and the next.
-   *
-   * Per competition, not global: the daily cup has to fit its rounds inside a day
-   * and the weekend one has a whole weekend, so one number could only ever suit one
-   * of them.
-   */
-  roundGapMinutes: number;
   rewards: CupRoundReward[];
   /** Uploaded art (data URL) or '' for the `/brand/` fallback. */
   background: string;
@@ -174,14 +189,37 @@ export type CupEnterError =
   | 'not-open'
   | 'no-entries'
   | 'in-progress'
+  /** The last run is champion with its title reward still unclaimed. */
+  | 'unclaimed'
   | 'cannot-afford';
 
 export type CupPlayError =
   | 'closed'
   | 'no-run'
   | 'finished'
-  /** The round's kickoff time has not come round yet. */
-  | 'too-early'
+  /** A live tie is already kicked off in this round. */
+  | 'in-play'
+  /** A live result arrived for a tie that is no longer kicked off (already settled). */
+  | 'not-live'
+  /** The caller's round or run is not the one on the account any more — a double press. */
+  | 'stale';
+
+export type CupClaimError =
+  | 'no-run'
+  /** Not champion — there is no title reward to claim. */
+  | 'not-champion'
+  | 'already-claimed'
   | 'club-full'
   | 'card-missing'
   | 'at-cap';
+
+/**
+ * How a tie reads on the bracket, derived from the run on every render.
+ *
+ * - `locked`     on the player's path, in a round they have not reached yet.
+ * - `available`  the player's tie in the current round — PLAY MATCH.
+ * - `live`       the player's tie, kicked off and being watched.
+ * - `won`/`lost` the player's tie, played.
+ * - `played`/`waiting` somebody else's tie.
+ */
+export type CupTieStatus = 'locked' | 'available' | 'live' | 'won' | 'lost' | 'played' | 'waiting';

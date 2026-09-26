@@ -17,6 +17,7 @@ import { withoutLegacy } from '@/features/club/legacy';
 import { emptySquad, indexOwned, normalizeSquad } from '@/features/squad/squad';
 import { normalizeProgress } from '@/features/transfers/transferConfigStore';
 import { normalizeProgress as normalizeShopProgress } from '@/features/shop/shopConfigStore';
+import { normalizeProgress as normalizeCupProgress } from '@/features/cup/cupConfigStore';
 import { normalizeState as normalizeManagerState } from '@/features/manager/managerConfigStore';
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
@@ -125,6 +126,9 @@ function toPublic(stored: StoredAccount): Account {
         : {},
     club,
     squad: normalizeSquad(account.squad, indexOwned(club.players)),
+    // The cup bracket is repaired on read like every other saved state: a run whose
+    // shape disagrees with itself is dropped rather than played.
+    ...(account.cup === undefined ? {} : { cup: normalizeCupProgress(account.cup) }),
     ...(account.transfer === undefined
       ? {}
       : {

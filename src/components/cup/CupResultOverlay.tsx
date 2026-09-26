@@ -2,7 +2,7 @@ import { Trophy, X } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { formatCurrency } from '@/features/currencies/constants';
 import { roundName } from '@/features/cup/constants';
-import { roundsWon } from '@/features/cup/cup';
+import { championOf, roundsWon } from '@/features/cup/cup';
 import type { CupCompetition, CupResult, CupRun, CupTie } from '@/features/cup/types';
 import type { ShopReward } from '@/features/shop/types';
 import styles from './CupResultOverlay.module.css';
@@ -12,7 +12,11 @@ export interface CupResultView {
   run: CupRun | null;
   through: boolean;
   paid: ShopReward[];
+  /** Cup Tokens the round paid. */
+  tokens: number;
   result: CupResult | null;
+  /** Set when the tie was settled as a forfeit rather than played out. */
+  forfeit?: boolean;
 }
 
 export interface CupResultOverlayProps {
@@ -32,10 +36,11 @@ function rewardLabel(line: ShopReward): string {
  * paid.
  *
  * The rewards shown here have already been credited — this is a receipt, not an
- * offer. Closing it cannot lose them.
+ * offer. Closing it cannot lose them. The title reward is the one exception: it is
+ * claimed on the champion panel, so a champion's receipt points there.
  */
 export default function CupResultOverlay({ view, competition, onClose }: CupResultOverlayProps) {
-  const { tie, run, through, paid, result } = view;
+  const { tie, run, through, paid, tokens, result, forfeit } = view;
   const seat = run?.teams.findIndex((team) => team.you) ?? -1;
   const atHome = tie.a === seat;
   const mine = atHome ? tie.score[0] : tie.score[1];
@@ -47,11 +52,16 @@ export default function CupResultOverlay({ view, competition, onClose }: CupResu
   const over = result !== null;
   const won = run ? roundsWon(run) : 0;
 
+  // Named from the run's own size — the admin may have resized the competition since.
+  const size = run?.size ?? competition.size;
   const heading = champion
-    ? 'แชมป์!'
+    ? 'CHAMPION!'
     : through
-      ? `ผ่านเข้า${roundName(competition.size, won)}`
-      : 'ตกรอบ';
+      ? `ผ่านเข้า${roundName(size, won)}`
+      : forfeit
+        ? 'ออกจากแมตช์ · ตกรอบ'
+        : 'ตกรอบ';
+  const winner = run ? championOf(run) : undefined;
 
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true">
@@ -82,30 +92,35 @@ export default function CupResultOverlay({ view, competition, onClose }: CupResu
           </p>
         )}
 
-        {paid.length > 0 && (
+        {forfeit && (
+          <p className={styles.footnote}>แมตช์สดถูกปิดกลางคัน จึงนับเป็นแพ้ 0-3</p>
+        )}
+
+        {(paid.length > 0 || tokens > 0) && (
           <div className={styles.rewards}>
             <h3>ได้รับ</h3>
             <ul>
               {paid.map((line, index) => (
                 <li key={index}>{rewardLabel(line)}</li>
               ))}
+              {tokens > 0 && <li>Cup Token {formatCurrency(tokens)}</li>}
             </ul>
           </div>
+        )}
+
+        {champion && (
+          <p className={styles.footnote}>รางวัลแชมป์รอให้กด CLAIM REWARD ที่หน้าถ้วย</p>
         )}
 
         {over && !champion && (
           <p className={styles.footnote}>
             ชนะทั้งหมด {won} นัด
-            {(() => {
-              const final = run?.rounds[run.rounds.length - 1]?.[0];
-              const winner = final && final.winner >= 0 ? run?.teams[final.winner] : undefined;
-              return winner && !winner.you ? ` · แชมป์รายการนี้คือ ${winner.name}` : '';
-            })()}
+            {winner && !winner.you ? ` · แชมป์รายการนี้คือ ${winner.name}` : ''}
           </p>
         )}
 
         <button type="button" className={styles.ok} onClick={onClose}>
-          {over ? 'ปิด' : 'ไปรอบต่อไป'}
+          {champion ? 'ไปรับรางวัล' : over ? 'ปิด' : 'ไปรอบต่อไป'}
         </button>
       </div>
     </div>

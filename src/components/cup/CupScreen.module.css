@@ -297,21 +297,6 @@
   white-space: nowrap;
 }
 
-/* Sits where the two action buttons used to, counting down to the next kickoff. */
-.kickoff {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 13px 26px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--color-muted);
-  white-space: nowrap;
-}
-
 .ahead {
   margin: 0;
   padding: 10px 12px;
@@ -425,4 +410,160 @@
   font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-text);
+}
+
+/* ---- STEP 1: tournament progress, the current match, champion ----------- */
+
+.tokenIcon {
+  color: var(--color-gold);
+  flex: none;
+}
+
+/* QF → SF → F, lit as the player climbs it. */
+.progress {
+  display: flex;
+  gap: 6px;
+}
+
+.step {
+  flex: 1;
+  padding: 7px 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  text-align: center;
+  color: var(--color-dim);
+  white-space: nowrap;
+}
+
+.stepDone {
+  background: rgba(43, 224, 140, 0.16);
+  border-color: rgba(43, 224, 140, 0.5);
+  color: #9df7c9;
+}
+
+.stepNow {
+  background: rgba(217, 164, 65, 0.2);
+  border-color: var(--color-gold);
+  color: #ffe6ae;
+}
+
+.stepLost {
+  background: rgba(229, 52, 63, 0.18);
+  border-color: rgba(229, 52, 63, 0.6);
+  color: #ff9aa1;
+}
+
+/* YOUR TEAM vs OPPONENT, the tie PLAY MATCH will kick off. */
+.match {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-right: auto;
+  padding: 8px 22px;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 12, 28, 0.86);
+  border: 1px solid rgba(43, 224, 140, 0.45);
+}
+
+.matchRound {
+  padding: 3px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-green);
+  color: #06210f;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.matchSide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-ui);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.matchSide img {
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.matchSide b {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--text-md);
+  font-weight: 900;
+}
+
+.matchSide em {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-style: normal;
+  font-weight: 800;
+  color: var(--color-gold);
+}
+
+.matchYou b {
+  color: #9df7c9;
+}
+
+.matchVs {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-style: italic;
+  font-weight: 900;
+  color: var(--color-muted);
+}
+
+.nextUpGold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffe6ae;
+}
+
+.out {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff9aa1;
+}
+
+.blocked {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.claim {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 34px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #f4d283 0%, var(--color-gold) 100%);
+  color: #1d1204;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 900;
+  box-shadow: 0 8px 22px rgba(217, 164, 65, 0.4);
+}
+
+.primary,
+.ghost,
+.claim {
+  min-height: 52px;
+}
+
+.ghost:disabled {
+  opacity: 0.45;
 }

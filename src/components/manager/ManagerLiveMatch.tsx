@@ -21,6 +21,13 @@ export interface ManagerLiveMatchProps {
   live: LiveMatch;
   onFinished(score: [number, number], scorers: MatchEngine['scorers']): void;
   onForfeit(): void;
+  /**
+   * The line under the VS card, and what the leave dialog warns. Manager mode leaves
+   * both out and gets its ranked/unranked wording; the cup passes its own, because
+   * the same live screen is what plays a cup tie.
+   */
+  modeLabel?: string;
+  leaveWarning?: string;
 }
 
 /** Pitch box on the stage, 105:68. */
@@ -68,7 +75,13 @@ function place(player: EnginePlayer): string {
  * moved by writing transforms directly; React only re-renders the panels a few times
  * a second.
  */
-export default function ManagerLiveMatch({ live, onFinished, onForfeit }: ManagerLiveMatchProps) {
+export default function ManagerLiveMatch({
+  live,
+  onFinished,
+  onForfeit,
+  modeLabel,
+  leaveWarning,
+}: ManagerLiveMatchProps) {
   const account = useAccount();
   const [engine] = useState(() => new MatchEngine(live.setup));
   const [, setTick] = useState(0);
@@ -286,7 +299,9 @@ export default function ManagerLiveMatch({ live, onFinished, onForfeit }: Manage
                 {live.opponent.bot ? ' · บอท' : ''}
               </small>
             </div>
-            <span className={styles.introMode}>{live.ranked ? 'แมตช์จัดอันดับ' : 'แมตช์ไม่จัดอันดับ'}</span>
+            <span className={styles.introMode}>
+              {modeLabel ?? (live.ranked ? 'แมตช์จัดอันดับ' : 'แมตช์ไม่จัดอันดับ')}
+            </span>
           </div>
         )}
 
@@ -444,9 +459,10 @@ export default function ManagerLiveMatch({ live, onFinished, onForfeit }: Manage
           <div className={styles.confirmPanel}>
             <b>ออกจากแมตช์?</b>
             <p>
-              {live.ranked
-                ? 'แมตช์จัดอันดับจะถูกนับว่าแพ้ 0-3 และเสียดาว'
-                : 'แมตช์นี้ไม่นับแรงค์ ออกได้เลยโดยไม่เสียอะไร'}
+              {leaveWarning ??
+                (live.ranked
+                  ? 'แมตช์จัดอันดับจะถูกนับว่าแพ้ 0-3 และเสียดาว'
+                  : 'แมตช์นี้ไม่นับแรงค์ ออกได้เลยโดยไม่เสียอะไร')}
             </p>
             <div className={styles.confirmActions}>
               <button type="button" className={styles.secondary} onClick={() => setLeaving(false)}>

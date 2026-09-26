@@ -3,10 +3,11 @@ import type { ShopReward } from '@/features/shop/types';
 import {
   CUP_CONFIG_KEY,
   CUP_SIZES,
+  HISTORY_LIMIT,
+  MAX_BAND_TOKENS,
+  MAX_CUP_TOKENS,
   MAX_ENTRIES,
-  MAX_ROUND_GAP,
   MAX_ROUND_REWARDS,
-  MIN_ROUND_GAP,
   NAME_MAX,
   defaultCup,
 } from './constants';
@@ -66,7 +67,15 @@ function sanitizeRewards(value: unknown, fallback: CupRoundReward[]): CupRoundRe
       const rewards = Array.isArray(band.rewards)
         ? band.rewards.map(sanitizeRewardLine).filter((line): line is ShopReward => line !== null)
         : [];
-      return [{ wins: clampInt(band.wins, 1, 8, 1), rewards }];
+      const wins = clampInt(band.wins, 1, 8, 1);
+      // Settings saved before Cup Tokens existed have no `tokens` on any band. Those
+      // take the default for the same win count, so the live game pays tokens without
+      // an admin re-saving every band; an explicit 0 stays 0.
+      const tokens =
+        band.tokens === undefined
+          ? (fallback.find((entry) => entry.wins === wins)?.tokens ?? 0)
+          : clampInt(band.tokens, 0, MAX_BAND_TOKENS, 0);
+      return [{ wins, rewards, tokens }];
     })
     .slice(0, MAX_ROUND_REWARDS)
     .sort((a, b) => a.wins - b.wins);
@@ -110,12 +119,6 @@ function sanitizeCompetition(value: unknown, fallback: CupCompetition): CupCompe
     entries: clampInt(source.entries, 1, MAX_ENTRIES, fallback.entries),
     days: sanitizeDays(source.days, fallback.days),
     botSpread: clampInt(source.botSpread, 0, 60, fallback.botSpread),
-    roundGapMinutes: clampInt(
-      source.roundGapMinutes,
-      MIN_ROUND_GAP,
-      MAX_ROUND_GAP,
-      fallback.roundGapMinutes,
-    ),
     rewards: sanitizeRewards(source.rewards, fallback.rewards),
     background: dataUrl(source.background),
     trophy: dataUrl(source.trophy),
@@ -174,6 +177,7 @@ export function normalizeProgress(value: unknown): CupState {
     used: { daily: 0, weekend: 0 },
     runs: { daily: null, weekend: null },
     trophies: { daily: 0, weekend: 0 },
+    tokens: 0,
     history: [],
   };
   if (typeof value !== 'object' || value === null) return fallback;
@@ -189,6 +193,7 @@ export function normalizeProgress(value: unknown): CupState {
     used: readKind(source.used, (raw) => clampInt(raw, 0, MAX_ENTRIES, 0)),
     runs: readKind(source.runs, (raw) => normalizeRun(raw)),
     trophies: readKind(source.trophies, (raw) => clampInt(raw, 0, 100_000, 0)),
+    tokens: clampInt(source.tokens, 0, MAX_CUP_TOKENS, 0),
     history: Array.isArray(source.history)
       ? source.history
           .flatMap((entry) => {
@@ -207,7 +212,7 @@ export function normalizeProgress(value: unknown): CupState {
             ];
           })
           .filter((row) => row.id !== '')
-          .slice(0, 30)
+          .slice(0, HISTORY_LIMIT)
       : [],
   };
 }
@@ -263,22 +268,34 @@ function normalizeRun(value: unknown): CupState['runs'][CupKind] {
   const expected = Math.round(Math.log2(size));
   if (rounds.length !== expected) return null;
 
-  const status = source.status === 'champion' ? 'champion' : source.status === 'out' ? 'out' : 'running';
+  // Every round has to hold the number of ties its size says it does, or a winner
+  // could be carried into a slot that is not there.
+  if (rounds.some((ties, round) => ties.length !== size >> (round + 1))) return null;
+
+  const statuses = ['running', 'out', 'champion', 'completed'] as const;
+  const status = statuses.find((entry) => entry === source.status) ?? 'running';
+  const round = clampInt(source.round, 0, expected, 0);
+  // A run that is still going always has a round left to play.
+  if (status === 'running' && round >= expected) return null;
+
+  // Only the current round can be kicked off. Anything else is a leftover from a
+  // save that predates `pending` or one edited by hand, and is dropped.
+  const pendingRound = clampInt(source.pending, -1, expected - 1, -1);
+  const pending = status === 'running' && pendingRound === round ? round : null;
+
+  const id = text(source.id, 64, '');
+  if (!id) return null;
 
   return {
-    id: text(source.id, 64, ''),
+    id,
     kind: source.kind === 'weekend' ? 'weekend' : 'daily',
     periodKey: text(source.periodKey, 20, ''),
     size,
     teams,
     rounds,
-    round: clampInt(source.round, 0, expected, 0),
-    // A run saved before kickoff times existed gets none, and `kickoffAt` treats a
-    // missing time as "playable now" — an old run must not be stranded mid-bracket.
-    kickoffs: Array.isArray(source.kickoffs)
-      ? source.kickoffs.slice(0, expected).map((entry) => text(entry, 40, ''))
-      : [],
+    round,
     status,
+    pending,
     claimed: Array.isArray(source.claimed)
       ? [...new Set(source.claimed.map((entry) => clampInt(entry, 1, 8, 1)))]
       : [],

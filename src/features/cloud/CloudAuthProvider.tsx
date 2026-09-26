@@ -24,6 +24,7 @@ import { awardXP, STARTING_LEVEL, STARTING_XP } from '@/features/profile/levelin
 import { emptySquad, indexOwned, normalizeSquad } from '@/features/squad/squad';
 import { normalizeProgress } from '@/features/transfers/transferConfigStore';
 import { normalizeProgress as normalizeShopProgress } from '@/features/shop/shopConfigStore';
+import { normalizeProgress as normalizeCupProgress } from '@/features/cup/cupConfigStore';
 import { normalizeState as normalizeManagerState } from '@/features/manager/managerConfigStore';
 import { normalizeProgress as normalizeMissionProgress } from '@/features/missions/missionConfigStore';
 import { normalizeProgress as normalizeStarPass } from '@/features/starpass/starpassConfigStore';
@@ -97,7 +98,7 @@ function toAccount(uid: string, raw: Record<string, unknown>): Account {
         : {},
     club,
     squad: normalizeSquad(data.squad, owned),
-    cup: (data.cup as Account['cup']) ?? undefined,
+    cup: data.cup === undefined ? undefined : normalizeCupProgress(data.cup),
     // Listed field by field like everything else here — an unlisted field is
     // dropped on load, and the watch list and locks would vanish on every refresh.
     transfer:

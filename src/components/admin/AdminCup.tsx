@@ -6,10 +6,10 @@ import {
   CUP_LABEL,
   CUP_SIZES,
   CUP_TROPHY_IMAGE,
+  MAX_BAND_TOKENS,
   MAX_ENTRIES,
-  MAX_ROUND_GAP,
   MAX_ROUND_REWARDS,
-  MIN_ROUND_GAP,
+  isTitleBand,
   roundCount,
 } from '@/features/cup/constants';
 import type { CupCompetition, CupConfig, CupKind, CupRoundReward } from '@/features/cup/types';
@@ -75,7 +75,7 @@ export default function AdminCup() {
     let wins = 1;
     while (used.has(wins) && wins <= 8) wins += 1;
     patch(tab, {
-      rewards: [...competition.rewards, { wins, rewards: [] as ShopReward[] }].sort(
+      rewards: [...competition.rewards, { wins, rewards: [] as ShopReward[], tokens: 0 }].sort(
         (a, b) => a.wins - b.wins,
       ),
     });
@@ -227,32 +227,6 @@ export default function AdminCup() {
                 }
               />
             </div>
-
-            <div className={styles.field}>
-              <span className={styles.label}>ห่างกันกี่นาทีต่อรอบ ({MIN_ROUND_GAP}–{MAX_ROUND_GAP})</span>
-              <input
-                className={styles.input}
-                value={competition.roundGapMinutes}
-                inputMode="numeric"
-                onChange={(event) =>
-                  patch(tab, {
-                    roundGapMinutes: Math.max(
-                      MIN_ROUND_GAP,
-                      Math.min(
-                        MAX_ROUND_GAP,
-                        number(event.target.value, competition.roundGapMinutes),
-                      ),
-                    ),
-                  })
-                }
-              />
-              <p className={styles.hint}>
-                เวลาถูกตรึงตอนสมัคร — แก้ค่านี้มีผลกับคนที่สมัครหลังจากนี้เท่านั้น
-                ไม่ไปขยับเวลาของรอบที่บอกผู้เล่นไปแล้ว · รอบแรกเตะทันทีที่สมัคร
-                รวมทั้งหมด {(roundCount(competition.size) - 1) * competition.roundGapMinutes / 60} ชม.
-                จนจบถ้วย
-              </p>
-            </div>
           </div>
 
           <div className={styles.field}>
@@ -342,7 +316,8 @@ export default function AdminCup() {
           <h3 className={styles.blockTitle}>รางวัลตามรอบที่ไปถึง</h3>
           <p className={styles.note}>
             ตั้งตามจำนวนนัดที่ชนะ ไม่ใช่ชื่อรอบ — เปลี่ยนขนาดสายทีหลังแล้วรางวัลจะไม่เลื่อนไปผิดรอบ
-            · ชนะครบ {rounds} นัดคือแชมป์
+            · ชนะครบ {rounds} นัดคือแชมป์ · รางวัลรอบก่อนแชมป์จ่ายทันทีที่ชนะ รางวัลแชมป์ผู้เล่นต้องกดรับเอง
+            · Cup Token เก็บสะสมไว้บนบัญชี (ยังไม่มีร้านให้ใช้)
           </p>
 
           <div className={styles.bands}>
@@ -359,8 +334,19 @@ export default function AdminCup() {
                     }
                   />
                   <span className={styles.hint}>
-                    นัด{band.wins >= rounds ? ' · แชมป์' : ''}
+                    นัด{isTitleBand(band.wins, competition.size) ? ' · แชมป์ (ผู้เล่นกด CLAIM REWARD เอง)' : ''}
                   </span>
+                  <span className={styles.label}>Cup Token</span>
+                  <input
+                    className={styles.numSmall}
+                    value={band.tokens}
+                    inputMode="numeric"
+                    onChange={(event) =>
+                      patchBand(index, {
+                        tokens: Math.min(MAX_BAND_TOKENS, number(event.target.value, band.tokens)),
+                      })
+                    }
+                  />
                   <button
                     type="button"
                     className={styles.remove}
@@ -403,7 +389,7 @@ export default function AdminCup() {
           {state && (
             <p className={styles.note}>
               ไอดีนี้: ใช้สิทธิ์ไปแล้ว {state.used[tab] ?? 0} ครั้งในรอบนี้ · ถ้วยที่ได้{' '}
-              {state.trophies[tab] ?? 0} ใบ
+              {state.trophies[tab] ?? 0} ใบ · Cup Token {state.tokens}
             </p>
           )}
         </div>

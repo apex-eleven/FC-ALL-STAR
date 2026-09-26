@@ -1,52 +1,48 @@
-import { Trophy } from 'lucide-react';
+import { Check, Lock, Play, Radio, Trophy, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { avatarSource } from '@/features/avatars/extraAvatars';
 import { roundName } from '@/features/cup/constants';
-import { yourSeat } from '@/features/cup/cup';
-import type { CupRun, CupTie } from '@/features/cup/types';
+import { championOf, tieStatus, yourSeat } from '@/features/cup/cup';
+import type { CupRun, CupTie, CupTieStatus } from '@/features/cup/types';
 import styles from './CupBracket.module.css';
 
 export interface CupBracketProps {
   run: CupRun;
 }
 
+/** The chip on a tie that is, or will be, the player's. Other ties carry none. */
+const STATUS_CHIP: Partial<Record<CupTieStatus, { label: string; icon: ReactNode; className: string }>> = {
+  locked: { label: 'LOCKED', icon: <Lock size={12} strokeWidth={3} />, className: styles.chipLocked },
+  available: { label: 'PLAY', icon: <Play size={12} strokeWidth={3} />, className: styles.chipAvailable },
+  live: { label: 'LIVE', icon: <Radio size={12} strokeWidth={3} />, className: styles.chipLive },
+  won: { label: 'WON', icon: <Check size={12} strokeWidth={3} />, className: styles.chipWon },
+  lost: { label: 'ELIMINATED', icon: <X size={12} strokeWidth={3} />, className: styles.chipLost },
+};
+
 /**
- * The bracket, one column per round.
+ * The bracket as a tournament tree: one column per round, the trophy at the end.
  *
  * Every tie is drawn from the moment the draw is made, including the ones waiting on
  * a seat nobody has won yet — a bracket that grew a column at a time would not show
  * the player what they are playing towards, which is the only reason to draw one.
+ *
+ * Nothing here decides anything. Each tie's state comes from `tieStatus`, read off
+ * the run, so the board cannot disagree with the tournament.
  */
 export default function CupBracket({ run }: CupBracketProps) {
   const seat = yourSeat(run);
-
-  /** The path the account took, so their own line can be picked out of the board. */
-  const yourTies = new Set<string>();
-  run.rounds.forEach((ties, round) => {
-    ties.forEach((tie, index) => {
-      if (tie.a === seat || tie.b === seat) yourTies.add(`${round}:${index}`);
-    });
-  });
-
-  const champion = (() => {
-    const final = run.rounds[run.rounds.length - 1]?.[0];
-    return final && final.winner >= 0 ? run.teams[final.winner] : undefined;
-  })();
+  const champion = championOf(run);
 
   return (
     <div className={styles.board}>
       {run.rounds.map((ties, round) => (
         <div key={round} className={styles.column}>
-          <h3 className={styles.roundName}>{roundName(run.size, round)}</h3>
+          <h3 className={`${styles.roundName} ${round === run.round && run.status === 'running' ? styles.roundNow : ''}`}>
+            {roundName(run.size, round)}
+          </h3>
           <div className={styles.ties}>
             {ties.map((tie, index) => (
-              <Tie
-                key={index}
-                tie={tie}
-                run={run}
-                seat={seat}
-                mine={yourTies.has(`${round}:${index}`)}
-                next={round === run.round && run.status === 'running'}
-              />
+              <Tie key={index} tie={tie} run={run} seat={seat} status={tieStatus(run, round, index)} />
             ))}
           </div>
         </div>
@@ -69,17 +65,29 @@ interface TieProps {
   tie: CupTie;
   run: CupRun;
   seat: number;
-  mine: boolean;
-  next: boolean;
+  status: CupTieStatus;
 }
 
-function Tie({ tie, run, seat, mine, next }: TieProps) {
-  const classes = [styles.tie, mine ? styles.tieMine : '', next && mine ? styles.tieNext : '']
+function Tie({ tie, run, seat, status }: TieProps) {
+  const chip = STATUS_CHIP[status];
+  const classes = [
+    styles.tie,
+    chip ? styles.tieMine : '',
+    status === 'available' || status === 'live' ? styles.tieNext : '',
+    status === 'locked' ? styles.tieLocked : '',
+    status === 'lost' ? styles.tieLost : '',
+  ]
     .filter(Boolean)
     .join(' ');
 
   return (
     <div className={classes}>
+      {chip && (
+        <span className={`${styles.chip} ${chip.className}`}>
+          {chip.icon}
+          {chip.label}
+        </span>
+      )}
       <Side tie={tie} run={run} seat={seat} side="a" />
       <Side tie={tie} run={run} seat={seat} side="b" />
       {tie.shootout && (

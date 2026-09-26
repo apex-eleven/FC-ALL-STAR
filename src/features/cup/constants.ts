@@ -8,10 +8,10 @@ export const CUP_SIZES = [4, 8, 16] as const;
 export const MAX_ENTRIES = 20;
 export const MAX_ROUND_REWARDS = 8;
 
-/** Minutes between rounds. 0 would put a whole bracket in one second. */
-export const MIN_ROUND_GAP = 5;
-export const MAX_ROUND_GAP = 24 * 60;
 export const NAME_MAX = 40;
+/** Cup Tokens an account can hold, and a band can pay. */
+export const MAX_CUP_TOKENS = 9_999_999;
+export const MAX_BAND_TOKENS = 1_000_000;
 /** Finished runs kept per account. */
 export const HISTORY_LIMIT = 30;
 /**
@@ -53,6 +53,16 @@ export function roundCount(size: number): number {
   return Math.max(1, Math.round(Math.log2(Math.max(2, size))));
 }
 
+/**
+ * True for a band that is only reached by winning the final.
+ *
+ * Those are paid by CLAIM REWARD on the champion screen; every earlier band is paid
+ * in the same write as the tie that earned it.
+ */
+export function isTitleBand(wins: number, size: number): boolean {
+  return wins >= roundCount(size);
+}
+
 function daily(): CupCompetition {
   return {
     enabled: true,
@@ -65,11 +75,13 @@ function daily(): CupCompetition {
     entries: 3,
     days: [],
     botSpread: 8,
-    // Three rounds two hours apart is six hours — inside a single day's window.
-    roundGapMinutes: 120,
     rewards: [
-      { wins: 1, rewards: [{ kind: 'exchange', amount: 400 }] },
-      { wins: 2, rewards: [{ kind: 'exchange', amount: 900 }, { kind: 'gem', amount: 120 }] },
+      { wins: 1, rewards: [{ kind: 'exchange', amount: 400 }], tokens: 10 },
+      {
+        wins: 2,
+        rewards: [{ kind: 'exchange', amount: 900 }, { kind: 'gem', amount: 120 }],
+        tokens: 25,
+      },
       {
         wins: 3,
         rewards: [
@@ -77,6 +89,7 @@ function daily(): CupCompetition {
           { kind: 'gem', amount: 400 },
           { kind: 'fcpoint', amount: 10 },
         ],
+        tokens: 100,
       },
     ],
     background: '',
@@ -96,12 +109,18 @@ function weekend(): CupCompetition {
     // these and closes at `resetHour` on the day after the last.
     days: [5, 6, 0],
     botSpread: 6,
-    // Four rounds, so a longer gap still finishes well inside a weekend.
-    roundGapMinutes: 180,
     rewards: [
-      { wins: 1, rewards: [{ kind: 'exchange', amount: 600 }] },
-      { wins: 2, rewards: [{ kind: 'exchange', amount: 1200 }, { kind: 'gem', amount: 200 }] },
-      { wins: 3, rewards: [{ kind: 'exchange', amount: 2500 }, { kind: 'gem', amount: 500 }] },
+      { wins: 1, rewards: [{ kind: 'exchange', amount: 600 }], tokens: 10 },
+      {
+        wins: 2,
+        rewards: [{ kind: 'exchange', amount: 1200 }, { kind: 'gem', amount: 200 }],
+        tokens: 25,
+      },
+      {
+        wins: 3,
+        rewards: [{ kind: 'exchange', amount: 2500 }, { kind: 'gem', amount: 500 }],
+        tokens: 50,
+      },
       {
         wins: 4,
         rewards: [
@@ -110,6 +129,7 @@ function weekend(): CupCompetition {
           { kind: 'fcpoint', amount: 40 },
           { kind: 'ticket', amount: 3 },
         ],
+        tokens: 150,
       },
     ],
     background: '',
@@ -129,11 +149,13 @@ export function defaultCup(): CupConfig {
 }
 
 /**
- * What leaving a watched tie early is recorded as.
+ * What leaving a watched tie early is recorded as — through the leave button, or by
+ * closing the tab (the kick-off record is found on the next load).
  *
  * The entry is already spent and the bracket is already drawn, so quitting has to
  * settle the tie rather than leave it open — otherwise closing the tab at 0-1 would
- * be a free retry. It settles as a loss, which is what walking off the pitch is.
+ * be a free retry. It settles as a loss, which is what walking off the pitch is, and
+ * the same 0-3 manager mode's ranked forfeit uses.
  */
 export const CUP_FORFEIT_SCORE: readonly [number, number] = [0, 3];
 
