@@ -22,6 +22,7 @@ import AdminCup from './AdminCup';
 import AdminAnnouncement from './AdminAnnouncement';
 import AdminPlayers from './AdminPlayers';
 import AdminRankUp from './AdminRankUp';
+import AdminOneOfOne from './AdminOneOfOne';
 import AdminStore from './AdminStore';
 import AdminTransfer from './AdminTransfer';
 import AdminShop from './AdminShop';
@@ -59,6 +60,7 @@ type Tab =
   | 'rates'
   | 'cup'
   | 'rankup'
+  | 'oneofone'
   | 'special'
   | 'transfer'
   | 'shop'
@@ -88,6 +90,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'rates', label: 'อัตราสุ่ม' },
   { id: 'cup', label: 'ถ้วยรางวัล' },
   { id: 'rankup', label: 'ตีบวกการ์ด' },
+  { id: 'oneofone', label: 'ป้าย 1 OF 1' },
   { id: 'special', label: 'การ์ดพิเศษ' },
   { id: 'transfer', label: 'เซ็นสัญญา' },
   { id: 'shop', label: 'ร้านค้าไอเท็ม' },
@@ -276,6 +279,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'rates' && <AdminDraftRates />}
         {tab === 'cup' && <AdminCup />}
         {tab === 'rankup' && <AdminRankUp />}
+        {tab === 'oneofone' && <AdminOneOfOne />}
         {tab === 'special' && <AdminSpecial />}
         {tab === 'transfer' && <AdminTransfer />}
         {tab === 'shop' && <AdminShop />}

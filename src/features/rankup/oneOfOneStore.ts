@@ -1,4 +1,4 @@
-import type { OneOfOneRecord, OneOfOneResult } from './oneOfOne';
+import { normalizeOneOfOneRecord, type OneOfOneRecord, type OneOfOneResult } from './oneOfOne';
 
 /**
  * The 1 OF 1 register for a game with no server: this browser is the whole server,
@@ -29,4 +29,32 @@ export function claimOneOfOneLocal(record: OneOfOneRecord): OneOfOneResult {
   } catch {
     return 'error';
   }
+}
+
+function write(register: Record<string, OneOfOneRecord>): boolean {
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(register));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Every title held, repaired on read. */
+export function listOneOfOneLocal(): OneOfOneRecord[] {
+  return Object.entries(read())
+    .map(([key, value]) => normalizeOneOfOneRecord(value, key))
+    .filter((record): record is OneOfOneRecord => record !== null);
+}
+
+/** Admin: puts `record` in the register, replacing whoever held that title. */
+export function setOneOfOneLocal(record: OneOfOneRecord): boolean {
+  return write({ ...read(), [record.key]: record });
+}
+
+/** Admin: frees a title, so the next copy to reach the level wins it. */
+export function removeOneOfOneLocal(key: string): boolean {
+  const register = read();
+  delete register[key];
+  return write(register);
 }

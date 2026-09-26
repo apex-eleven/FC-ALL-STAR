@@ -127,11 +127,13 @@ service cloud.firestore {
     // ตรงกับ src/features/cloud/cloudOneOfOne.ts
     match /oneOfOne/{key} {
       allow read: if signedIn();
-      allow create: if signedIn()
-        && request.resource.data.uid == request.auth.uid
+      // ผู้เล่นสร้างได้เฉพาะป้ายของตัวเอง (ตีบวกติดใบแรก) · แอดมินมอบ/โอน/ถอนป้ายได้
+      allow create: if (isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid))
         && request.resource.data.key == key
         && request.resource.data.level in [9, 10];
-      allow update: if false;
+      allow update: if isAdmin()
+        && request.resource.data.key == key
+        && request.resource.data.level in [9, 10];
       allow delete: if isAdmin();
     }
 

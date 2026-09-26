@@ -10,8 +10,11 @@ import { MAX_PLUS } from './constants';
  * re-added — and by its catalogue id otherwise. Two copies of the same Messi are the
  * same card; Messi and Ronaldo are two titles to win.
  *
- * The title is a record of a moment, so it is never taken back: a 1 OF 1 card that
- * later fails down to +8 is still the one that got there first.
+ * The title is a record of a moment, so the game never takes it back: a 1 OF 1 card
+ * that later fails down to +8 is still the one that got there first. Only an admin
+ * can move a title — grant it to a copy, hand it to another copy, or withdraw it
+ * (แผงแอดมิน → ป้าย 1 OF 1) — and that goes through the same register, so a title
+ * is still held by at most one copy on the server.
  */
 
 /** The levels that carry a title. */
@@ -54,6 +57,16 @@ export function withOneOfOne(players: readonly OwnedPlayer[], cardId: string, le
   );
 }
 
+/** Takes one title off one owned copy — the admin path; the game never calls it. */
+export function withoutOneOfOne(players: readonly OwnedPlayer[], cardId: string, level: number): OwnedPlayer[] {
+  return players.map((card) => {
+    if (card.id !== cardId || !card.oneOfOne?.includes(level)) return card;
+    const rest = normalizeOneOfOne(card.oneOfOne.filter((held) => held !== level));
+    const { oneOfOne: _dropped, ...bare } = card;
+    return rest ? { ...bare, oneOfOne: rest } : bare;
+  });
+}
+
 /** What is written where the title is claimed — enough to say who holds it. */
 export interface OneOfOneRecord {
   key: string;
@@ -69,3 +82,43 @@ export interface OneOfOneRecord {
 }
 
 export type OneOfOneResult = 'won' | 'taken' | 'error';
+
+/** The register entry for `card` holding the title at `level`. */
+export function oneOfOneRecordFor(
+  owner: { id: string; username: string },
+  card: Pick<OwnedPlayer, 'id' | 'playerId' | 'code' | 'name'>,
+  level: number,
+  at: string,
+): OneOfOneRecord {
+  return {
+    key: oneOfOneKey(card, level),
+    level,
+    uid: owner.id,
+    username: owner.username,
+    cardId: card.id,
+    playerId: card.playerId,
+    code: card.code ?? '',
+    name: card.name,
+    at,
+  };
+}
+
+/** A register entry read back from storage, or null when it is not one. */
+export function normalizeOneOfOneRecord(value: unknown, key?: string): OneOfOneRecord | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const row = value as Record<string, unknown>;
+  const text = (field: unknown) => (typeof field === 'string' ? field : '');
+  const level = typeof row.level === 'number' ? row.level : NaN;
+  const record: OneOfOneRecord = {
+    key: key ?? text(row.key),
+    level,
+    uid: text(row.uid),
+    username: text(row.username),
+    cardId: text(row.cardId),
+    playerId: text(row.playerId),
+    code: text(row.code),
+    name: text(row.name),
+    at: text(row.at),
+  };
+  return record.key && record.cardId && isOneOfOneLevel(level) ? record : null;
+}
