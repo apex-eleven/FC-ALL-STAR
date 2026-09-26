@@ -1,4 +1,4 @@
-import type { CupCompetition, CupConfig, CupKind } from './types';
+import type { CupCompetition, CupConfig, CupKind, CupShopConfig } from './types';
 
 export const CUP_CONFIG_KEY = 'football-home-ui:cup:v1';
 
@@ -12,6 +12,10 @@ export const NAME_MAX = 40;
 /** Cup Tokens an account can hold, and a band can pay. */
 export const MAX_CUP_TOKENS = 9_999_999;
 export const MAX_BAND_TOKENS = 1_000_000;
+/** Items the Cup Token shop can hold, and the biggest price or limit one can have. */
+export const MAX_SHOP_ITEMS = 24;
+export const MAX_SHOP_PRICE = 1_000_000;
+export const MAX_SHOP_LIMIT = 999;
 /** Finished runs kept per account. */
 export const HISTORY_LIMIT = 30;
 /**
@@ -137,6 +141,67 @@ function weekend(): CupCompetition {
   };
 }
 
+/**
+ * What the Cup Token shop opens with.
+ *
+ * Priced against what a cup pays: a quarter-final win is 10 tokens and a title 100
+ * more, so a daily player earns roughly 20–60 a day. The cheap lines refill every day
+ * so there is always something to spend on; the ticket and FC points are the ones
+ * worth saving for.
+ */
+function defaultShop(): CupShopConfig {
+  return {
+    enabled: true,
+    items: [
+      {
+        id: 'cs-exchange',
+        enabled: true,
+        title: 'แต้มแลกเปลี่ยน',
+        price: 20,
+        rewards: [{ kind: 'exchange', amount: 1000 }],
+        limit: 5,
+        limitPeriod: 'daily',
+      },
+      {
+        id: 'cs-gem',
+        enabled: true,
+        title: 'เจม',
+        price: 40,
+        rewards: [{ kind: 'gem', amount: 100 }],
+        limit: 3,
+        limitPeriod: 'daily',
+      },
+      {
+        id: 'cs-ticket',
+        enabled: true,
+        title: 'ตั๋วดราฟต์',
+        price: 60,
+        rewards: [{ kind: 'ticket', amount: 1 }],
+        limit: 2,
+        limitPeriod: 'daily',
+      },
+      {
+        id: 'cs-key',
+        enabled: true,
+        title: 'กุญแจกาชาปอง',
+        price: 100,
+        rewards: [{ kind: 'key', amount: 1 }],
+        limit: 1,
+        limitPeriod: 'daily',
+      },
+      {
+        id: 'cs-fcpoint',
+        enabled: true,
+        title: 'เอฟซีพอยต์',
+        price: 150,
+        rewards: [{ kind: 'fcpoint', amount: 10 }],
+        limit: 1,
+        limitPeriod: 'daily',
+      },
+    ],
+  };
+}
+
 export function defaultCup(): CupConfig {
   return {
     enabled: true,
@@ -145,6 +210,7 @@ export function defaultCup(): CupConfig {
     matchSeconds: 150,
     daily: daily(),
     weekend: weekend(),
+    shop: defaultShop(),
   };
 }
 

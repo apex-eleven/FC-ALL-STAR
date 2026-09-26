@@ -1,5 +1,6 @@
 import { MAX_PLUS } from '@/features/rankup/constants';
-import type { ShopReward } from '@/features/shop/types';
+import { MAX_REWARDS } from '@/features/shop/constants';
+import type { LimitPeriod, ShopPurchase, ShopReward } from '@/features/shop/types';
 import {
   CUP_CONFIG_KEY,
   CUP_SIZES,
@@ -8,10 +9,21 @@ import {
   MAX_CUP_TOKENS,
   MAX_ENTRIES,
   MAX_ROUND_REWARDS,
+  MAX_SHOP_ITEMS,
+  MAX_SHOP_LIMIT,
+  MAX_SHOP_PRICE,
   NAME_MAX,
   defaultCup,
 } from './constants';
-import type { CupCompetition, CupConfig, CupRoundReward, CupState, CupKind } from './types';
+import type {
+  CupCompetition,
+  CupConfig,
+  CupKind,
+  CupRoundReward,
+  CupShopConfig,
+  CupShopItem,
+  CupState,
+} from './types';
 
 /**
  * The only file in this folder that touches localStorage, and the only one that
@@ -125,6 +137,72 @@ function sanitizeCompetition(value: unknown, fallback: CupCompetition): CupCompe
   };
 }
 
+const LIMIT_PERIODS: readonly LimitPeriod[] = ['lifetime', 'daily'];
+
+function sanitizeShopItem(value: unknown, index: number): CupShopItem | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const item = value as Record<string, unknown>;
+  const rewards = Array.isArray(item.rewards)
+    ? item.rewards
+        .map(sanitizeRewardLine)
+        .filter((line): line is ShopReward => line !== null)
+        .slice(0, MAX_REWARDS)
+    : [];
+  // An item that hands over nothing would take tokens for nothing.
+  if (rewards.length === 0) return null;
+  return {
+    id: text(item.id, 64, '') || `cs-${index}`,
+    enabled: typeof item.enabled === 'boolean' ? item.enabled : true,
+    title: text(item.title, NAME_MAX, ''),
+    price: clampInt(item.price, 1, MAX_SHOP_PRICE, 1),
+    rewards,
+    limit: clampInt(item.limit, 0, MAX_SHOP_LIMIT, 0),
+    limitPeriod: LIMIT_PERIODS.find((period) => period === item.limitPeriod) ?? 'lifetime',
+  };
+}
+
+/**
+ * The shop half of the config. Settings saved before the shop existed have no
+ * `shop` at all and get the default one; a saved shop is taken as the admin left it,
+ * down to an empty item list.
+ */
+function sanitizeShop(value: unknown, fallback: CupShopConfig): CupShopConfig {
+  if (typeof value !== 'object' || value === null) return fallback;
+  const source = value as Record<string, unknown>;
+  const items = Array.isArray(source.items)
+    ? source.items
+        .map(sanitizeShopItem)
+        .filter((item): item is CupShopItem => item !== null)
+        .slice(0, MAX_SHOP_ITEMS)
+    : fallback.items;
+  // Ids key the purchase counts, so two items must never share one.
+  const seen = new Set<string>();
+  const unique = items.map((item, index) => {
+    const id = seen.has(item.id) ? `${item.id}-${index}` : item.id;
+    seen.add(id);
+    return id === item.id ? item : { ...item, id };
+  });
+  return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : fallback.enabled,
+    items: unique,
+  };
+}
+
+function normalizeShopProgress(value: unknown): Record<string, ShopPurchase> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+  const out: Record<string, ShopPurchase> = {};
+  for (const [id, raw] of Object.entries(value as Record<string, unknown>).slice(0, 200)) {
+    if (typeof raw !== 'object' || raw === null) continue;
+    const row = raw as Record<string, unknown>;
+    out[id.slice(0, 64)] = {
+      total: clampInt(row.total, 0, 1_000_000, 0),
+      dayCount: clampInt(row.dayCount, 0, 1_000_000, 0),
+      day: text(row.day, 10, ''),
+    };
+  }
+  return out;
+}
+
 export function normalizeConfig(value: unknown): CupConfig {
   const base = defaultCup();
   if (typeof value !== 'object' || value === null) return base;
@@ -138,6 +216,7 @@ export function normalizeConfig(value: unknown): CupConfig {
     matchSeconds: clampInt(source.matchSeconds, 30, 900, base.matchSeconds),
     daily: sanitizeCompetition(source.daily, base.daily),
     weekend: sanitizeCompetition(source.weekend, base.weekend),
+    shop: sanitizeShop(source.shop, base.shop),
   };
 }
 
@@ -178,6 +257,7 @@ export function normalizeProgress(value: unknown): CupState {
     runs: { daily: null, weekend: null },
     trophies: { daily: 0, weekend: 0 },
     tokens: 0,
+    shop: {},
     history: [],
   };
   if (typeof value !== 'object' || value === null) return fallback;
@@ -194,6 +274,7 @@ export function normalizeProgress(value: unknown): CupState {
     runs: readKind(source.runs, (raw) => normalizeRun(raw)),
     trophies: readKind(source.trophies, (raw) => clampInt(raw, 0, 100_000, 0)),
     tokens: clampInt(source.tokens, 0, MAX_CUP_TOKENS, 0),
+    shop: normalizeShopProgress(source.shop),
     history: Array.isArray(source.history)
       ? source.history
           .flatMap((entry) => {

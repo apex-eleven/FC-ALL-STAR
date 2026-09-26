@@ -9,6 +9,7 @@ cup/
   bracket.ts         PURE — seeding, the empty board, where a winner goes next
   cup.ts             PURE — window clocks, buildRun(), playRound(), tieStatus(), rewards
   play.ts            PURE — enterCup(), kickOffTie(), playCupRound(), claimCupReward()
+  cupShop.ts         PURE — ร้าน Cup Token: shopItems(), remainingOf(), buyCupShopItem()
   cupConfigStore.ts  the only file here that touches localStorage; normalizers
   CupContext.tsx     CupProvider, useCup() — the tournament layer the screen talks to
 ```
@@ -134,9 +135,24 @@ unclaimed. The champion claim pays everything still owed, so nothing is lost.
 ### Cup Token
 
 Each band also carries `tokens`, added to `CupState.tokens`. It is a counter on the cup
-state, not a seventh wallet currency: nothing spends it yet (the cup shop is a later
-step). Settings saved before tokens existed take the default amount for the same win
-count; an explicit 0 stays 0.
+state, not a seventh wallet currency — earned in one place, spent in one place.
+Settings saved before tokens existed take the default amount for the same win count;
+an explicit 0 stays 0.
+
+## ร้าน Cup Token
+
+`config.shop` — items with one price in Cup Token, a reward list in the shop's own
+`ShopReward` shape, and a limit (`daily` on the cup's `resetHour`, or `lifetime`).
+Opened from the token balance on the cup screen; edited in ADMIN → ฟุตบอลถ้วย → ร้าน
+Cup Token.
+
+`buyCupShopItem` checks the shop, the item, the limit and the balance, then hands
+the rewards over through `deliverRewards` (which checks club space and wallet caps
+before crediting anything), and only then takes the tokens — all in one returned
+account, so nothing is ever refunded. Purchase counts live in `CupState.shop`, keyed by
+item id. Items carry no uploaded art: the card draws itself from its first reward, so
+the shop adds nothing to the shared settings document's size budget. Settings saved
+before the shop existed get the default five items.
 
 ## Leaving a watched tie
 

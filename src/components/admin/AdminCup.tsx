@@ -15,6 +15,7 @@ import {
 import type { CupCompetition, CupConfig, CupKind, CupRoundReward } from '@/features/cup/types';
 import { encodeUploadedImage } from '@/lib/imageEncoding';
 import type { ShopReward } from '@/features/shop/types';
+import AdminCupShop from './AdminCupShop';
 import AdminRewardList from './AdminRewardList';
 import styles from './AdminCup.module.css';
 
@@ -29,6 +30,8 @@ export default function AdminCup() {
   const { config, replace, reset, state } = useCup();
   const [status, setStatus] = useState<Status>(null);
   const [tab, setTab] = useState<CupKind>('daily');
+  // The shop is its own page of settings, not a third competition.
+  const [shopTab, setShopTab] = useState(false);
 
   function apply(next: CupConfig, message = 'บันทึกแล้ว') {
     const result = replace(next);
@@ -94,12 +97,22 @@ export default function AdminCup() {
             <button
               key={kind}
               type="button"
-              className={`${styles.tab} ${tab === kind ? styles.tabOn : ''}`}
-              onClick={() => setTab(kind)}
+              className={`${styles.tab} ${!shopTab && tab === kind ? styles.tabOn : ''}`}
+              onClick={() => {
+                setTab(kind);
+                setShopTab(false);
+              }}
             >
               {config[kind].name || CUP_LABEL[kind]}
             </button>
           ))}
+          <button
+            type="button"
+            className={`${styles.tab} ${shopTab ? styles.tabOn : ''}`}
+            onClick={() => setShopTab(true)}
+          >
+            ร้าน Cup Token
+          </button>
         </div>
 
         <div className={styles.line}>
@@ -125,6 +138,9 @@ export default function AdminCup() {
         )}
       </div>
 
+      {shopTab ? (
+        <AdminCupShop config={config} apply={apply} />
+      ) : (
       <div className={styles.columns}>
         {/* ---- the competition ---- */}
         <div className={styles.block}>
@@ -394,6 +410,7 @@ export default function AdminCup() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

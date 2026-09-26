@@ -27,6 +27,7 @@ import { useStarPass } from '@/features/starpass/StarPassContext';
 import { cupId, defaultCup } from './constants';
 import { currentCup, entriesLeft, opponentIn, tieForYou, windowOpen } from './cup';
 import { loadConfig, normalizeConfig, saveConfig, type SaveResult } from './cupConfigStore';
+import { buyCupShopItem, type CupShopBuyOutcome } from './cupShop';
 import {
   claimCupReward,
   enterCup,
@@ -66,6 +67,7 @@ import {
 
 export type CupPlayResult = Omit<RoundOutcome, 'account'>;
 export type CupClaimResult = Omit<ClaimOutcome, 'account'>;
+export type CupShopResult = Omit<CupShopBuyOutcome, 'account'>;
 
 export type KickOffResult = { ok: true; live: LiveMatch } | { ok: false; error: CupPlayError };
 
@@ -101,6 +103,8 @@ interface CupValue {
   forfeitLive(kind: CupKind, live: LiveMatch): CupPlayResult;
   /** CLAIM REWARD on a champion run. */
   claim(kind: CupKind): CupClaimResult;
+  /** Buys one of a Cup Token shop item. */
+  buyShopItem(itemId: string): CupShopResult;
   /** An abandoned live tie this load settled, waiting to be shown once. */
   abandoned: AbandonedTie | null;
   clearAbandoned(): void;
@@ -421,6 +425,25 @@ export function CupProvider({ children }: { children: ReactNode }) {
     [account, state, config, byId, updateAccount],
   );
 
+  const buyShopItem = useCallback(
+    (itemId: string): CupShopResult => {
+      if (!account) {
+        return { ok: false, error: 'closed', item: null, paid: [], cards: [] };
+      }
+      // Stamp fixed here so a mutator that runs twice files the same card copies.
+      const input = { itemId, config, now: new Date(), lookup: byId, stamp: shopStamp() };
+      const preview = buyCupShopItem(account, input);
+      if (!preview.ok) return withoutAccount(preview);
+
+      updateAccount((current) => {
+        const applied = buyCupShopItem(current, input);
+        return applied.ok ? applied.account : current;
+      });
+      return withoutAccount(preview);
+    },
+    [account, config, byId, updateAccount],
+  );
+
   const value = useMemo<CupValue>(
     () => ({
       config,
@@ -437,6 +460,7 @@ export function CupProvider({ children }: { children: ReactNode }) {
       finishLive,
       forfeitLive,
       claim,
+      buyShopItem,
       abandoned,
       clearAbandoned,
     }),
@@ -455,6 +479,7 @@ export function CupProvider({ children }: { children: ReactNode }) {
       finishLive,
       forfeitLive,
       claim,
+      buyShopItem,
       abandoned,
       clearAbandoned,
     ],

@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, FastForward, Gift, Home, Medal, Play, Ticket, Trophy, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  FastForward,
+  Gift,
+  Home,
+  Medal,
+  Play,
+  ShoppingBag,
+  Ticket,
+  Trophy,
+  X,
+} from 'lucide-react';
 import { useAccount } from '@/features/auth/AuthContext';
 import { avatarSource } from '@/features/avatars/extraAvatars';
 import { formatCurrency } from '@/features/currencies/constants';
@@ -23,6 +34,7 @@ import type { CupClaimError, CupEnterError, CupKind, CupPlayError, CupRun } from
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import CupBracket from './CupBracket';
 import CupChampionPanel from './CupChampionPanel';
+import CupShop from './CupShop';
 import CupResultOverlay, { type CupResultView } from './CupResultOverlay';
 import styles from './CupScreen.module.css';
 
@@ -103,6 +115,7 @@ export default function CupScreen() {
   const [live, setLive] = useState<{ kind: CupKind; match: LiveMatch } | null>(null);
   // The champion panel of a claimed run can be put away to look at the bracket.
   const [hiddenPanel, setHiddenPanel] = useState<string | null>(null);
+  const [shopOpen, setShopOpen] = useState(false);
   // Ticks the window countdown. Everything else on this screen changes only on a press.
   const [now, setNow] = useState(() => new Date());
 
@@ -265,10 +278,21 @@ export default function CupScreen() {
 
         <div className={styles.headerRight}>
           <span className={styles.clock}>{closesIn}</span>
-          <span className={styles.wallet} title="Cup Token">
+          <button
+            type="button"
+            className={`${styles.wallet} ${styles.shopButton}`}
+            onClick={() => setShopOpen(true)}
+            disabled={busy || !config.shop.enabled}
+            title="ร้าน Cup Token"
+          >
             <Medal size={24} className={styles.tokenIcon} />
             {formatCurrency(state?.tokens ?? 0)}
-          </span>
+            {config.shop.enabled && (
+              <span className={styles.shopLabel}>
+                <ShoppingBag size={16} /> ร้าน
+              </span>
+            )}
+          </button>
           <span className={styles.wallet}>
             <img src={currency.icon} alt="" width={26} height={26} />
             {formatCurrency(balance)}
@@ -463,6 +487,8 @@ export default function CupScreen() {
       {view && (
         <CupResultOverlay view={view} competition={competition} onClose={() => setView(null)} />
       )}
+
+      {shopOpen && <CupShop onClose={() => setShopOpen(false)} />}
 
       {live && (
         <ManagerLiveMatch

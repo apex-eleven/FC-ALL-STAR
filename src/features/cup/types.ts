@@ -1,4 +1,4 @@
-import type { ShopReward } from '@/features/shop/types';
+import type { LimitPeriod, ShopPurchase, ShopReward } from '@/features/shop/types';
 
 /**
  * ฟุตบอลถ้วย — knockout cups, in place of the daily league.
@@ -115,13 +115,16 @@ export interface CupState {
   /** Cups won, all time. */
   trophies: Record<CupKind, number>;
   /**
-   * Cup Tokens held — the cup's own reward, paid beside the round rewards.
+   * Cup Tokens held — the cup's own reward, paid beside the round rewards and spent
+   * in the Cup Token shop.
    *
-   * A counter on the cup state, not a wallet currency: nothing spends it yet (the
-   * cup shop is a later step), and a seventh `CurrencyKind` would put it in every
-   * wallet, ledger, top bar and admin mint for no use today.
+   * A counter on the cup state, not a wallet currency: it is earned in one place and
+   * spent in one place, and a seventh `CurrencyKind` would put it in every wallet,
+   * ledger, top bar and admin mint for nothing.
    */
   tokens: number;
+  /** Cup Token shop purchases per item id — limits and daily counts. */
+  shop: Record<string, ShopPurchase>;
   /** Newest first, capped. */
   history: CupResult[];
 }
@@ -166,6 +169,32 @@ export interface CupCompetition {
   trophy: string;
 }
 
+/**
+ * One item in the Cup Token shop (ร้าน Cup Token).
+ *
+ * Deliberately smaller than a `ShopItem`: one price, in one thing, and no art of its
+ * own — the card draws itself from its first reward, so the shop adds nothing to the
+ * shared settings document's size budget.
+ */
+export interface CupShopItem {
+  id: string;
+  enabled: boolean;
+  title: string;
+  /** Cup Tokens per purchase. Always at least 1. */
+  price: number;
+  /** What one purchase hands over, through the game's reward path. */
+  rewards: ShopReward[];
+  /** Purchases allowed per `limitPeriod`. 0 = unlimited. */
+  limit: number;
+  /** `daily` turns over at the cup's `resetHour`. */
+  limitPeriod: LimitPeriod;
+}
+
+export interface CupShopConfig {
+  enabled: boolean;
+  items: CupShopItem[];
+}
+
 export interface CupConfig {
   enabled: boolean;
   /** Hour of day (local) the daily window turns over, and the weekend one opens. */
@@ -181,6 +210,7 @@ export interface CupConfig {
   matchSeconds: number;
   daily: CupCompetition;
   weekend: CupCompetition;
+  shop: CupShopConfig;
 }
 
 export type CupEnterError =
@@ -209,6 +239,15 @@ export type CupClaimError =
   /** Not champion — there is no title reward to claim. */
   | 'not-champion'
   | 'already-claimed'
+  | 'club-full'
+  | 'card-missing'
+  | 'at-cap';
+
+export type CupShopError =
+  | 'closed'
+  | 'unavailable'
+  | 'limit-reached'
+  | 'not-enough-tokens'
   | 'club-full'
   | 'card-missing'
   | 'at-cap';

@@ -116,6 +116,7 @@ export function emptyCup(): CupState {
     runs: { daily: null, weekend: null },
     trophies: { daily: 0, weekend: 0 },
     tokens: 0,
+    shop: {},
     history: [],
   };
 }
@@ -148,6 +149,7 @@ export function currentCup(saved: CupState | undefined, config: CupConfig, now: 
     runs: { ...state.runs },
     trophies: { ...state.trophies },
     tokens: state.tokens ?? 0,
+    shop: state.shop ?? {},
     history: state.history ?? [],
   };
 
