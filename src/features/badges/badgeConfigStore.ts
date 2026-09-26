@@ -3,6 +3,7 @@ import {
   DESCRIPTION_MAX,
   MAX_BADGES,
   MAX_BONUS,
+  MAX_NEED,
   MAX_SET_CARDS,
   NAME_MAX,
   badgeId,
@@ -71,7 +72,7 @@ export function normalizeConfig(value: unknown): BadgeConfig {
         description: text(entry.description, DESCRIPTION_MAX),
         image: image(entry.image),
         cardIds: cardIds(entry.cardIds),
-        need: int(entry.need, 0, MAX_SET_CARDS, 0),
+        need: int(entry.need, 0, MAX_NEED, 0),
         bonus: int(entry.bonus, 0, MAX_BONUS, 0),
       };
     });

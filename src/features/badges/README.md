@@ -24,7 +24,9 @@ badges/
   either side has no number yet, the same OVR **and** the same art file (the name
   stands in for art only when a side has no real art). A player's name alone never
   matches — two versions of one player are different cards. Any rank-up level
-  qualifies. `need` = 0 means the whole set.
+  qualifies. A set lists up to 20 players (`MAX_SET_CARDS`); `need` is at most 11
+  (`MAX_NEED`), and `need` = 0 means the whole set — capped at 11 for a set bigger
+  than a starting eleven, since no more than eleven can be on the pitch.
 - **One rating everywhere.** `teamRating` = `squadRating` + active bonuses. The home
   tile, club panel, league and manager mode all read it through `useBadges().ratingOf`,
   never `squadRating` directly.

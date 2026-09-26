@@ -1,4 +1,5 @@
 import { STORAGE_PREFIX } from '@/features/backup/backup';
+import { STARTER_COUNT } from '@/features/squad/constants';
 import type { BadgeConfig } from './types';
 
 export const BADGE_CONFIG_KEY = `${STORAGE_PREFIX}badges:v1`;
@@ -6,8 +7,16 @@ export const BADGE_CONFIG_KEY = `${STORAGE_PREFIX}badges:v1`;
 export const MAX_BADGES = 60;
 export const NAME_MAX = 30;
 export const DESCRIPTION_MAX = 60;
-/** A set is at most a full eleven. */
-export const MAX_SET_CARDS = 11;
+/**
+ * Players a set can list. More than an eleven, so a crest can name a whole squad —
+ * any of them on the pitch counts toward it.
+ */
+export const MAX_SET_CARDS = 20;
+/**
+ * The most a crest can ask to be on the pitch at once: the starting eleven. A set of
+ * 20 with "all of them" (need 0) asks for 11.
+ */
+export const MAX_NEED = STARTER_COUNT;
 export const MAX_BONUS = 99;
 
 /** Crest art is small — it sits in a 74x56 slot and a picker row. */

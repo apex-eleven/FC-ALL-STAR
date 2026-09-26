@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Shield } from 'lucide-react';
+import { requiredCount } from '@/features/badges/badges';
 import { useBadges } from '@/features/badges/BadgeContext';
 import {
   DESCRIPTION_MAX,
@@ -8,6 +9,7 @@ import {
   IMAGE_MAX_W,
   MAX_BADGES,
   MAX_BONUS,
+  MAX_NEED,
   MAX_SET_CARDS,
   NAME_MAX,
   badgeId,
@@ -42,7 +44,7 @@ function whole(raw: string): number {
  * what can be pinned, never who has pinned it.
  */
 export default function AdminBadges() {
-  const { config, replace, reset } = useBadges();
+  const { config, replace, reset, memberOf } = useBadges();
   const { players, byId } = usePlayers();
   const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState(false);
@@ -313,20 +315,22 @@ export default function AdminBadges() {
                   />
                 </label>
                 <label className={styles.field}>
-                  <span className={styles.label}>ต้องมีลงสนามกี่คน (0 = ทั้งชุด)</span>
+                  <span className={styles.label}>ต้องมีลงสนามกี่คน (0 = ทั้งชุด, สูงสุด {MAX_NEED})</span>
                   <input
                     className={styles.input}
                     inputMode="numeric"
                     key={`${badge.id}-need-${badge.need}`}
                     defaultValue={badge.need}
                     onBlur={(event) =>
-                      patchBadge(badge.id, { need: Math.min(MAX_SET_CARDS, whole(event.target.value)) })
+                      patchBadge(badge.id, { need: Math.min(MAX_NEED, whole(event.target.value)) })
                     }
                   />
                 </label>
                 <span className={styles.mine}>
-                  ชุดนี้มี {badge.cardIds.length} คน · ต้องลงสนาม{' '}
-                  {badge.need <= 0 ? badge.cardIds.length : Math.min(badge.need, badge.cardIds.length)} คน
+                  ชุดนี้มี {badge.cardIds.length} คน · ต้องลงสนาม {requiredCount(badge, memberOf)} คน
+                  {badge.cardIds.length > MAX_NEED && badge.need <= 0
+                    ? ` (ชุดเกิน ${MAX_NEED} คน "ทั้งชุด" จึงนับเท่า ${MAX_NEED} ตัวจริง)`
+                    : ''}
                   {badge.cardIds.length === 0 ? ' · ยังไม่มีนักเตะ ตราจะไม่ทำงาน' : ''}
                 </span>
               </div>

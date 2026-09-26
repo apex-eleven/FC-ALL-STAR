@@ -2,6 +2,7 @@ import { BADGE_SLOTS } from '@/features/squad/constants';
 import { formationOf, squadRating } from '@/features/squad/squad';
 import { groupKey, isSameCard, keyOf, type CardRef, type OwnedKey } from '@/features/club/identity';
 import type { OwnedIndex, Squad } from '@/features/squad/types';
+import { MAX_NEED } from './constants';
 import type { BadgeConfig, BadgeStatus, TeamBadge } from './types';
 
 /**
@@ -54,9 +55,14 @@ function members(badge: TeamBadge, lookup: MemberLookup): string[][] {
   return [...groups.values()];
 }
 
-/** How many of the set's players the crest asks for. */
+/**
+ * How many of the set's players the crest asks for.
+ *
+ * Never more than the starting eleven: a set can list up to 20 players, and "all of
+ * them" on a set bigger than a team means every one of the eleven on the pitch.
+ */
 export function requiredCount(badge: TeamBadge, lookup: MemberLookup = noLookup): number {
-  const size = members(badge, lookup).length;
+  const size = Math.min(members(badge, lookup).length, MAX_NEED);
   return badge.need <= 0 ? size : Math.min(badge.need, size);
 }
 
