@@ -45,6 +45,7 @@ import {
   PITCH,
   attackDirection,
   centreSpot,
+  clampToPitch,
   distanceSq,
   formationToWorld,
   goalCrossed,
@@ -108,6 +109,14 @@ const PRESSED_RADIUS = 3;
 
 /** โดนกดดันแล้วนาฬิกาตัดสินใจเดินเร็วขึ้นกี่เท่า */
 const PRESSED_URGENCY = 2.4;
+
+/**
+ * ผู้รักษาประตูรับบอลไว้ในมือ (หลังเซฟ): คู่แข่งห้ามเข้าแย่ง — ไม่มีใครเข้ากดดัน ไม่มีการเข้าสกัด
+ * ทุกคนถอยออกไปอยู่นอกรัศมี KEEPER_ROOM (เมตร) และใครที่อยู่ในระยะ KEEPER_WATCH ก็ไม่เดินเข้าใกล้
+ * ผู้รักษาประตูไปกว่าที่ยืนอยู่ — ถอยได้ แต่ไม่วิ่งเข้าหาบอล รอให้ส่งออกเหมือนเกมจริง (ดู awayFromKeeper)
+ */
+const KEEPER_ROOM = 9;
+const KEEPER_WATCH = 22;
 
 /** บอลอยู่ห่างจากเท้าคนที่ครองอยู่เท่าไร (เมตร) */
 const DRIBBLE_LEAD = 0.95;
@@ -216,6 +225,12 @@ export class MatchEngine {
    * แยกจากข้อมูลนักเตะถาวรโดยสิ้นเชิง เอนจินไม่เคยเขียนกลับไปที่ Player
    */
   readonly playerStats = new Map<string, PlayerMatchStats>();
+
+  /**
+   * ผู้รักษาประตูที่ได้บอลจากการเซฟ = ถือบอลไว้ในมือ จนกว่าบอลจะเปลี่ยนมือ
+   * ถือจริงหรือไม่ต้องดูคู่กับ ball.owner เสมอ (ดู keeperInHands)
+   */
+  private handsOwnerId: string | null = null;
 
   /** id ของคนที่กำลังยุ่งกับบอลของแต่ละฝั่ง (คนถือบอล / คนเข้ากดดัน / คนไล่ลูกหลุด) */
   chaserIds: { home: string | null; away: string | null } = { home: null, away: null };
@@ -927,10 +942,18 @@ export class MatchEngine {
    * นี่คือกติกา "ไม่ให้ทั้งทีมวิ่งไล่บอล" ที่ PHASE 2 กำหนด
    */
   private assignDefendingShape(team: MatchTeamState, ballOwner: Vec2): void {
-    const presser = this.pickClosest(team, ballOwner);
+    // บอลอยู่ในมือผู้รักษาประตูฝั่งตรงข้าม: แย่งไม่ได้ ไม่ส่งใครเข้ากดดัน ถอยไปรักษารูปทีม
+    const keeper = this.keeperInHands();
+    const presser = keeper ? null : this.pickClosest(team, ballOwner);
     this.chaserIds[team.side] = presser?.id ?? null;
 
     team.players.forEach((agent) => {
+      if (keeper) {
+        agent.state = agent.role === 'gk' ? 'POSITIONING' : 'DEFENDING';
+        agent.decision = 'MOVE';
+        agent.targetPosition = this.awayFromKeeper(agent, this.defensiveTarget(agent), keeper);
+        return;
+      }
       if (presser && agent.id === presser.id) {
         agent.state = 'PRESSING';
         agent.decision = 'PRESS';
@@ -947,6 +970,38 @@ export class MatchEngine {
       agent.decision = 'MOVE';
       agent.targetPosition = this.defensiveTarget(agent);
     });
+  }
+
+  /** ผู้รักษาประตูที่ถือบอลไว้ในมืออยู่ตอนนี้ (ได้บอลจากการเซฟ และบอลยังไม่เปลี่ยนมือ) */
+  private keeperInHands(): PlayerAgent | null {
+    const owner = this.ownerAgent();
+    return owner && owner.id === this.handsOwnerId ? owner : null;
+  }
+
+  /**
+   * เป้าหมายของคู่แข่งตอนผู้รักษาประตูถือบอล
+   * - คนที่อยู่ในระยะ KEEPER_WATCH: ไปตามรูปทีมได้เฉพาะถ้าทางนั้นพาออกห่างจากผู้รักษาประตู
+   *   ไม่งั้นยืนรอตรงนั้น (ถ้าอยู่ในรัศมี KEEPER_ROOM ก็ถอยออกไปตรง ๆ) — ไม่เดินตัดเข้าใกล้บอล
+   * - คนที่อยู่ไกลกว่านั้น: ไปตามรูปทีม แต่ไม่เข้ามาใกล้กว่า KEEPER_WATCH
+   */
+  private awayFromKeeper(agent: PlayerAgent, target: Vec2, keeper: PlayerAgent): Vec2 {
+    const k = keeper.position2d;
+    const at = agent.position2d;
+    const gap = agent.distanceTo(k);
+    const outward = gap > 1e-3 ? { x: (at.x - k.x) / gap, y: (at.y - k.y) / gap } : { x: attackDirection(keeper.side), y: 0 };
+    const ring = (radius: number, dir: Vec2): Vec2 => clampToPitch({ x: k.x + dir.x * radius, y: k.y + dir.y * radius });
+
+    if (gap < KEEPER_WATCH) {
+      const leaves = (target.x - at.x) * outward.x + (target.y - at.y) * outward.y > 0;
+      const targetGap = Math.hypot(target.x - k.x, target.y - k.y);
+      if (leaves && targetGap >= Math.max(gap, KEEPER_ROOM)) return target;
+      return ring(Math.max(gap, KEEPER_ROOM), outward);
+    }
+    const tx = target.x - k.x;
+    const ty = target.y - k.y;
+    const targetGap = Math.hypot(tx, ty);
+    if (targetGap >= KEEPER_WATCH) return target;
+    return ring(KEEPER_WATCH, targetGap > 1e-3 ? { x: tx / targetGap, y: ty / targetGap } : outward);
   }
 
   /**
@@ -1262,6 +1317,8 @@ export class MatchEngine {
     this.ball.attachTo(agent.id);
     this.holdElapsed = 0;
     this.saveAttempted = false;
+    // เซฟได้ = บอลอยู่ในมือผู้รักษาประตู · ได้บอลทางอื่น (รับบอล แย่ง ลูกหลุด) = อยู่ที่เท้า
+    this.handsOwnerId = reason === 'save' ? agent.id : null;
 
     agent.state = 'ON_BALL';
     agent.decision = 'HOLD';
