@@ -482,17 +482,18 @@
 .step {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 /* The frames arrive as ~195x240 PNGs with the number already drawn in, so the tile
    is just a sized box. Levels not yet reached are dimmed rather than swapped for a
    different image — the whole ladder stays visible, which is the point of showing
-   all eight. */
+   all ten. Sized so ten tiles and nine arrows fit the 1288px inside the strip:
+   10 x 96 + 9 x (6 + 18 + 6) = 1230. */
 .tile {
   display: block;
-  width: 120px;
-  height: 148px;
+  width: 96px;
+  height: 118px;
   object-fit: contain;
   filter: grayscale(0.9) brightness(0.42);
   transition: transform var(--transition-base), filter var(--transition-base);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { goldPlusProps } from '@/features/rankup/constants';
 import { Check, ChevronLeft, ChevronRight, Clock3, Home, Info, ShoppingCart, Star, Volleyball } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
@@ -228,7 +229,11 @@ export default function StarPassScreen() {
           title={shown.text}
           draggable={false}
         />
-        {reward.kind === 'card' && reward.plus > 0 && <span className={styles.plus}>+{reward.plus}</span>}
+        {reward.kind === 'card' && reward.plus > 0 && (
+          <span className={styles.plus} {...goldPlusProps(reward.plus)}>
+            +{reward.plus}
+          </span>
+        )}
       </span>
     );
   }

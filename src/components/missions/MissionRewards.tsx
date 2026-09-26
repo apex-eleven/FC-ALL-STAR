@@ -1,4 +1,5 @@
 import type { MissionReward } from '@/features/missions/types';
+import { goldPlusProps } from '@/features/rankup/constants';
 import useRewardView from '@/components/shop/useRewardView';
 import styles from './MissionRewards.module.css';
 
@@ -24,7 +25,11 @@ export default function MissionRewards({ rewards, compact = false, className = '
               alt=""
               draggable={false}
             />
-            {reward.kind === 'card' && reward.plus > 0 && <span className={styles.plus}>+{reward.plus}</span>}
+            {reward.kind === 'card' && reward.plus > 0 && (
+              <span className={styles.plus} {...goldPlusProps(reward.plus)}>
+                +{reward.plus}
+              </span>
+            )}
             <span className={styles.amount}>
               {reward.kind === 'card' ? `x${reward.amount}` : shown.count}
             </span>

@@ -171,7 +171,11 @@ export const ASSETS = {
     back: rankupBack,
     home: rankupHome,
     confirm: rankupConfirm,
-    /** Indexed by plus level minus one: frames[0] is +1, frames[7] is +8. */
+    /**
+     * Indexed by plus level minus one: frames[0] is +1, frames[7] is +8. +9 and +10
+     * have no art yet and are drawn in code (`RankFrame`); to use art instead, add
+     * rank_frame_09/10 here as the ninth and tenth entries.
+     */
     frames: [
       rankFrame01,
       rankFrame02,

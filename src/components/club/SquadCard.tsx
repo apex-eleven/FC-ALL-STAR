@@ -3,7 +3,7 @@ import type { DisplayCard } from '@/features/club/types';
 import { fxLevel } from '@/features/fx/fx';
 import { useStill } from '@/features/images/stills';
 import { playerThumbSrc } from '@/features/players/artManifest';
-import { plusTone } from '@/features/rankup/constants';
+import { goldPlusProps, plusTone } from '@/features/rankup/constants';
 import { clampPlus, ratingWithPlus } from '@/features/rankup/plus';
 import { CARD_HEIGHT, CARD_WIDTH } from '@/features/squad/constants';
 import styles from './SquadCard.module.css';
@@ -117,6 +117,7 @@ export default function SquadCard({
         <span
           className={styles.plus}
           style={{ '--plus-tone': plusTone(plus) } as CSSProperties}
+          {...goldPlusProps(plus)}
         >
           +{plus}
         </span>

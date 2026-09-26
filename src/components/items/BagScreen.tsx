@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { goldPlusProps } from '@/features/rankup/constants';
 import { Check, ChevronLeft, Home, Search } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { useAccount } from '@/features/auth/AuthContext';
@@ -195,7 +196,11 @@ export default function BagScreen() {
                   title={`${card.name} OVR ${card.rating}`}
                 >
                   <img src={card.portrait} alt="" />
-                  {(card.plus ?? 0) > 0 && <span className={styles.plus}>+{card.plus}</span>}
+                  {(card.plus ?? 0) > 0 && (
+                    <span className={styles.plus} {...goldPlusProps(card.plus ?? 0)}>
+                      +{card.plus}
+                    </span>
+                  )}
                   <span className={styles.cardName}>{card.name}</span>
                 </button>
               ))}
@@ -397,7 +402,11 @@ export default function BagScreen() {
             <h2 className={styles.revealTitle}>{reveal.title}</h2>
             <div className={styles.revealCard}>
               <img src={reveal.portrait} alt="" />
-              {reveal.plus > 0 && <span className={styles.revealPlus}>+{reveal.plus}</span>}
+              {reveal.plus > 0 && (
+                <span className={styles.revealPlus} {...goldPlusProps(reveal.plus)}>
+                  +{reveal.plus}
+                </span>
+              )}
             </div>
             <span className={styles.revealName}>{reveal.name}</span>
             <button type="button" className={styles.use} onClick={() => setReveal(null)}>

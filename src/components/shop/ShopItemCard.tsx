@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { Clock, ThumbsUp } from 'lucide-react';
 import { currencies } from '@/data/mock/currencies';
 import { formatCurrency } from '@/features/currencies/constants';
-import { plusTone } from '@/features/rankup/constants';
+import { goldPlusProps, plusTone } from '@/features/rankup/constants';
 import { countdown, formatBaht, payOptions } from '@/features/shop/shop';
 import type { CardSize, ShopItem } from '@/features/shop/types';
 import ShopRewardLine from './ShopRewardLine';
@@ -82,6 +82,7 @@ export default function ShopItemCard({
             <span
               className={styles.plus}
               style={{ '--plus-tone': plusTone(leadPlus) } as CSSProperties}
+              {...goldPlusProps(leadPlus)}
             >
               +{leadPlus}
             </span>

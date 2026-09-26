@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react';
-import { ASSETS } from '@/assets/assetMap';
 import type { OwnedPlayer } from '@/features/club/types';
 import { plusTone } from '@/features/rankup/constants';
 import type { RankUpOutcome } from '@/features/rankup/types';
 import SquadCard from '@/components/club/SquadCard';
+import RankFrame from './RankFrame';
 import styles from './RankUpResult.module.css';
 
 export interface RankUpResultProps {
@@ -49,11 +49,7 @@ export default function RankUpResult({ outcome, card, onClose }: RankUpResultPro
         {/* The frame the card now sits at. Skipped at +0 and on a destroy, where
             there is no level to celebrate. */}
         {!outcome.destroyed && outcome.to > 0 && (
-          <img
-            className={styles.frame}
-            src={ASSETS.rankup.frames[outcome.to - 1]}
-            alt={`+${outcome.to}`}
-          />
+          <RankFrame level={outcome.to} className={styles.frame} />
         )}
 
         <div className={`${styles.card} ${outcome.destroyed ? styles.gone : ''}`}>

@@ -19,6 +19,7 @@ import { useSound } from '@/features/sound/SoundContext';
 import { isInSquad, removeFromSquad } from '@/features/squad/squad';
 import SquadCard from '@/components/club/SquadCard';
 import CardPicker from './CardPicker';
+import RankFrame from './RankFrame';
 import RankUpResult from './RankUpResult';
 import styles from './RankUpScreen.module.css';
 
@@ -397,15 +398,14 @@ export default function RankUpScreen() {
 
           return (
             <span className={styles.step} key={level}>
-              <img
+              <RankFrame
+                level={level}
                 className={`${styles.tile} ${reached ? styles.tileOn : ''} ${
                   nextUp ? styles.tileNext : ''
                 }`}
-                src={ASSETS.rankup.frames[i]}
-                alt={`+${level}`}
                 style={{ '--pip': plusTone(level) } as CSSProperties}
               />
-              {level < MAX_PLUS && <ChevronRight className={styles.arrow} size={22} strokeWidth={3} />}
+              {level < MAX_PLUS && <ChevronRight className={styles.arrow} size={18} strokeWidth={3} />}
             </span>
           );
         })}

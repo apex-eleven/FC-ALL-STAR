@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { goldPlusProps } from '@/features/rankup/constants';
 import { X } from 'lucide-react';
 import type { OwnedPlayer } from '@/features/club/types';
 import { PLAYER_SETS, type PlayerSet } from '@/features/draft/types';
@@ -142,7 +143,11 @@ export default function CardPicker({
                 <span className={styles.cellName}>{card.name}</span>
                 <span className={styles.cellMeta}>
                   {ratingWithPlus(card)} · {card.position}
-                  {plus > 0 && <span className={styles.cellPlus}>+{plus}</span>}
+                  {plus > 0 && (
+                    <span className={styles.cellPlus} {...goldPlusProps(plus)}>
+                      +{plus}
+                    </span>
+                  )}
                 </span>
               </button>
             );

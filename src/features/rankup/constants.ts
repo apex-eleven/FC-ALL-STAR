@@ -3,7 +3,25 @@ import type { RankUpConfig, RankUpLevel } from './types';
 export const RANKUP_CONFIG_KEY = 'football-home-ui:rankup:v1';
 
 /** Highest plus a card can reach. The bottom strip draws one tile per step. */
-export const MAX_PLUS = 8;
+export const MAX_PLUS = 10;
+
+/**
+ * The gold tier. From here up the +N badge is drawn in metallic gold everywhere it
+ * appears (see `goldPlusProps` and the `[data-plus-gold]` rule in globals.css).
+ */
+export const GOLD_PLUS_FROM = 9;
+
+export function isGoldPlus(plus: number): boolean {
+  return plus >= GOLD_PLUS_FROM;
+}
+
+/**
+ * Spread onto any element that draws a +N badge. One attribute, one global rule, so
+ * every screen that shows a plus turns gold at +9 without each one restyling itself.
+ */
+export function goldPlusProps(plus: number): { 'data-plus-gold'?: '' } {
+  return isGoldPlus(plus) ? { 'data-plus-gold': '' } : {};
+}
 
 /** Guard rails for the admin inputs. Hand-edited storage is clamped to these too. */
 export const MAX_MATERIALS = 8;
@@ -34,10 +52,13 @@ const LADDER: readonly [number, number, number, number][] = [
   [6, 3, 30, 12],
   [7, 4, 20, 16],
   [8, 4, 12, 21],
+  // The gold tier: five materials each and single-figure chances, so +10 is rare.
+  [9, 5, 8, 27],
+  [10, 5, 5, 34],
 ];
 
 /** Costs climb about half again per step, rounded to something readable. */
-const COSTS = [2_000, 4_000, 8_000, 15_000, 28_000, 50_000, 90_000, 160_000];
+const COSTS = [2_000, 4_000, 8_000, 15_000, 28_000, 50_000, 90_000, 160_000, 280_000, 500_000];
 
 export const DEFAULT_LEVELS: readonly RankUpLevel[] = LADDER.map(
   ([level, materials, chance, bonus]): RankUpLevel => ({
@@ -62,7 +83,11 @@ export const DEFAULT_RANKUP: RankUpConfig = {
   levels: DEFAULT_LEVELS.map((level) => ({ ...level, materialIds: [] })),
 };
 
-/** Tile colours for the +1..+8 strip, matching the reference art's progression. */
+/**
+ * Tile colours for the +1..+10 strip, matching the reference art's progression. +9
+ * and +10 are the gold tier; where a badge is drawn they also get the metallic gold
+ * treatment, and these tones are what glows and pips use.
+ */
 export const PLUS_TONES: readonly string[] = [
   '#ff7a1a',
   '#c9d2e0',
@@ -72,6 +97,8 @@ export const PLUS_TONES: readonly string[] = [
   '#ff4d6d',
   '#27e0d0',
   '#ff5ce0',
+  '#f2c230',
+  '#ffdf6e',
 ];
 
 export function plusTone(plus: number): string {

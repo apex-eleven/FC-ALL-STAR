@@ -124,3 +124,29 @@ button {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/*
+  +9 and +10 — the gold tier of rank-up.
+
+  Global on purpose: a +N badge is drawn by a dozen components, each with its own
+  module class and its own tone. Every one of them spreads `goldPlusProps(plus)`
+  (features/rankup/constants.ts), and this one rule turns them all metallic gold.
+  `!important` because the module classes set the badge's background and colour at
+  the same specificity, some of them inline.
+*/
+[data-plus-gold] {
+  background: linear-gradient(
+    135deg,
+    #fff6c9 0%,
+    #f6d25a 24%,
+    #c8921c 50%,
+    #ffe48c 72%,
+    #b47c14 100%
+  ) !important;
+  border-color: #ffeaa6 !important;
+  color: #3b2500 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  box-shadow:
+    0 0 12px rgba(255, 196, 50, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}

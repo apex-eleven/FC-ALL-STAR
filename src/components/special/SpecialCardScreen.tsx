@@ -8,7 +8,7 @@ import { formatCurrency } from '@/features/currencies/constants';
 import { useNavigation } from '@/features/navigation/NavigationContext';
 import { playerArtUrl } from '@/features/players/artManifest';
 import { usePlayers } from '@/features/players/PlayerContext';
-import { plusTone } from '@/features/rankup/constants';
+import { goldPlusProps, plusTone } from '@/features/rankup/constants';
 import { REQUIRED_CARDS } from '@/features/special/constants';
 import { filledCount, isBought, isComplete, refuse, slotsOf } from '@/features/special/special';
 import { useSpecial, type SpecialBuyResult } from '@/features/special/SpecialContext';
@@ -158,7 +158,7 @@ export default function SpecialCardScreen() {
                   </span>
                 )}
                 {offer.plus > 0 && (
-                  <span className={styles.plus} style={{ background: plusTone(offer.plus) }}>
+                  <span className={styles.plus} style={{ background: plusTone(offer.plus) }} {...goldPlusProps(offer.plus)}>
                     +{offer.plus}
                   </span>
                 )}
@@ -227,7 +227,7 @@ export default function SpecialCardScreen() {
                             </span>
                           )}
                           {owned && plus > 0 && (
-                            <span className={styles.slotPlus} style={{ background: plusTone(plus) }}>
+                            <span className={styles.slotPlus} style={{ background: plusTone(plus) }} {...goldPlusProps(plus)}>
                               +{plus}
                             </span>
                           )}

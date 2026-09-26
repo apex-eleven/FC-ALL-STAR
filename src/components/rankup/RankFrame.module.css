@@ -1,0 +1,39 @@
+/*
+  The drawn frame for levels without art. Same portrait proportion as the supplied
+  frames (~190x230), so it drops into the ladder and the result card unchanged. The
+  plate carries `data-plus-gold`, which gives it the global gold-tier finish.
+*/
+.drawn {
+  position: relative;
+}
+
+/* Absolutely placed, so it centres whatever display the caller's class sets. */
+.plate {
+  position: absolute;
+  inset: 9% 8%;
+  display: grid;
+  place-items: center;
+  clip-path: polygon(50% 0, 100% 16%, 100% 76%, 50% 100%, 0 76%, 0 16%);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(180deg, #3a3350 0%, #151222 100%);
+}
+
+/* Sized in container units so "+10" fits the ladder's 96px tile and still fills the
+   result card's larger one. */
+.drawn {
+  container-type: inline-size;
+}
+
+.number {
+  font-family: var(--font-display);
+  font-size: 30cqw;
+  font-style: italic;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Gold tier: a bright outer rim behind the plate, like the art frames' halo. */
+.gold {
+  background: radial-gradient(circle at 50% 45%, rgba(255, 214, 90, 0.35) 0%, transparent 70%);
+}
