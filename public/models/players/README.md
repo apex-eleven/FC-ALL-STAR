@@ -28,8 +28,8 @@ public/models/players/T_Numbers.png       ตัวเลข 0–9 เรีย�
 - กระดูกที่ต้องมี: `Hips` `Head` และซ้าย/ขวาของ `UpperLeg` `LowerLeg` `Foot` `UpperArm` `ForeArm`
   (ชื่อแบบ Mixamo / Unreal / Blender ก็ใช้ได้ ระบบแปลงให้เอง)
 - คลิปที่ต้องมี: `Idle` `Walk` `Run` · คลิปอื่นตาม `CLIP_REGISTRY` (Jog, Sprint, Turn, Pass, Shoot,
-  Tackle, Receive, Interception, Celebrate, GK_Ready, GK_Dive_Left, GK_Dive_Right, GK_Catch/GK_Save)
-  ไม่มีก็เล่นได้
+  Tackle, Receive, Interception, Celebrate, GK_Ready, GK_Dive_Left, GK_Dive_Right, GK_Catch/GK_Save,
+  GK_Distribute) และท่าย่อยตาม `VARIANT_CLIP_NAMES` ไม่มีก็เล่นได้
 - คลิปเดิน/วิ่งต้องเป็นแบบ in place (ไม่มี root motion) และลูปเริ่มที่เท้าซ้ายแตะพื้น
 
 ## แอนิเมชัน (STEP 6)
@@ -41,6 +41,11 @@ public/models/players/T_Numbers.png       ตัวเลข 0–9 เรีย�
 - ท่าดีใจมีได้ 3 แบบ: `Celebrate_1` `Celebrate_2` `Celebrate_3` (ไม่มีแบบไหนจะใช้ `Celebrate`
   ตัวเดียวแทน) — นักเตะแต่ละคนได้แบบของตัวเองตาม id
 - ท่าพุ่งเซฟ (`GK_Dive_Left/Right`) ยาว 1.1 วินาที มือถึงบอลที่ 40% ของคลิป แล้วลงพื้นและลุกขึ้น
+- ท่ารับบอลของผู้รักษาประตูมี 3 แบบ เลือกจากความสูงที่บอลมาถึง: `GK_Catch` (ระดับอก) · `GK_Catch_High`
+  (กระโดดรับลูกสูงเกิน 1.78 ม.) · `GK_Scoop` (ช้อนลูกเรียดต่ำกว่า 0.78 ม.)
+- เซฟแล้วผู้รักษาประตู**ถือบอลไว้ในมือ** (บอลวาดตามกระดูกมือ) จนกว่าจะส่งต่อด้วย `GK_DISTRIBUTE`
+  ยาว 1.3 วินาที บอลหลุดมือที่ 50% · เลือกท่าจากระยะส่ง: `GK_Roll` กลิ้ง (< 16 ม.) · `GK_Throw` ขว้าง
+  (16–20 ม.) · `GK_Throw_Overhand` ขว้างเหนือไหล่ (20–30 ม.) · `GK_Drop_Kick` เตะจากมือ (≥ 30 ม.)
 - คลิปไหนไม่มี จะไม่ล่มและไม่หายไปเฉย ๆ: โมเดลเล่นคลิปเดิน/วิ่งต่อ แล้วระบบวางท่า procedural
   ทับบนกระดูกของโมเดลแทน (แจ้งใน console ครั้งเดียวตอนโหลด)
 
@@ -67,8 +72,8 @@ public/models/players/T_Numbers.png       ตัวเลข 0–9 เรีย�
 | IDLE | `Idle` | offensive idle | ลูป 10.5 วิ |
 | GK_READY | `GK_Ready` | goalkeeper idle | ลูป 4.6 วิ |
 | WALK | `Walk` | Walking | ลูป 1.03 วิ รอบละ 1.85 ม. (1.8 ม./วิ) |
-| JOG | `Jog` | jog forward | ลูป 0.83 วิ รอบละ 2.15 ม. (2.6 ม./วิ) |
-| RUN | `Run` | Fast Run | ลูป 0.53 วิ รอบละ 3.02 ม. (5.7 ม./วิ) |
+| JOG | `Jog` | Slow_Run (Ch28) | ลูป 0.73 วิ รอบละ 2.09 ม. (2.85 ม./วิ) |
+| RUN | `Run` | Fast_Run_1 (Ch28) | ลูป 0.53 วิ รอบละ 2.75 ม. (5.2 ม./วิ) — ท่าเดียวกับ Fast Run เดิม แต่บนกระดูก Ch28 |
 | SPRINT | `Sprint` | Sprint | ลูป 0.53 วิ รอบละ 3.29 ม. (6.2 ม./วิ) |
 | PASS | `Pass` | kick soccerball (2) | เท้าขวา |
 | SHOOT | `Shoot` | strike foward jog | เท้าขวา |
@@ -76,6 +81,20 @@ public/models/players/T_Numbers.png       ตัวเลข 0–9 เรีย�
 | TACKLE | `Tackle` | soccer tackle (2) | สไลด์เท้าขวา แล้วลุก |
 | GK_DIVE_LEFT / RIGHT | `GK_Dive_Left` / `GK_Dive_Right` | goalkeeper diving save / (2) | พุ่ง ลงพื้น ลุก |
 | GK_CATCH (SAVE) | `GK_Catch` | goalkeeper catch (2) | รับบอลระดับอก |
+| GK_CATCH แบบ 1 | `GK_Catch_High` | Goalkeeper_Catch (Ch28) | กระโดดรับ มือสูงสุด 2.22 ม. |
+| GK_CATCH แบบ 2 | `GK_Scoop` | Goalkeeper_Scoop (Ch28) | ก้มช้อนบอล มือต่ำสุด 0.20 ม. |
+| GK_DISTRIBUTE แบบ 0 | `GK_Roll` | Goalkeeper_Pass (Ch28) | กลิ้งบอลมือขวา ปล่อยสูง 0.3 ม. |
+| GK_DISTRIBUTE แบบ 1 | `GK_Throw` | Goalie_Throw (Ch28) | ขว้างมือขวา ปล่อยสูง 1.55 ม. |
+| GK_DISTRIBUTE แบบ 2 | `GK_Throw_Overhand` | Goalkeeper_Overhand_Throw (Ch28) | ขว้างเหนือไหล่ ปล่อยสูง 1.7 ม. |
+| GK_DISTRIBUTE แบบ 3 | `GK_Drop_Kick` | Goalkeeper_Drop_Kick (Ch28) | ปล่อยบอลจากมือซ้าย เตะเท้าขวา |
+
+- ท่าที่มาจาก **Ch28** (ตัวละครเดียวกับ `player_v1`) ใช้ได้ตรง ๆ แค่เปลี่ยนชื่อกระดูก `mixamorig10` →
+  `mixamorig` ไม่ต้อง retarget เพราะเป็นกระดูกของโมเดลเอง · ท่าเดิมทำบน X Bot (แกนกระดูกแขนต่างจาก
+  Ch28 ได้ถึง ~19°)
+- ไฟล์ที่ได้มาแต่ไม่ได้ใช้: `Goalkeeper_Placing_Ball` (เอนจินไม่มีจังหวะวางบอลเตะจากประตู — บอลออกแล้ว
+  เด้งกลับ ไม่มี goal kick) · `Goalkeeper_Catch_1` ซ้ำกับ `Goalkeeper_Catch` ทุกไบต์
+- ระยะต่อรอบของท่า X Bot วัดด้วยขาของ X Bot (สะโพก 1.03 ม.) จึงยาวกว่าขาของ `player_v1` ราว 8%
+  ท่า Ch28 วัดด้วยขาของโมเดลเอง
 
 - ทุกท่า**ตัด root motion แนวนอนออก** (เก็บความสูงสะโพกไว้): ตำแหน่งเป็นของเอนจินเสมอ
 - ท่า action ถูก**ตัดและปรับเวลา**ให้ยาวเท่าที่ state machine กำหนด (เช่น Shoot 0.62 วิ)

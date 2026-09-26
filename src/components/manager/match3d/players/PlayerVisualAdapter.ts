@@ -6,8 +6,14 @@ import type {
   PlayerAgent,
   PlayerDecision,
 } from '@/match-engine';
-import { engineToWorldX, engineToWorldZ } from '../Match3DAdapter';
-import { ACTION_METADATA, CELEBRATION_VARIANTS, type AnimationAction } from './FootballAnimationStateMachine';
+import { engineToWorldX, engineToWorldZ, shotEndHeight } from '../Match3DAdapter';
+import {
+  ACTION_METADATA,
+  CATCH_VARIANT,
+  CELEBRATION_VARIANTS,
+  DISTRIBUTE_VARIANT,
+  type AnimationAction,
+} from './FootballAnimationStateMachine';
 import { easeFactor, lerp, lerpAngle, shortestAngle } from './visualMath';
 
 /**
@@ -92,6 +98,61 @@ const KEEPER_HANDS_M = 1.6;
 const KEEPER_SAVE_REACH_M = 3.2;
 /** With no flight to time it from, a keeper goes this long after the shot. Simulation seconds. */
 const SAVE_DELAY_MAX = 0.28;
+/**
+ * The height (metres) a shot the keeper gathers arrives at picks the take whose hands
+ * meet it nearest: the scoop's at 0.20 m, the chest catch's at 1.36 m, the leap's at
+ * 2.22 m (measured on player_v1 at each take's contact). Above CATCH_HIGH_M they leap
+ * for it, below CATCH_LOW_M they scoop it off the grass — the midpoints. The height is
+ * the drawn one (`shotEndHeight`, the ball resting at BALL_REST_M), so the hands go
+ * where the ball is shown.
+ */
+const CATCH_HIGH_M = 1.78;
+const CATCH_LOW_M = 0.78;
+const BALL_REST_M = 0.15;
+/**
+ * How a keeper plays the ball out of their hands, by how far it has to go (engine
+ * metres) — the engine's pass after a save is 15–23 m for most (p10–p90 over eight
+ * matches, median 18.7), up to 40. Rolled out short, thrown, thrown overarm for the
+ * longer third of them, drop-kicked long.
+ */
+const ROLL_UNDER_M = 16;
+const THROW_UNDER_M = 20;
+const OVERHAND_UNDER_M = 30;
+/**
+ * Where each take lets the ball go, metres off the grass (measured on player_v1 at the
+ * release: the right hand, or the right boot for a drop kick), and how high it bows on
+ * the way, so the drawn ball leaves the hand — or the boot — that plays it. A drop kick
+ * climbs with its length.
+ */
+const RELEASE_HEIGHT_M: Readonly<Record<number, number>> = {
+  [DISTRIBUTE_VARIANT.ROLL]: 0.3,
+  [DISTRIBUTE_VARIANT.THROW]: 1.55,
+  [DISTRIBUTE_VARIANT.OVERHAND]: 1.7,
+  [DISTRIBUTE_VARIANT.DROP_KICK]: 0.3,
+};
+function distributionLoft(variant: number, distance: number): number {
+  switch (variant) {
+    case DISTRIBUTE_VARIANT.ROLL:
+      return 0;
+    case DISTRIBUTE_VARIANT.THROW:
+      return 1.4;
+    case DISTRIBUTE_VARIANT.OVERHAND:
+      return Math.min(2.8, Math.max(1.6, distance * 0.08));
+    default:
+      return Math.min(8, Math.max(4, distance * 0.14));
+  }
+}
+/** The catch take for a shot, from the height it is drawn arriving at. */
+function catchVariant(shot: DrawnFlight): number {
+  const height = shotEndHeight(shot.fromX, shot.fromY, shot.toY, shot.onTarget, BALL_REST_M);
+  return height > CATCH_HIGH_M ? CATCH_VARIANT.HIGH : height < CATCH_LOW_M ? CATCH_VARIANT.SCOOP : CATCH_VARIANT.STANDARD;
+}
+function distributionVariant(distance: number): number {
+  if (distance < ROLL_UNDER_M) return DISTRIBUTE_VARIANT.ROLL;
+  if (distance < THROW_UNDER_M) return DISTRIBUTE_VARIANT.THROW;
+  if (distance < OVERHAND_UNDER_M) return DISTRIBUTE_VARIANT.OVERHAND;
+  return DISTRIBUTE_VARIANT.DROP_KICK;
+}
 
 /**
  * How long after an action starts the foot (or the hands) meets the ball: the state
@@ -109,10 +170,12 @@ const LEAD = {
   tackle: contactLead('TACKLE'),
   dive: contactLead('GK_DIVE_LEFT'),
   catch: contactLead('GK_CATCH'),
+  distribute: contactLead('GK_DISTRIBUTE'),
 } as const;
 /**
  * The actions whose contact is heard, and how long into the action it lands. A dive or
- * gather is not here: whether the hands touch the ball is only known at the save.
+ * gather is not here: whether the hands touch the ball is only known at the save. A
+ * keeper's distribution is heard only when it is kicked (see `trigger`).
  */
 const CONTACT_SOUND: Partial<Record<PlayerVisualActionKind, readonly [SoundCueKind, number]>> = {
   pass: ['pass', LEAD.pass],
@@ -229,6 +292,7 @@ export type PlayerVisualActionKind =
   | 'tackle'
   | 'save'
   | 'catch'
+  | 'distribute'
   | 'celebrate'
   | 'foul'
   | 'booked';
@@ -248,9 +312,16 @@ export interface PlayerVisualAction {
   outcome: string | null;
   /**
    * Which take to play, 0-based: a celebration's variant, from the player's id and the
-   * goal's number, so the same match always celebrates the same way. 0 otherwise.
+   * goal's number, so the same match always celebrates the same way; a keeper's catch
+   * or distribution, from the ball. 0 otherwise.
    */
   variant: number;
+  /**
+   * World heading the body turns to for the action, or null to keep the engine's
+   * facing: a keeper's distribution faces where it is played, which is not always the
+   * way the keeper was moving with the ball.
+   */
+  aim: number | null;
   /** The engine event type it came from. */
   source: string;
 }
@@ -335,6 +406,11 @@ export interface BallVisualState {
   placed: boolean;
   /** The flight being drawn, on the drawn timeline; null while the ball is at a foot or on the ground. */
   flight: DrawnFlight | null;
+  /**
+   * The keeper holding it in their hands — from the save until they play it on — or
+   * null. Where exactly it is then is the body's business: its hands, not (x, z).
+   */
+  inHandsOf: string | null;
 }
 
 /**
@@ -383,6 +459,10 @@ export interface DrawnFlight {
   /** How long it is in the air, and how far into that the drawn ball is. Simulation seconds. */
   duration: number;
   elapsed: number;
+  /** Metres off the grass it leaves from: a keeper's hand or boot. Null: from the grass. */
+  startHeight: number | null;
+  /** Metres it bows up on the way. Null: the renderer's own choice (`passLoft`). */
+  loft: number | null;
 }
 
 /**
@@ -409,6 +489,8 @@ interface BallWarp {
   keeperDir: number;
   keeperGathers: boolean;
   keeperSent: boolean;
+  /** Played out of a keeper's hands: who. Until `kickT + hold` the ball is still in them. */
+  fromHandsOf: string | null;
 }
 
 export type RemovalReason = 'substituted' | 'sent_off' | 'left';
@@ -543,7 +625,12 @@ export class PlayerVisualAdapter {
   private readonly cues: SoundCue[] = [];
 
   /** Render-ready ball, rewritten in place. */
-  readonly ball: BallVisualState = { x: 0, z: 0, ownerId: null, placed: true, flight: null };
+  readonly ball: BallVisualState = { x: 0, z: 0, ownerId: null, placed: true, flight: null, inHandsOf: null };
+  /**
+   * The keeper who saved it and holds it, on the drawn timeline from `from` (the save)
+   * until they play it on or lose it. Null when no keeper has it in their hands.
+   */
+  private readonly hands: { keeperId: string | null; from: number } = { keeperId: null, from: 0 };
   /** Ids that took the pitch this frame. Reused; read it before the next `update`. */
   readonly spawned: string[] = [];
   /** Ids that left the pitch this frame. Reused; read it before the next `update`. */
@@ -756,6 +843,9 @@ export class PlayerVisualAdapter {
         this.handleShot(event, now);
         return;
       case 'save': {
+        // Every save is held: the engine gives the keeper the ball.
+        this.hands.keeperId = event.playerId ?? null;
+        this.hands.from = this.eventTime();
         this.cueAtBall('catch', this.eventTime() + SAVE_TO_HANDS);
         this.cueAtBall('save', this.eventTime() + SAVE_TO_HANDS);
         // The shot saved before its dive was sent: the dive goes now, the way it was aimed.
@@ -774,7 +864,19 @@ export class PlayerVisualAdapter {
         ) {
           return;
         }
-        this.trigger(event.playerId, 'catch', this.startFor(this.eventTime(), LEAD.catch), 0, null, event.type);
+        // A shot the keeper was not lined up for (the engine had it off target): gathered
+        // at the height it is drawn arriving at, all the same.
+        let shot: DrawnFlight | null = null;
+        for (const warp of this.warps) if (warp.drawn.kind === 'shot') shot = warp.drawn;
+        this.trigger(
+          event.playerId,
+          'catch',
+          this.startFor(this.eventTime(), LEAD.catch),
+          0,
+          null,
+          event.type,
+          shot ? catchVariant(shot) : CATCH_VARIANT.STANDARD,
+        );
         return;
       }
       case 'goal':
@@ -832,13 +934,25 @@ export class PlayerVisualAdapter {
     const live = this.engine.ball.flight;
     const own =
       live && live.shooterId === event.playerId && live.kind === (kind === 'pass' ? 'pass' : 'shot') ? live : null;
-    const lead = kind === 'pass' ? LEAD.pass : LEAD.shoot;
+    const distance = own ? Math.hypot(own.toX - own.fromX, own.toY - own.fromY) : 0;
+    // A keeper playing it on from the save: out of the hands, not off the foot.
+    const fromHands = kind === 'pass' && event.playerId !== undefined && this.hands.keeperId === event.playerId;
+    const variant = fromHands ? distributionVariant(own ? distance : ROLL_UNDER_M) : 0;
+    const lead = fromHands ? LEAD.distribute : kind === 'pass' ? LEAD.pass : LEAD.shoot;
     const kickT = own ? this.engine.t - own.elapsed : this.eventTime();
     const at = this.startFor(kickT, lead);
     // Struck harder the further it has to go; a shot is always struck hard.
-    const power = kind === 'shoot' ? 1 : own ? Math.min(1, Math.max(0.3, Math.hypot(own.toX - own.fromX, own.toY - own.fromY) / 40)) : 0.5;
-    this.trigger(event.playerId, kind, at, 0, null, event.type, 0, power);
-    if (!own) return null;
+    const power = kind === 'shoot' ? 1 : own ? Math.min(1, Math.max(0.3, distance / 40)) : 0.5;
+    // Out of the hands, the keeper turns to where it is going.
+    const aim =
+      fromHands && own
+        ? Math.atan2(engineToWorldX(own.toY) - engineToWorldX(own.fromY), engineToWorldZ(own.toX) - engineToWorldZ(own.fromX))
+        : null;
+    this.trigger(event.playerId, fromHands ? 'distribute' : kind, at, 0, null, event.type, variant, power, aim);
+    if (!own) {
+      if (fromHands) this.hands.keeperId = null;
+      return null;
+    }
     // The speed it left the foot at: the engine's speed now, wound back through the friction.
     const velocity = this.engine.core.ball.velocity;
     const launch = Math.hypot(velocity.x, velocity.y) / Math.pow(BALL_KEEPS_PER_SECOND, own.elapsed);
@@ -846,6 +960,11 @@ export class PlayerVisualAdapter {
     const reach = Math.max(0, Math.hypot(own.toX - own.fromX, own.toY - own.fromY) - (own.kind === 'pass' ? RECEIVE_RADIUS_M : 0));
     const duration = launch > 0 ? travelTime(reach, launch) : own.duration;
     const warp = this.beginWarp(own, kickT, at + lead - kickT, duration);
+    if (fromHands) {
+      warp.fromHandsOf = event.playerId ?? null;
+      warp.drawn.startHeight = RELEASE_HEIGHT_M[variant] ?? null;
+      warp.drawn.loft = distributionLoft(variant, distance);
+    }
     return { flight: own, kickT, launch, warp };
   }
 
@@ -908,6 +1027,8 @@ export class PlayerVisualAdapter {
         onTarget: flight.kind === 'shot' && flight.outcome !== 'miss',
         duration,
         elapsed: 0,
+        startHeight: null,
+        loft: null,
       },
       receiverId: null,
       receiveSent: false,
@@ -915,6 +1036,7 @@ export class PlayerVisualAdapter {
       keeperDir: 0,
       keeperGathers: false,
       keeperSent: false,
+      fromHandsOf: null,
     };
     this.warps.push(warp);
     return warp;
@@ -1014,12 +1136,25 @@ export class PlayerVisualAdapter {
     return warp.kickT + hold + ((t - warp.kickT) * (span - hold)) / span;
   }
 
-  /** The keeper facing `warp`'s shot goes, hands meeting the ball at `contact`. */
+  /**
+   * The keeper facing `warp`'s shot goes, hands meeting the ball at `contact`. One they
+   * gather is taken as high as the ball is drawn arriving: leapt for, at the chest, or
+   * scooped off the grass.
+   */
   private sendKeeper(warp: BallWarp, contact: number): void {
     warp.keeperSent = true;
     if (!warp.keeperId) return;
     const lead = warp.keeperGathers ? LEAD.catch : LEAD.dive;
-    this.trigger(warp.keeperId, warp.keeperGathers ? 'catch' : 'save', this.startFor(contact, lead), warp.keeperDir, null, 'shot');
+    const variant = warp.keeperGathers ? catchVariant(warp.drawn) : 0;
+    this.trigger(
+      warp.keeperId,
+      warp.keeperGathers ? 'catch' : 'save',
+      this.startFor(contact, lead),
+      warp.keeperDir,
+      null,
+      'shot',
+      variant,
+    );
   }
 
   /**
@@ -1104,16 +1239,23 @@ export class PlayerVisualAdapter {
     source: string,
     variant = 0,
     power = 0.6,
+    aim: number | null = null,
   ): void {
     if (!playerId) return;
     const runtime = this.byId.get(playerId);
     if (!runtime) return;
     runtime.actionSeq += 1;
-    const made: PlayerVisualAction = { kind, seq: runtime.actionSeq, at, dir, outcome, source, variant };
+    const made: PlayerVisualAction = { kind, seq: runtime.actionSeq, at, dir, outcome, source, variant, aim };
     if (kind === 'foul' || kind === 'booked') runtime.visual.discipline = made;
     else runtime.visual.action = made;
     // The foot meets the ball when the action says it does, and that is when it is heard.
-    const sound = CONTACT_SOUND[kind];
+    // Out of a keeper's hands, only a drop kick is.
+    const sound =
+      kind === 'distribute'
+        ? variant === DISTRIBUTE_VARIANT.DROP_KICK
+          ? (['pass', LEAD.distribute] as const)
+          : undefined
+        : CONTACT_SOUND[kind];
     if (sound) this.cueAt(sound[0], at + sound[1], runtime.agent.position2d.x, runtime.agent.position2d.y, power);
   }
 
@@ -1383,8 +1525,10 @@ export class PlayerVisualAdapter {
 
     // A struck ball in the air on the drawn timeline: shown where the re-timed flight has it.
     this.ball.flight = null;
+    this.ball.inHandsOf = null;
     if (this.ball.placed) {
       this.warps.length = 0;
+      this.hands.keeperId = null;
       return;
     }
     // Drawn to its end: the engine has finished with it and the drawing has caught up.
@@ -1395,8 +1539,16 @@ export class PlayerVisualAdapter {
     }
     let warp: BallWarp | null = null;
     for (const candidate of this.warps) if (candidate.kickT <= this.renderT) warp = candidate;
-    if (!warp) return;
+    if (!warp) {
+      this.holdInHands();
+      return;
+    }
     const since = this.renderT - warp.kickT;
+    if (warp.fromHandsOf !== null && warp.fromHandsOf === this.hands.keeperId) {
+      // Played out of the keeper's hands: in them until the release, then let go.
+      if (since < warp.hold) this.ball.inHandsOf = warp.fromHandsOf;
+      else this.hands.keeperId = null;
+    }
     let at = warp.kickT;
     if (since < warp.hold) {
       // The strike has not reached it yet: it is still at the foot.
@@ -1412,6 +1564,18 @@ export class PlayerVisualAdapter {
     }
     warp.drawn.elapsed = at - warp.kickT;
     this.ball.flight = warp.drawn;
+  }
+
+  /**
+   * With no flight being drawn: the keeper who saved it has it in their hands for as
+   * long as the drawing shows them on it. Anyone else on it ends the hold.
+   */
+  private holdInHands(): void {
+    const keeperId = this.hands.keeperId;
+    if (keeperId === null || this.renderT < this.hands.from) return;
+    const owner = this.ball.ownerId;
+    if (owner === keeperId) this.ball.inHandsOf = keeperId;
+    else if (owner !== null) this.hands.keeperId = null;
   }
 
   /** The engine's ball at simulation time `t`, from the ring, into `this.ball`. */

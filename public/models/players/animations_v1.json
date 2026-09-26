@@ -18,7 +18,7 @@
     },
     "RUN": {
       "loop": true,
-      "strideMeters": 3.02,
+      "strideMeters": 2.747,
       "footContacts": [
         0,
         0.452
@@ -34,10 +34,10 @@
     },
     "JOG": {
       "loop": true,
-      "strideMeters": 2.15,
+      "strideMeters": 2.09,
       "footContacts": [
         0,
-        0.53
+        0.5
       ]
     },
     "PASS": {
@@ -60,6 +60,9 @@
     },
     "GK_CATCH": {
       "ballContactTime": 0.45
+    },
+    "GK_DISTRIBUTE": {
+      "ballContactTime": 0.5
     }
   }
 }

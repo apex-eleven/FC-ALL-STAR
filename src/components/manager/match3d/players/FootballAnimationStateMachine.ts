@@ -24,7 +24,7 @@ import { shortestAngle } from './visualMath';
  *                     TURN is a standing player whose engine facing is swinging
  *                     round (a pivot), from the facing's own turn rate
  *   ONE-SHOT ACTION   PASS · RECEIVE · INTERCEPTION · SHOOT · TACKLE · CELEBRATE ·
- *                     GK_DIVE_LEFT · GK_DIVE_RIGHT · GK_CATCH
+ *                     GK_DIVE_LEFT · GK_DIVE_RIGHT · GK_CATCH · GK_DISTRIBUTE
  *                     started once per adapter action (by its `seq`), layered over
  *                     the locomotion with a weight, then handed back to it
  *
@@ -34,6 +34,8 @@ import { shortestAngle } from './visualMath';
  * The keeper's two save movements are GOALKEEPER_DIVE (GK_DIVE_LEFT / GK_DIVE_RIGHT,
  * a shot wide of them) and GOALKEEPER_SAVE (GK_CATCH, a shot at them: set, reach,
  * gather, recover). Both come from the engine's shot and save events via the adapter.
+ * With the ball in their hands, the keeper plays it on with GK_DISTRIBUTE — rolled,
+ * thrown or drop-kicked, by how far it has to go (the engine's pass after a save).
  *
  * Nothing here moves a player. Position and speed stay the engine's; the machine only
  * decides how the body that the engine is moving should look while it moves.
@@ -58,7 +60,8 @@ export type AnimationAction =
   | 'CELEBRATE'
   | 'GK_DIVE_LEFT'
   | 'GK_DIVE_RIGHT'
-  | 'GK_CATCH';
+  | 'GK_CATCH'
+  | 'GK_DISTRIBUTE';
 
 export type AnimationClipId = LocomotionState | AnimationAction;
 
@@ -189,7 +192,7 @@ function actionMeta(
  *
  * Priority (higher is kept) after checking the engine's sequences:
  *
- *   CELEBRATE 7 > GK dive / save 6 > TACKLE 5 > SHOOT 4 > PASS 3 > RECEIVE 2 > INTERCEPTION 1
+ *   CELEBRATE 7 > GK dive / save / distribute 6 > TACKLE 5 > SHOOT 4 > PASS 3 > RECEIVE 2 > INTERCEPTION 1
  *
  * then TURN and the locomotion bands beneath every action, as a layer rather than a
  * rival. A celebration, once playing, is never cut; but it never cuts a strike short
@@ -203,6 +206,8 @@ export const ACTION_METADATA: Readonly<Record<AnimationAction, ActionMetadata>> 
   GK_DIVE_LEFT: actionMeta('GK_DIVE_LEFT', 1.1, 6, 0.75, { holdsHead: true, keeperOnly: true, ballContactTime: 0.4 }),
   GK_DIVE_RIGHT: actionMeta('GK_DIVE_RIGHT', 1.1, 6, 0.75, { holdsHead: true, keeperOnly: true, ballContactTime: 0.4 }),
   GK_CATCH: actionMeta('GK_CATCH', 0.7, 6, 0.6, { holdsHead: true, keeperOnly: true, ballContactTime: 0.45 }),
+  // The ball leaves the hands (or the boot, for a drop kick) half-way through.
+  GK_DISTRIBUTE: actionMeta('GK_DISTRIBUTE', 1.3, 6, 0.75, { holdsHead: true, keeperOnly: true, ballContactTime: 0.5 }),
   TACKLE: actionMeta('TACKLE', 0.75, 5, 0.6, { ballContactTime: 0.4 }),
   SHOOT: actionMeta('SHOOT', 0.62, 4, 0.62, { ballContactTime: 0.46 }),
   PASS: actionMeta('PASS', 0.5, 3, 0.62, { ballContactTime: 0.46 }),
@@ -214,6 +219,18 @@ export const ACTION_METADATA: Readonly<Record<AnimationAction, ActionMetadata>> 
 
 /** How many celebration variants there are; the adapter picks one per player per goal. */
 export const CELEBRATION_VARIANTS = 3;
+
+/**
+ * GK_CATCH's takes, from the height the shot arrives at: gathered at the chest, a
+ * leap for one coming in high, or scooped up off the grass.
+ */
+export const CATCH_VARIANT = { STANDARD: 0, HIGH: 1, SCOOP: 2 } as const;
+
+/**
+ * GK_DISTRIBUTE's takes, shortest to longest: rolled out, thrown, thrown overarm,
+ * drop-kicked. The adapter picks one from the length of the keeper's pass.
+ */
+export const DISTRIBUTE_VARIANT = { ROLL: 0, THROW: 1, OVERHAND: 2, DROP_KICK: 3 } as const;
 
 /* ── Speed bands ────────────────────────────────────────────────────────────── */
 
@@ -345,6 +362,8 @@ function actionFor(kind: PlayerVisualActionKind): AnimationAction | 'DIVE' | nul
       return 'DIVE';
     case 'catch':
       return 'GK_CATCH';
+    case 'distribute':
+      return 'GK_DISTRIBUTE';
     // Discipline lives in its own adapter slot and never reaches here; kept for
     // exhaustiveness.
     case 'foul':
@@ -397,10 +416,17 @@ export interface AnimationCommand {
     /** Counts actions started by this machine: a new value means restart the clip. */
     seq: number;
     /**
-     * Which take of the action to play, 0-based (celebrations: 0..CELEBRATION_VARIANTS-1).
-     * Chosen upstream from the player's id, so it is deterministic. 0 for none.
+     * Which take of the action to play, 0-based (celebrations: 0..CELEBRATION_VARIANTS-1,
+     * a keeper's catch CATCH_VARIANT, their distribution DISTRIBUTE_VARIANT). Chosen
+     * upstream from the player's id or the play itself, so it is deterministic. 0 for none.
      */
     variant: number;
+    /**
+     * World heading the body turns to while the action plays (a keeper's distribution:
+     * where it is played), or null to keep the engine's facing. The renderer turns to
+     * it at its own bounded rate, as it does for `facesCamera`.
+     */
+    aim: number | null;
     holdsHead: boolean;
     facesCamera: boolean;
     clip: AnimationClipMetadata | null;
@@ -426,6 +452,7 @@ interface QueuedAction {
   /** Engine-y offset of the shot from the keeper, for a dive. */
   dir: number;
   variant: number;
+  aim: number | null;
 }
 
 function smooth01(t: number): number {
@@ -455,6 +482,7 @@ export class FootballAnimationStateMachine {
       weight: 0,
       seq: 0,
       variant: 0,
+      aim: null,
       holdsHead: false,
       facesCamera: false,
       clip: null,
@@ -483,11 +511,12 @@ export class FootballAnimationStateMachine {
 
   /** The adapter action last taken in, so each is started at most once. */
   private seenActionSeq = 0;
-  private queued: QueuedAction = { kind: 'PASS', at: 0, dir: 0, variant: 0 };
+  private queued: QueuedAction = { kind: 'PASS', at: 0, dir: 0, variant: 0, aim: null };
   private hasQueued = false;
   private active: AnimationAction | null = null;
   private activeStart = 0;
   private activeVariant = 0;
+  private activeAim: number | null = null;
 
   /**
    * Ground covered per gait cycle at a given speed. The procedural body's own gait
@@ -569,6 +598,7 @@ export class FootballAnimationStateMachine {
     this.queued.at = incoming.at;
     this.queued.dir = incoming.dir;
     this.queued.variant = incoming.variant;
+    this.queued.aim = incoming.aim;
     this.hasQueued = true;
   }
 
@@ -587,6 +617,7 @@ export class FootballAnimationStateMachine {
         // A contact action is timed from its event; one that waited starts now, whole.
         this.activeStart = meta.waitsForTurn ? time : this.queued.at;
         this.activeVariant = this.queued.variant;
+        this.activeAim = this.queued.aim;
         this.command.action.seq += 1;
       } else if (!meta.waitsForTurn) {
         this.hasQueued = false;
@@ -615,6 +646,7 @@ export class FootballAnimationStateMachine {
         action.facesCamera = meta.facesCamera;
         action.clip = meta.clip;
         action.variant = this.activeVariant;
+        action.aim = this.activeAim;
         return;
       }
     }
@@ -624,6 +656,7 @@ export class FootballAnimationStateMachine {
     action.normalizedTime = 0;
     action.weight = 0;
     action.variant = 0;
+    action.aim = null;
     action.holdsHead = false;
     action.facesCamera = false;
     action.clip = null;

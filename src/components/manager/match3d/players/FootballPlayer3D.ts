@@ -3,6 +3,7 @@ import {
   Group,
   LoopOnce,
   LoopRepeat,
+  Vector3,
   type AnimationAction,
   type Material,
   type Mesh,
@@ -20,6 +21,7 @@ import {
   type LocomotionState,
 } from './FootballAnimationStateMachine';
 import type { LoadedPlayerAsset } from './playerAssets';
+import type { Grip, HandsSource } from './heldBall';
 import { ProceduralSkeletonLayer } from './ProceduralSkeletonLayer';
 
 /**
@@ -42,11 +44,15 @@ import { ProceduralSkeletonLayer } from './ProceduralSkeletonLayer';
  * allocated per frame.
  *
  * Clips are found by logical state through the registry in playerAssets
- * (`CLIP_REGISTRY`, `CELEBRATION_CLIP_NAMES`) — nothing here knows a clip's name. A
+ * (`CLIP_REGISTRY`, `VARIANT_CLIP_NAMES`) — nothing here knows a clip's name. A
  * state the model has no clip for is not dropped: the locomotion clip plays and the
  * procedural pose for the rest (the action, or the TURN pivot) is laid over the
- * model's bones by `ProceduralSkeletonLayer`. A celebration plays the take's own clip,
- * or the model's one CELEBRATE clip, or the procedural take.
+ * model's bones by `ProceduralSkeletonLayer`. An action with takes (a celebration, a
+ * keeper's catch or distribution) plays the take's own clip, or the action's one clip,
+ * or the procedural pose.
+ *
+ * A keeper with the ball in their hands says where the hands are (`gripPoint`), read
+ * off this frame's bones, so the stage can draw the ball in them.
  *
  * The look — kit, skin, hair, boots, gloves, sleeves, number, stature — is the
  * player's `PlayerLook`, applied once here: the body gets its own `KitMaterial` when
@@ -65,6 +71,7 @@ const KEEPER_ONLY: ReadonlySet<AnimationClipId> = new Set<AnimationClipId>([
   'GK_DIVE_LEFT',
   'GK_DIVE_RIGHT',
   'GK_CATCH',
+  'GK_DISTRIBUTE',
 ]);
 
 /** States whose clip plays on the spot and keeps its own time. */
@@ -73,6 +80,16 @@ const STANDING: ReadonlySet<LocomotionState> = new Set<LocomotionState>(['IDLE',
 /** Shared by every body: an update runs start to finish before the next begins. */
 const overlayScratch = makePoseScratch();
 const overlayDelta = makePose();
+const handA = new Vector3();
+const handB = new Vector3();
+const reachA = new Vector3();
+const reachB = new Vector3();
+/**
+ * How far past the wrist bone a ball held in one hand sits, towards the fingers, and
+ * how far past the midpoint of the wrists one held in both: metres at stature 1.
+ */
+const ONE_HAND_REACH = 0.1;
+const TWO_HAND_REACH = 0.05;
 
 const LOD_SUFFIX = /_LOD([0-2])$/i;
 const HAIR_MESH = /^Hair_(Short|Buzz|Long|Curly)/i;
@@ -98,7 +115,7 @@ function standingOffset(id: string): number {
   return ((hash >>> 8) & 0xffff) / 0x10000;
 }
 
-export class FootballPlayer3D {
+export class FootballPlayer3D implements HandsSource {
   readonly id: string;
   /** Placed at the player's spot, turned to their heading, scaled to their stature. */
   readonly root: Group;
@@ -116,8 +133,11 @@ export class FootballPlayer3D {
 
   /** State → action. States sharing a clip (a substitute) share its action. */
   private readonly actions = new Map<AnimationClipId, AnimationAction>();
-  /** The celebration's takes that have a clip of their own, by variant. */
-  private readonly celebrations: (AnimationAction | null)[] = [];
+  /** Per action with takes, the takes that have a clip of their own, by variant. */
+  private readonly variants = new Map<AnimationClipId, (AnimationAction | null)[]>();
+  /** Wrist and first knuckle bones, left then right; null where the model has none. */
+  private readonly hands: [Object3D | null, Object3D | null];
+  private readonly knuckles: [Object3D | null, Object3D | null];
   /** Procedural poses laid on the bones for what the model has no clip for. */
   private readonly layer: ProceduralSkeletonLayer;
   /** Whether part of last frame's pose was procedural (a missing clip), for diagnostics. */
@@ -200,6 +220,10 @@ export class FootballPlayer3D {
 
     // Measured from the bind pose, before any clip moves a bone.
     this.layer = new ProceduralSkeletonLayer(this.root, this.model, asset.skeleton.bones);
+    const bone = (name: string | undefined): Object3D | null => (name ? (this.model.getObjectByName(name) ?? null) : null);
+    const named = asset.skeleton.bones;
+    this.hands = [bone(named.L_Hand), bone(named.R_Hand)];
+    this.knuckles = [bone(named.L_Fingers1), bone(named.R_Fingers1)];
 
     this.mixer = new AnimationMixer(this.model);
     for (const [id, clip] of asset.resolved.clips) {
@@ -209,10 +233,13 @@ export class FootballPlayer3D {
       if (!this.actions.has(id)) this.prepare(action, !(id in LOCOMOTION_CLIPS));
       this.actions.set(id, action);
     }
-    for (const clip of asset.resolved.celebrations) {
-      const action = clip ? this.mixer.clipAction(clip) : null;
-      if (action) this.prepare(action, true);
-      this.celebrations.push(action);
+    for (const [id, clips] of asset.resolved.variants) {
+      const takes = clips.map((clip) => {
+        const action = clip ? this.mixer.clipAction(clip) : null;
+        if (action) this.prepare(action, true);
+        return action;
+      });
+      this.variants.set(id, takes);
     }
   }
 
@@ -270,7 +297,7 @@ export class FootballPlayer3D {
     let actionState = command.action.state;
     if (actionState !== null && KEEPER_ONLY.has(actionState) && !keeper) actionState = null;
     let action = actionState !== null ? (this.actions.get(actionState) ?? null) : null;
-    if (actionState === 'CELEBRATE') action = this.celebrations[command.action.variant] ?? action;
+    if (actionState !== null) action = this.variants.get(actionState)?.[command.action.variant] ?? action;
     // What the clips cannot show, the procedural pose will.
     const actionByPose = actionState !== null && action === null && command.action.weight > 0;
     const turnByPose = !this.actions.has('TURN') && turnWeight(command) > 0;
@@ -322,6 +349,40 @@ export class FootballPlayer3D {
     this.applyLevel(level);
   }
 
+  /**
+   * Where a ball held in `grip` sits this frame, world metres: past the wrist towards
+   * the fingers for one hand, between the wrists for both. Read after `update` (the
+   * bones are posed there). False when the model has no hand bones for it.
+   */
+  gripPoint(out: Vector3, grip: Grip): boolean {
+    if (grip === 'both') {
+      if (!this.reach(handA, reachA, 0) || !this.reach(handB, reachB, 1)) return false;
+      out.addVectors(handA, handB).multiplyScalar(0.5);
+      reachA.add(reachB);
+      if (reachA.lengthSq() > 1e-8) out.addScaledVector(reachA.normalize(), TWO_HAND_REACH * this.look.stature);
+      return true;
+    }
+    if (!this.reach(out, reachA, grip === 'left' ? 0 : 1)) return false;
+    if (reachA.lengthSq() > 1e-8) out.addScaledVector(reachA.normalize(), ONE_HAND_REACH * this.look.stature);
+    return true;
+  }
+
+  /** A wrist's world position into `at`, and the way to its knuckle (zero without one) into `towards`. */
+  private reach(at: Vector3, towards: Vector3, side: 0 | 1): boolean {
+    const hand = this.hands[side];
+    if (!hand) return false;
+    hand.updateWorldMatrix(true, false);
+    hand.getWorldPosition(at);
+    const knuckle = this.knuckles[side];
+    if (knuckle) {
+      knuckle.updateWorldMatrix(true, false);
+      knuckle.getWorldPosition(towards).sub(at);
+    } else {
+      towards.set(0, 0, 0);
+    }
+    return true;
+  }
+
   /** Moving loops follow the shared gait phase; standing loops keep their own time. */
   private placeLoop(action: AnimationAction, standing: boolean, phase: number): void {
     const duration = action.getClip().duration;
@@ -365,7 +426,7 @@ export class FootballPlayer3D {
     this.ownMaterials.length = 0;
     this.hiddenByLook.clear();
     this.actions.clear();
-    this.celebrations.length = 0;
+    this.variants.clear();
     this.meshes.length = 0;
     this.weighted0 = this.weighted1 = this.weighted2 = null;
   }

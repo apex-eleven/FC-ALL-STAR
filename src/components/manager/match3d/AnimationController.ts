@@ -1,6 +1,7 @@
-import type {
-  AnimationAction,
-  AnimationCommand,
+import {
+  DISTRIBUTE_VARIANT,
+  type AnimationAction,
+  type AnimationCommand,
 } from './players/FootballAnimationStateMachine';
 
 /**
@@ -30,6 +31,7 @@ export type PlayerAction =
   | 'tackle'
   | 'save'
   | 'catch'
+  | 'distribute'
   | 'receive'
   | 'intercept'
   | 'celebrate';
@@ -519,6 +521,49 @@ function catchPose(out: Pose, p: number): void {
 }
 
 /**
+ * A keeper playing the ball out of their hands, `variant` as DISTRIBUTE_VARIANT: the
+ * ball held at the chest (0 → 0.15), the right arm drawn back (→ 0.4) and brought
+ * through to let go at 0.5, then the follow-through and back to standing. A roll is
+ * bowled low out of a crouch; a throw comes over the top, higher overarm; a drop kick
+ * is the kick, the arms out for balance.
+ */
+function distributePose(out: Pose, p: number, variant: number): void {
+  if (variant === DISTRIBUTE_VARIANT.DROP_KICK) {
+    kickPose(out, p, 1, true);
+    out.shoulderL = 0.6 * envelope(p, 0.1, 0.35, 0.6, 0.9);
+    out.armOutL = 0.9 * envelope(p, 0.2, 0.4, 0.7, 1);
+    out.armOutR = 0.7 * envelope(p, 0.2, 0.4, 0.7, 1);
+    return;
+  }
+  const hold = envelope(p, 0, 0.05, 0.15, 0.3);
+  const back = envelope(p, 0.12, 0.38, 0.42, 0.5);
+  const through = envelope(p, 0.42, 0.52, 0.6, 0.95);
+  const low = variant === DISTRIBUTE_VARIANT.ROLL;
+  const high = variant === DISTRIBUTE_VARIANT.OVERHAND ? 1.25 : 1;
+  const crouch = low ? envelope(p, 0.15, 0.4, 0.62, 0.95) : 0;
+  // Both hands on the ball at the chest.
+  out.shoulderL = 1.0 * hold;
+  out.shoulderR = 1.0 * hold;
+  out.elbowL = 0.3 + 1.1 * hold;
+  out.elbowR = 0.3 + 1.1 * hold;
+  // The throwing arm: back behind the body, then through — low for a roll, over the top otherwise.
+  out.shoulderR += low ? -0.9 * back + 1.1 * through : -1.1 * back + 2.4 * high * through;
+  out.elbowR += low ? -0.2 * back : 0.4 * back - 0.2 * through;
+  out.armOutR = low ? 0.15 * back : 0.35 * back;
+  // The other arm points where it is going.
+  out.shoulderL += (low ? 0.6 : 1.3) * back + 0.5 * through;
+  out.armOutL = 0.2 * back;
+  out.twist = -0.35 * back + 0.3 * through;
+  out.spineX = 0.1 * back + 0.25 * through + 0.35 * crouch;
+  // Step into it on the left foot.
+  out.hipL = 0.25 * through + 0.4 * crouch;
+  out.kneeL = 0.1 + 0.25 * through + 0.9 * crouch;
+  out.hipR = -0.2 * through + 0.2 * crouch;
+  out.kneeR = 0.1 + 0.6 * crouch;
+  out.rootY = -0.25 * crouch;
+}
+
+/**
  * GOALKEEPER_DIVE, towards `side` (+1 the −X side of the body, −1 the +X side; see
  * the side note above): set (0 → 0.12), push off the near leg (→ 0.3), fully
  * stretched in the air with the arms beyond the head, hands on the ball at 0.4,
@@ -590,6 +635,9 @@ export function actionPose(
       return;
     case 'catch':
       catchPose(out, p);
+      return;
+    case 'distribute':
+      distributePose(out, p, variant);
       return;
     case 'save':
       divePose(out, p, dir >= 0 ? 1 : -1);
@@ -687,6 +735,8 @@ export function proceduralActionOf(action: AnimationAction | null): PlayerAction
       return 'save';
     case 'GK_CATCH':
       return 'catch';
+    case 'GK_DISTRIBUTE':
+      return 'distribute';
     default:
       return null;
   }

@@ -14,6 +14,7 @@ import type { KitTextures } from './KitMaterial';
 import {
   ACTION_METADATA,
   LOCOMOTION_CLIPS,
+  type AnimationAction,
   type AnimationClipId,
   type AnimationClipMetadata,
 } from './FootballAnimationStateMachine';
@@ -244,6 +245,8 @@ export const CLIP_REGISTRY: Readonly<Record<AnimationClipId, readonly string[]>>
   GK_DIVE_RIGHT: ['GK_Dive_Right', 'GK_DiveRight', 'Keeper_Dive_Right'],
   // GOALKEEPER_SAVE: the save made standing — set, reach, gather, recover.
   GK_CATCH: ['GK_Catch', 'Keeper_Catch', 'GK_Save', 'Keeper_Save'],
+  // Playing the ball out of the hands. A model with one take of it uses that for all.
+  GK_DISTRIBUTE: ['GK_Distribute', 'Keeper_Distribute', 'GK_Throw', 'GK_Roll'],
 };
 
 /**
@@ -256,6 +259,25 @@ export const CELEBRATION_CLIP_NAMES: readonly (readonly string[])[] = [
   ['Celebrate_2', 'Celebration_2', 'Celebrate_02'],
   ['Celebrate_3', 'Celebration_3', 'Celebrate_03'],
 ];
+
+/**
+ * Every action with takes of its own, by variant (the command's `action.variant`), in
+ * the same form as CELEBRATION_CLIP_NAMES. A take the model lacks plays the action's
+ * own clip (CLIP_REGISTRY) instead; an empty list means "the action's own clip".
+ *
+ *   GK_CATCH       CATCH_VARIANT: at the chest · leaping for a high one · scooped low
+ *   GK_DISTRIBUTE  DISTRIBUTE_VARIANT: rolled · thrown · thrown overarm · drop-kicked
+ */
+export const VARIANT_CLIP_NAMES: Readonly<Partial<Record<AnimationAction, readonly (readonly string[])[]>>> = {
+  CELEBRATE: CELEBRATION_CLIP_NAMES,
+  GK_CATCH: [[], ['GK_Catch_High', 'Keeper_Catch_High'], ['GK_Scoop', 'Keeper_Scoop', 'GK_Catch_Low']],
+  GK_DISTRIBUTE: [
+    ['GK_Roll', 'Keeper_Roll'],
+    ['GK_Throw', 'Keeper_Throw'],
+    ['GK_Throw_Overhand', 'Keeper_Throw_Overhand', 'GK_Overarm'],
+    ['GK_Drop_Kick', 'Keeper_Drop_Kick', 'GK_DropKick'],
+  ],
+};
 
 /**
  * The clips the model cannot play without. Missing any of them, the model is not
@@ -295,6 +317,8 @@ export interface ResolvedClips {
   missingRequired: AnimationClipId[];
   /** One entry per celebration take: its own clip, or null (see CELEBRATION_CLIP_NAMES). */
   celebrations: (AnimationClip | null)[];
+  /** Per action with takes, one entry per take: its own clip, or null (see VARIANT_CLIP_NAMES). */
+  variants: Map<AnimationAction, (AnimationClip | null)[]>;
 }
 
 /** Matches the file's clips to animation states through the registry. */
@@ -317,10 +341,21 @@ export function resolveClips(
     }
   }
 
-  const celebrations = CELEBRATION_CLIP_NAMES.map(
-    (names) => names.map((name) => byName.get(name.toLowerCase())).find((clip) => clip !== undefined) ?? null,
-  );
-  const result: ResolvedClips = { clips: new Map(own), substituted: new Map(), absent: [], missingRequired: [], celebrations };
+  const take = (names: readonly string[]): AnimationClip | null =>
+    names.map((name) => byName.get(name.toLowerCase())).find((clip) => clip !== undefined) ?? null;
+  const variants = new Map<AnimationAction, (AnimationClip | null)[]>();
+  for (const [id, takes] of Object.entries(VARIANT_CLIP_NAMES) as [AnimationAction, readonly (readonly string[])[]][]) {
+    variants.set(id, takes.map(take));
+  }
+  const celebrations = variants.get('CELEBRATE') ?? [];
+  const result: ResolvedClips = {
+    clips: new Map(own),
+    substituted: new Map(),
+    absent: [],
+    missingRequired: [],
+    celebrations,
+    variants,
+  };
   for (const id of ALL_CLIP_IDS) {
     if (own.has(id)) continue;
     const stand = CLIP_SUBSTITUTES[id]?.find((other) => own.has(other));

@@ -19,6 +19,7 @@ import {
 } from './Match3DAdapter';
 import { PlayerVisualAdapter, type DrawnFlight } from './players/PlayerVisualAdapter';
 import { PlayerPool } from './players/PlayerPool';
+import { heldBallPoint } from './players/heldBall';
 import MatchAudio from './MatchAudio';
 import { drawMinimap, MINIMAP_RESOLUTION, type MinimapPlayer } from './MatchMinimap';
 import { describeAnimation, type AnimationBody } from './players/animationDiagnostics';
@@ -115,6 +116,12 @@ const CAMERA_NEAR = 70;
 const LOD_LENS = Math.tan((CAMERA_FOV / 2) * (Math.PI / 180)) / Math.tan(13 * (Math.PI / 180));
 
 const BALL_RADIUS = 0.15;
+/**
+ * Into a keeper's hands and out of them the drawn ball changes what it follows (the
+ * flight, the hands, the flight again): over this long, simulation seconds, it eases
+ * from where it was drawn to where it now belongs, rather than jump the gap.
+ */
+const HANDOFF_S = 0.12;
 /**
  * The fastest the drawn body turns, radians per simulation second. Above the engine's
  * own 9 rad/s, so it never holds back the engine's facing; it only paces the turns the
@@ -258,6 +265,11 @@ function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: Scene
   const lofted = useRef(0);
   const settling = useRef(false);
   const settled = useRef(0);
+  /** A keeper holding the ball: the point in their hands, and the ease across a handoff. */
+  const held = useRef(new Vector3());
+  const heldBy = useRef<string | null>(null);
+  const drawnBall = useRef(new Vector3());
+  const handoff = useRef({ x: 0, y: 0, z: 0, left: 0 });
   const look = useRef(new Vector3(AIM_FAR, 0, 0));
   /** Name tags by player id, and the ids tagged this frame. */
   const tags = useRef(new Map<string, HTMLDivElement>());
@@ -347,6 +359,8 @@ function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: Scene
       debugLines.current.length = 0;
     }
 
+    const holderId = adapter.ball.inHandsOf;
+    let holding = false;
     for (const runtime of adapter.players) {
       const visual = runtime.visual;
       const x = visual.position.x;
@@ -359,13 +373,14 @@ function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: Scene
       const command = player.machine.update(visual, renderTime, simDelta);
 
       // Facing is the engine's. The view only overrides it to turn a scorer to the
-      // camera, and turns at a bounded rate so it never snaps.
+      // camera, or a keeper to where they are throwing it (the action's aim), and turns
+      // at a bounded rate so it never snaps.
       if (visual.placed) {
         player.heading = command.facing.heading;
       } else {
         const want = command.action.facesCamera
           ? Math.atan2(cam.x - x, cam.z - z) + (CELEBRATION_FACING[command.action.variant] ?? 0)
-          : command.facing.heading;
+          : (command.action.aim ?? command.facing.heading);
         const most = TURN_RATE * simDelta;
         player.heading += Math.max(-most, Math.min(most, shortestAngle(player.heading, want)));
       }
@@ -384,6 +399,12 @@ function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: Scene
 
       // The realistic body if the model is there; otherwise the procedural one.
       const modelDrawn = pool.draw(player, command, x, z, simDelta, level);
+
+      // A keeper with the ball in their hands: it is drawn there, off this frame's pose.
+      if (runtime.id === holderId) {
+        heldBallPoint(held.current, command, x, z, player.heading, look.stature, modelDrawn ? player.body : null);
+        holding = true;
+      }
 
       if (describe) {
         const body: AnimationBody = modelDrawn ? (player.body?.drawnByPose ? 'GLB+POSE' : 'GLB') : 'PROCEDURAL';
@@ -437,7 +458,9 @@ function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: Scene
           flight.kind === 'shot'
             ? shotEndHeight(flight.fromX, flight.fromY, flight.toY, flight.onTarget, BALL_RADIUS)
             : BALL_RADIUS;
-        lofted.current = flight.kind === 'pass' ? passLoft(flight.fromX, flight.fromY, flight.toX, flight.toY) : 0;
+        // Out of a keeper's hands it bows as it was thrown (or kicked); otherwise as passed.
+        lofted.current =
+          flight.loft ?? (flight.kind === 'pass' ? passLoft(flight.fromX, flight.fromY, flight.toX, flight.toY) : 0);
         settling.current = false;
       } else if (!ownerId && (flightSeen.current?.kind === 'shot' || lofted.current > 0)) {
         // It came down with nobody on it, so let it settle rather than stop dead. A pass
@@ -451,11 +474,12 @@ function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: Scene
     let ballY = BALL_RADIUS;
     if (flight && flight.duration > 0) {
       const spread = Math.hypot(flight.toX - flight.fromX, flight.toY - flight.fromY);
+      // Out of a keeper's hands it leaves from the hand (or boot) that plays it.
       ballY = flightHeight(
         flight.kind,
         spread,
         flight.elapsed / flight.duration,
-        BALL_RADIUS,
+        flight.startHeight ?? BALL_RADIUS,
         aimedAt.current,
         lofted.current,
       );
@@ -469,10 +493,38 @@ function MatchObjects({ engine, overlay, audio, appearance, diagnostics }: Scene
       }
     }
 
+    // Where it belongs this frame: in the keeper's hands, or where the flight has it.
+    const drawn = drawnBall.current;
+    if (holding) drawn.copy(held.current);
+    else drawn.set(ballX, ballY, ballZ);
+    const blend = handoff.current;
+    const heldNow = holding ? holderId : null;
+    if (heldNow !== heldBy.current) {
+      // Into or out of the hands: ease across from where it was last drawn.
+      heldBy.current = heldNow;
+      const shown = ball.current?.position;
+      if (shown && !adapter.ball.placed) {
+        blend.x = shown.x - drawn.x;
+        blend.y = shown.y - drawn.y;
+        blend.z = shown.z - drawn.z;
+        blend.left = HANDOFF_S;
+      } else {
+        blend.left = 0;
+      }
+    }
+    if (blend.left > 0) {
+      const share = blend.left / HANDOFF_S;
+      drawn.x += blend.x * share;
+      drawn.y += blend.y * share;
+      drawn.z += blend.z * share;
+      blend.left = Math.max(0, blend.left - simDelta);
+    }
+
     if (ball.current) {
-      ball.current.position.set(ballX, ballY, ballZ);
-      // Rolled or spun by however far it just travelled — unless it was just placed.
-      if (!adapter.ball.placed) {
+      ball.current.position.copy(drawn);
+      // Rolled or spun by however far it just travelled — unless it was just placed, or
+      // is held.
+      if (!adapter.ball.placed && !holding) {
         ball.current.rotation.x += (ballZ - lastBall.current.z) / BALL_RADIUS;
         ball.current.rotation.z -= (ballX - lastBall.current.x) / BALL_RADIUS;
       }
