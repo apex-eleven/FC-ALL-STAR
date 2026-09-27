@@ -106,4 +106,8 @@ export const PATHS = {
   saveErrors: 'saveErrors',
   chat: 'chat',
   oneOfOne: 'oneOfOne',
+  /** Admin-only: what makes an account a bot, and how it plays. See features/bots. */
+  bots: 'bots',
+  /** Admin-only: bot settings and the runner lease. */
+  botConfig: 'botConfig',
 } as const;

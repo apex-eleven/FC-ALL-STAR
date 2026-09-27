@@ -30,6 +30,7 @@ import { applyMotion, loadMotion } from '@/features/motion/motion';
 import { restoreConfigFromRepo } from '@/features/backup/backup';
 import { pullConfigFromCloud } from '@/features/cloud/cloudConfig';
 import CloudConfigSync from '@/features/cloud/CloudConfigSync';
+import BotRunner from '@/features/bots/BotRunner';
 import '@/styles/globals.css';
 
 const container = document.getElementById('root');
@@ -77,6 +78,8 @@ function render() {
                                               <NavigationProvider>
                                                 <AnnouncementProvider>
                                                   <CloudConfigSync />
+                                                  {/* Plays the admin-made bots — only in an admin's browser, see features/bots. */}
+                                                  <BotRunner />
                                                   <App />
                                                 </AnnouncementProvider>
                                               </NavigationProvider>

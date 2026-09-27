@@ -25,9 +25,11 @@ service cloud.firestore {
     // ---- เซฟของผู้เล่น ----
     // เจ้าของอ่าน/เขียนได้ · แอดมินอ่านได้ (แผงแอดมินต้องมองเห็นรายชื่อไอดี)
     // และเขียนได้ (เสกเงิน/เสกการ์ด)
+    //
+    // แอดมินสร้างเซฟให้ uid อื่นได้ด้วย — ไว้สร้างไอดีบอทจากแผงแอดมิน (features/bots)
     match /accounts/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow delete: if isAdmin();
     }
@@ -50,7 +52,8 @@ service cloud.firestore {
     // แก้/ลบไม่ได้เลย ชื่อจึงถูกแย่งหรือขโมยไม่ได้
     match /usernames/{name} {
       allow read: if true;
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      // แอดมินจองชื่อแทนไอดีบอทได้ (ชื่อที่ถูกจองแล้วยังแย่งไม่ได้เหมือนเดิม — create ผ่านเฉพาะตอนยังว่าง)
+      allow create: if signedIn() && (request.resource.data.uid == request.auth.uid || isAdmin());
       allow update, delete: if isAdmin();
     }
 
@@ -68,9 +71,10 @@ service cloud.firestore {
     //
     // หมายเหตุ: กฎชุดนี้เคยหายไปจากไฟล์ ทั้งที่โค้ดเรียกใช้อยู่ — ผลคือตารางอันดับ
     // กับคู่แข่งจริงในถ้วยจะเงียบไปทั้งระบบโดยไม่มี error ให้เห็น
+    // แอดมินเขียนแถวให้ไอดีบอทได้ (บอทไม่มีบัญชี Auth ของตัวเอง — เบราว์เซอร์แอดมินเป็นคนเล่นแทน)
     match /leaderboard/{uid} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == uid;
+      allow write: if signedIn() && (request.auth.uid == uid || isAdmin());
     }
 
     // ---- ฟีดผู้โชคดีจากกาชาปอง ----
@@ -106,7 +110,8 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['uid', 'username', 'avatarId', 'level', 'ovr', 'text', 'at'])
-        && request.resource.data.uid == request.auth.uid
+        // ของตัวเอง — หรือแอดมินส่งแทนไอดีบอท
+        && (request.resource.data.uid == request.auth.uid || isAdmin())
         && request.resource.data.username is string
         && request.resource.data.username.size() <= 40
         && request.resource.data.avatarId is string
@@ -135,6 +140,17 @@ service cloud.firestore {
         && request.resource.data.key == key
         && request.resource.data.level in [9, 10];
       allow delete: if isAdmin();
+    }
+
+    // ---- ไอดีบอท (แอดมินเท่านั้น) ----
+    // bots/{uid} บอกว่าไอดีไหนเป็นบอทและเล่นยังไง · botConfig/* ตั้งค่ากับตัวล็อกผู้รันบอท
+    // ผู้เล่นทั่วไปอ่านไม่ได้เลย — ข้อมูลที่ผู้เล่นมองเห็นของบอท (เซฟ อันดับ แชท) หน้าตาเหมือนไอดีจริงทุกช่อง
+    // ตรงกับ PATHS.bots / PATHS.botConfig ใน src/features/cloud/firebase.ts
+    match /bots/{uid} {
+      allow read, write: if isAdmin();
+    }
+    match /botConfig/{doc} {
+      allow read, write: if isAdmin();
     }
 
     // ---- อย่างอื่นปิดหมด ----

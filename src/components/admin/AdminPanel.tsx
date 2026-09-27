@@ -38,6 +38,7 @@ import AdminSpecial from './AdminSpecial';
 import AdminInbox from './AdminInbox';
 import AdminDailyLogin from './AdminDailyLogin';
 import AdminBadges from './AdminBadges';
+import AdminBots from './AdminBots';
 import AdminWalkout from './AdminWalkout';
 import styles from './AdminPanel.module.css';
 
@@ -76,6 +77,7 @@ type Tab =
   | 'dailylogin'
   | 'announcement'
   | 'walkout'
+  | 'bots'
   | 'backup';
 
 const TABS: { id: Tab; label: string }[] = [
@@ -106,6 +108,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'dailylogin', label: 'เข้าเกมรายวัน' },
   { id: 'announcement', label: 'ประกาศ' },
   { id: 'walkout', label: 'Walkout' },
+  { id: 'bots', label: 'ไอดีบอท' },
   { id: 'backup', label: 'สำรองข้อมูล' },
 ];
 
@@ -295,6 +298,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         {tab === 'dailylogin' && <AdminDailyLogin />}
         {tab === 'announcement' && <AdminAnnouncement />}
         {tab === 'walkout' && <AdminWalkout />}
+        {tab === 'bots' && <AdminBots />}
         {tab === 'backup' && <AdminBackup />}
 
         <div className={styles.body} hidden={tab !== 'wallet'}>
